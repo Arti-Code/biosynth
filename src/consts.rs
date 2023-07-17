@@ -8,7 +8,7 @@ pub const WORLD_H: f32 = 1800.0;
 //pub const WORLD_H: f32              = 1800.0;
 
 pub const AGENTS_NUM: usize = 46;
-pub const AGENTS_NUM_MIN: usize = 0;
+pub const AGENTS_NUM_MIN: usize = 28;
 pub const AGENT_SIZE_MIN: i32 = 4;
 pub const AGENT_SIZE_MAX: i32 = 12;
 pub const AGENT_SPEED: f32 = 500.0;

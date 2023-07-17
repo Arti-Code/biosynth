@@ -22,7 +22,7 @@ use macroquad::prelude::*;
 
 fn app_configuration() -> Conf {
     Conf {
-        window_title: "BioSynth".to_string(),
+        window_title: "BIO-SYNTH".to_string(),
         window_width: SCREEN_WIDTH as i32,
         window_height: SCREEN_HEIGHT as i32,
         sample_count: 16,

@@ -172,7 +172,7 @@ impl Agent {
         );
     }
 
-    pub fn update2(&mut self, physics: &mut World) {
+    fn update_physics(&mut self, physics: &mut World) {
         match self.physics_handle {
             Some(handle) => {
                 self.update_enemy_position(physics);
@@ -185,8 +185,6 @@ impl Agent {
                         let dir = Vec2::from_angle(self.rot);
                         let rot = self.ang_vel * AGENT_TORQUE * self.size.powi(2);
                         let v = dir * self.vel * AGENT_IMPULSE * self.size.powi(2);
-                        //body.set_linvel([v.x, v.y].into(), true);
-                        //body.set_angvel(self.ang_vel, true);
                         body.apply_impulse([v.x, v.y].into(), true);
                         body.apply_torque_impulse(rot, true);
                         self.check_edges(body);
@@ -239,29 +237,44 @@ impl Agent {
         }
     }
 
-    pub fn update(&mut self, dt: f32, physics: &World) -> bool {
+    pub fn update(&mut self, dt: f32, physics: &mut World) -> bool {
         if self.analize_timer.update(dt) {
-            match self.physics_handle {
-                Some(handle) => {
-                    if let Some(tg) = physics.get_closesd_agent(handle) {
-                        self.enemy = Some(tg);
-                        self.update_enemy_position(physics);
-                    } else {
-                        self.enemy = None;
-                        self.enemy_position = None;
-                        self.enemy_dir = None;
-                    }
-                }
-                None => {}
-            }
-            let outputs = self.analizer.analize();
-            if outputs[0] >= 0.0 {
-                self.vel = outputs[0];
-            } else {
-                self.vel = 0.0;
-            }
-            self.ang_vel = outputs[1];
+            self.watch(physics);
+            self.analize();
         }
+        self.update_physics(physics);
+        self.calc_timers(dt);
+        self.calc_energy(dt);
+        return self.alife;
+    }
+
+    fn watch(&mut self, physics: &World) {
+        match self.physics_handle {
+            Some(handle) => {
+                if let Some(tg) = physics.get_closesd_agent(handle) {
+                    self.enemy = Some(tg);
+                    self.update_enemy_position(physics);
+                } else {
+                    self.enemy = None;
+                    self.enemy_position = None;
+                    self.enemy_dir = None;
+                }
+            }
+            None => {}
+        }
+    }
+
+    fn analize(&mut self) {
+        let outputs = self.analizer.analize();
+        if outputs[0] >= 0.0 {
+            self.vel = outputs[0];
+        } else {
+            self.vel = 0.0;
+        }
+        self.ang_vel = outputs[1];
+    }
+
+    fn calc_timers(&mut self, dt: f32) {
         self.pulse = (self.pulse + dt * 0.25) % 1.0;
         if self.motor {
             if self.motor_side {
@@ -281,13 +294,14 @@ impl Agent {
                 self.motor_phase2 = self.motor_phase2 - dt * (0.75 + self.vel);
             }
         }
-        //self.calc_energy(dt);
-        return self.alife;
     }
 
     fn calc_energy(&mut self, dt: f32) {
+        let basic_loss = self.size * dt * 0.5;
+        let move_loss = self.vel * self.size * dt * 2.0;
+        let loss = basic_loss + move_loss;
         if self.eng > 0.0 {
-            self.eng -= self.size * 1.0 * dt;
+            self.eng -= loss;
         } else {
             self.eng = 0.0;
             self.alife = false;

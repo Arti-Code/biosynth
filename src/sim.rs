@@ -108,17 +108,17 @@ impl Simulation {
         //self.sources.add_many(48);
     }
 
-    /*     fn create_jet(&mut self) { */
-    /*         let mut jet = Jet::new(); */
-    /*         let key = jet.key; */
-    /*         let pos = jet.pos; */
-    /*         let points = jet.points.clone(); */
-    /*         let rbh = self.world.add_jet_hull(key, &pos, points.clone()); */
-    /*         jet.physics_handle = Some(rbh); */
-    /*         self.jets.push(jet); */
-    /*     } */
+/*     fn create_jet(&mut self) {
+        let mut jet = Jet::new();
+        let key = jet.key;
+        let pos = jet.pos;
+        let points = jet.points.clone();
+        let rbh = self.world.add_jet_hull(key, &pos, points.clone());
+        jet.physics_handle = Some(rbh);
+        self.jets.push(jet);
+    } */
 
-    pub fn build_wall(&mut self) {
+    fn build_wall(&mut self) {
         for i in 0..1 {
             let y = 500.0 + i as f32 * 40.0;
             let x = 500.0;
@@ -129,17 +129,17 @@ impl Simulation {
 
     pub fn autorun_new_sim(&mut self) {
         self.signals.new_sim = true;
-        self.signals.new_sim_name = "Simulation".to_string();
+        self.signals.new_sim_name = "BioSynth".to_string();
     }
 
     fn update_agents(&mut self) {
-        for (id, agent) in self.agents.get_iter_mut() {
-            agent.update2(&mut self.world);
-        }
+        //for (id, agent) in self.agents.get_iter_mut() {
+        //    agent.update2(&mut self.world);
+        //}
         let dt = self.sim_state.dt;
         for (id, agent) in self.agents.get_iter_mut() {
             let uid = *id;
-            if !agent.update(dt, &self.world) {
+            if !agent.update(dt, &mut self.world) {
                 match agent.physics_handle {
                     Some(handle) => {
                         self.world.remove_physics_object(handle);
@@ -287,17 +287,6 @@ impl Simulation {
         }
     }
 
-    /* fn get_selected(&self) -> Option<&Agent> {
-        match self.agents.get(self.selected) {
-            Some(selected_agent) => {
-                return Some(selected_agent);
-            }
-            None => {
-                return None;
-            }
-        };
-    } */
-
     pub fn input(&mut self) {
         self.mouse_input();
         control_camera(&mut self.camera);
@@ -330,6 +319,14 @@ impl Simulation {
         self.sim_state.asteroids_num = self.elements.elements.len() as i32;
         self.sim_state.physics_num = self.world.get_physics_obj_num() as i32;
         self.sim_state.jets_num = self.jets.jets.len() as i32;
+        let mut kin_eng = 0.0;
+        let mut total_mass = 0.0;
+        for (_, rb) in self.world.rigid_bodies.iter() {
+            kin_eng += rb.kinetic_energy();
+            total_mass += rb.mass();
+        }
+        self.sim_state.total_eng = kin_eng;
+        self.sim_state.total_mass = total_mass;
     }
 
     fn check_agents_num(&mut self) {
@@ -358,7 +355,7 @@ impl Simulation {
 
     pub fn process_ui(&mut self) {
         let marked_agent = self.agents.get(self.selected);
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera);
+        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, marked_agent);
     }
 
     pub fn draw_ui(&self) {
@@ -450,7 +447,6 @@ impl SimState {
         }
     }
 }
-
 //?         [[[MOUSESTATE]]]
 pub struct MouseState {
     pub pos: Vec2,

@@ -1,16 +1,12 @@
-//use std::path::Path;
-
 use egui::{self, Context, Style};
 use egui::{Color32, RichText};
-//use egui_extras::image::RetainedImage;
 use egui_macroquad;
-//use image::open;
 use macroquad::prelude::*;
-//use macroquad::ui::StyleBuilder;
-
 use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use crate::sim::*;
+use crate::sim::{*, self};
 use crate::util::*;
+use crate::agent::*;
+use crate::progress_bar::*;
 
 pub struct UISystem {
     pub state: UIState,
@@ -19,6 +15,7 @@ pub struct UISystem {
 }
 
 impl UISystem {
+
     pub fn new() -> Self {
         Self {
             state: UIState::new(),
@@ -27,15 +24,19 @@ impl UISystem {
         }
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>) {
         egui_macroquad::ui(|egui_ctx| {
             self.pointer_over = egui_ctx.is_pointer_over_area();
             self.build_top_menu(egui_ctx, &sim_state.sim_name);
             self.build_quit_window(egui_ctx);
-            self.build_monit_window(egui_ctx, sim_state.fps, sim_state.dt, sim_state.sim_time, sim_state.physics_num, sim_state.total_kin_eng);
+            self.build_monit_window(egui_ctx, &sim_state);
             self.build_debug_window(egui_ctx, camera2d);
-            self.build_create_window(egui_ctx, signals);
+            //self.build_create_window(egui_ctx, signals);
             self.build_new_sim_window(egui_ctx, signals);
+            match agent {
+                Some(agent) => self.build_inspect_window(egui_ctx, agent),
+                None => {}
+            }
         });
     }
 
@@ -139,10 +140,16 @@ impl UISystem {
             });
     }
 
-    fn build_monit_window(&self, egui_ctx: &Context, fps: i32, delta: f32, time: f64, physics_num: i32, total_kin_eng: f32) {
+    fn build_monit_window(&self, egui_ctx: &Context, sim_state: &SimState) {
         if self.state.performance {
+            let total_mass = sim_state.total_mass;
+            let fps = sim_state.fps;
+            let delta = sim_state.dt;
+            let time = sim_state.sim_time;
+            let physics_num = sim_state.physics_num;
+
             let mut eng = String::new();
-            let eng2: Option<f32> = Some(total_kin_eng);
+            let eng2: Option<f32> = Some(sim_state.total_eng);
             match eng2 {
                 Some(e) if e < 1000.0 => {
                     eng = e.to_string();
@@ -173,7 +180,9 @@ impl UISystem {
                     ui.separator();
                     ui.label(format!("TIME: {}", time.round()));
                     ui.separator();
-                    ui.label(format!("TOTAL KINETIC ENERGY: {}", eng));
+                    ui.label(format!("TOTAL ENERGY: {}", eng));
+                    ui.separator();
+                    ui.label(format!("TOTAL MASS: {}", total_mass.round()));
                     ui.separator();
                     ui.label(format!("PHYSICS OBJECTS: {}", physics_num));
                 });
@@ -309,6 +318,45 @@ impl UISystem {
                             }
                         })
                     });
+                });
+        }
+    }
+
+    fn build_inspect_window(&self, egui_ctx: &Context, agent: &Agent) {
+        if self.state.inspect {
+            let rot = agent.rot;
+            let size = agent.size;
+            let tg_pos = agent.enemy_position;
+            let tg_ang = agent.enemy_dir;
+            let pos = agent.pos;
+            egui::Window::new("INSPECT")
+                .default_pos((175.0, 5.0))
+                .default_width(200.0)
+                .show(egui_ctx, |ui| {
+                    ui.label(RichText::new("AGENT").strong());
+                    ui.label(format!("direction: [{}]", ((rot * 10.0).round()) / 10.0));
+                    ui.label(format!("size: [{}]", size));
+                    ui.label(format!("position: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
+                    ui.separator();
+                    ui.label(RichText::new("ENEMY").strong());
+                    match (tg_pos, tg_ang) {
+                        (Some(target), Some(ang)) => {
+                            ui.label(format!("position: [x: {} | y:{}]", target.x.round(), target.y.round()));
+                            ui.label(format!("angle: [{}]", (ang*10.0).round()/10.0));
+                        }
+                        (None, None) => {
+                            ui.label(format!("position: [---]"));
+                            ui.label(format!("angle: [---]"));
+                        }
+                        (_, _) => {
+                            ui.label(format!("position: [---]"));
+                            ui.label(format!("angle: [---]"));
+                        }
+                    }
+                    ui.separator();
+                    ui.label(format!("energy: {}/{}", agent.eng.round(), agent.max_eng.round()));
+                    let eng_prog = agent.eng / agent.max_eng;
+                    ui.add(ProgressBar::new(eng_prog).desired_width(100.0).fill(Color32::BLUE).show_percentage());
                 });
         }
     }
