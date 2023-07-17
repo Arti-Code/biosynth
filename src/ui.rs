@@ -27,12 +27,7 @@ impl UISystem {
         }
     }
 
-    pub fn ui_process(
-        &mut self,
-        sim_state: &SimState,
-        signals: &mut Signals,
-        camera2d: &Camera2D,
-    ) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D) {
         egui_macroquad::ui(|egui_ctx| {
             self.pointer_over = egui_ctx.is_pointer_over_area();
             self.build_top_menu(egui_ctx, &sim_state.sim_name);
@@ -144,15 +139,7 @@ impl UISystem {
             });
     }
 
-    fn build_monit_window(
-        &self,
-        egui_ctx: &Context,
-        fps: i32,
-        delta: f32,
-        time: f64,
-        physics_num: i32,
-        total_kin_eng: f32,
-    ) {
+    fn build_monit_window(&self, egui_ctx: &Context, fps: i32, delta: f32, time: f64, physics_num: i32, total_kin_eng: f32) {
         if self.state.performance {
             let mut eng = String::new();
             let eng2: Option<f32> = Some(total_kin_eng);

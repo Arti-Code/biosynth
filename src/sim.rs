@@ -270,6 +270,10 @@ impl Simulation {
             self.elements.add_element(asteroid, &mut self.world);
             self.signals.spawn_asteroid = false;
         }
+        if self.signals.spawn_particles {
+            self.particles.add_many_elements(5, &mut self.world);
+            self.signals.spawn_particles = false;
+        }
         if self.signals.spawn_jet {
             let jet = Jet::new();
             self.jets.add_jet(jet, &mut self.world);
