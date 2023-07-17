@@ -1,0 +1,46 @@
+Live2:
+    0.4:
+        ✔ add rapier physics world
+        ✔ add agents to physics world
+        ✔ send agents data to phisics world
+        ✔ get agents data from physics world
+        ☐ get collision events from physics world 
+    0.3:
+        ☐ obstacles (rocks)
+        ✔ world_size
+        ✔ camera translation
+        ✔ camera zoom in/zoom out
+        ✔ new simulation naming
+        ☐ options window @low 
+        ☐ camera control window @low 
+        ☐ timeflow window @low 
+        ✔ restart simulation
+        ✘ fps count control 
+        ✔ init rewrite code
+        ✔ simulation struct: rewrite [ init() ]
+        ✔ simulation struct: rewrite [ update() ]
+        ✔ simulation struct: rewrite [ draw() ]
+        ✔ simulation struct: rewrite [ input() ]
+        ✔ simulation struct: rewrite [ collisions_mapper ]
+        ✔ simulation struct: rewrite [ detection_mapper ]
+        ✔ fix detection range
+        ✔ fix: select agent by mouse after camera transformations update
+        ✘ fix: initial camera parameters 
+    0.2:
+        ✘ camera viewport
+        ✘ camera translation, zoom in/zoom out
+        ✔ keyboard input 
+        ✔ mouse input 
+        ✔ collisions between circles (parry2d)
+        ✘ collisions between circles and polygons (parry2d)
+        ✔ agent's energy 
+        ✔ survability
+        ✔ sense of vision 
+        ✘ attack
+        ✘ neural network
+        ✘ genethic algorithm
+        ✘ loading/saving simulation
+        ✘ obstacles
+        ✘ resources
+        ✔ ui
+        

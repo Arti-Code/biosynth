@@ -1,0 +1,24 @@
+[package]
+name = "biosynth"
+version = "0.1.0"
+edition = "2021"
+authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
+keywords = ["physics", "sandbox", "simulation"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+macroquad = "0.3.25"
+#parry2d = "0.13.4"
+rapier2d = { version = "0.17.2", features = [ "simd-stable" ] }
+nalgebra = { version = "0.32.2", features = ["convert-glam020"] }
+glam = "0.24.0"
+egui-macroquad = "0.15.0"
+egui = "0.21.0"
+egui_extras = {version = "0.21.0", features = ["image"]}
+image = { version = "0.24", features = ["jpeg", "png"] }
+rand = "0.8.5"
+#crossbeam = "0.8.2"
+
+[build-dependencies]
+embed-resource = "2.1.1"
