@@ -100,15 +100,15 @@ impl Agent {
         }
         let pulse = (self.pulse * 2.0) - 1.0;
         self.draw_target();
-        draw_circle_lines(x0, y0, self.size, 2.0, self.color);
+        draw_circle_lines(x0, y0, self.size, 4.0, self.color);
         draw_circle(x0, y0, (self.size / 2.0) * pulse.abs(), self.color);
         self.draw_front();
         //draw_line(x1, y1, x2, y2, 1.0, self.color);
         //draw_text(&self.key.to_string(), x0-80.0, y0-self.size*2.0, 20.0, WHITE);
         if field_of_view {
-            draw_circle_lines(x0, y0, self.vision_range, 0.75, GRAY);
+            draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
+            self.draw_info(&font);
         }
-        self.draw_info(&font);
     }
 
     fn draw_front(&self) {
@@ -121,8 +121,8 @@ impl Agent {
         let y0r = self.pos.y + v0r.y;
         let x2 = self.pos.x + dir.x * self.size * 2.0;
         let y2 = self.pos.y + dir.y * self.size * 2.0;
-        draw_line(x0l, y0l, x2, y2, 2.0, self.color);
-        draw_line(x0r, y0r, x2, y2, 2.0, self.color);
+        draw_line(x0l, y0l, x2, y2, 4.0, self.color);
+        draw_line(x0r, y0r, x2, y2, 4.0, self.color);
     }
 
     fn draw_target(&self) {
@@ -137,8 +137,8 @@ impl Agent {
                 let y0r = self.pos.y + v0r.y;
                 let x1 = enemy_position.x;
                 let y1 = enemy_position.y;
-                draw_line(x0l, y0l, x1, y1, 0.75, self.color);
-                draw_line(x0r, y0r, x1, y1, 0.75, self.color);
+                draw_line(x0l, y0l, x1, y1, 2.0, self.color);
+                draw_line(x0r, y0r, x1, y1, 2.0, self.color);
             }
         }
     }
@@ -161,13 +161,13 @@ impl Agent {
         draw_text_ex(
             &info,
             x0 - txt_center.x,
-            y0 - txt_center.y + self.size * 2.0,
+            y0 - txt_center.y + self.size * 2.0+8.0,
             text_cfg.clone(),
         );
         draw_text_ex(
             &info_mass,
             x0 - txt_center.x,
-            y0 - txt_center.y + self.size * 2.0 + 15.0,
+            y0 - txt_center.y + self.size * 2.0 + 23.0,
             text_cfg.clone(),
         );
     }

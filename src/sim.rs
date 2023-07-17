@@ -99,9 +99,9 @@ impl Simulation {
 
     pub fn init(&mut self) {
         let agents_num = self.config.agents_init_num;
-        //self.agents.add_many_agents(agents_num as usize, &mut self.world);
+        self.agents.add_many_agents(agents_num as usize, &mut self.world);
         //self.elements.add_many_elements(ASTER_NUM, &mut self.world);
-        self.particles.add_many_elements(PARTICLES_NUM as usize, &mut self.world);
+        //self.particles.add_many_elements(PARTICLES_NUM as usize, &mut self.world);
         //self.build_wall();
         //self.jets.add_many_jets(1, &mut self.world);
         //self.create_jet();
@@ -184,10 +184,10 @@ impl Simulation {
         self.update_sim_state();
         self.check_agents_num();
         self.calc_selection_time();
-        //self.update_agents();
+        self.update_agents();
         //self.update_elements();
         //self.update_jet();
-        self.update_particles();
+        //self.update_particles();
         self.world.step_physics();
     }
 
@@ -198,7 +198,7 @@ impl Simulation {
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_grid(50);
         //self.draw_statics();
-        //self.draw_agents();
+        self.draw_agents();
         //self.draw_elements();
         //self.draw_jet();
         self.draw_particles();
@@ -437,7 +437,7 @@ impl SimState {
     pub fn new() -> Self {
         Self {
             sim_name: String::new(),
-            agents_num: 0,
+            agents_num: AGENTS_NUM as i32,
             asteroids_num: 0,
             jets_num: 0,
             physics_num: 0,

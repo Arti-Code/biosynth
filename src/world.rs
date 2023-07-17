@@ -102,11 +102,11 @@ impl World {
 
     pub fn add_particle(&mut self, p_type: u8, position: &Vec2, radius: f32) -> RigidBodyHandle {
         let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
-        let particle = RigidBodyBuilder::dynamic().position(iso).linear_damping(0.0).angular_damping(0.0)
+        let particle = RigidBodyBuilder::dynamic().position(iso).linear_damping(0.1).angular_damping(0.1)
             .user_data(p_type as u128).build();
-        let collider = ColliderBuilder::ball(radius * 1.1).density(1.0).restitution(0.5).friction(0.5)
-            //.active_collision_types(ActiveCollisionTypes::default() | ActiveCollisionTypes::DYNAMIC_DYNAMIC)
-            .active_collision_types(ActiveCollisionTypes::empty())
+        let collider = ColliderBuilder::ball(radius).density(0.1).restitution(0.5).friction(0.5)
+            .active_collision_types(ActiveCollisionTypes::default() | ActiveCollisionTypes::DYNAMIC_DYNAMIC)
+            //.active_collision_types(ActiveCollisionTypes::empty())
             .active_events(ActiveEvents::COLLISION_EVENTS | ActiveEvents::CONTACT_FORCE_EVENTS).build();
         let rb_handle = self.rigid_bodies.insert(particle);
         let coll_handle = self.colliders.insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
@@ -162,13 +162,13 @@ impl World {
         let iso = Isometry::new(Vector2::new(position.x, position.y), rotation);
         let ball = RigidBodyBuilder::dynamic()
             .position(iso)
-            .linear_damping(0.5)
-            .angular_damping(0.7)
+            .linear_damping(0.75)
+            .angular_damping(0.75)
             .additional_mass_properties(MassProperties::from_ball(1.0, radius))
             .user_data(key as u128)
             .build();
         let mut collider = ColliderBuilder::ball(radius)
-            .density(0.0)
+            .density(1.0).restitution(0.2).friction(0.8)
             .active_collision_types(ActiveCollisionTypes::default())
             .active_events(ActiveEvents::COLLISION_EVENTS)
             .build();

@@ -25,7 +25,7 @@ fn app_configuration() -> Conf {
         window_title: "BioSynth".to_string(),
         window_width: SCREEN_WIDTH as i32,
         window_height: SCREEN_HEIGHT as i32,
-        sample_count: 8,
+        sample_count: 16,
         window_resizable: false,
         ..Default::default()
     }
