@@ -1,10 +1,8 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 mod agent;
 mod camera;
 mod consts;
-mod element;
-mod jet;
 mod kinetic;
 mod neuro;
 mod particle;
@@ -17,7 +15,6 @@ mod world;
 
 use crate::consts::*;
 use crate::sim::*;
-use crate::util::*;
 use macroquad::prelude::*;
 
 fn app_configuration() -> Conf {

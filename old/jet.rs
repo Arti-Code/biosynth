@@ -1,6 +1,7 @@
 #![allow(unused)]
 use crate::consts::*;
 use crate::kinetic::make_isometry;
+use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::world::*;
@@ -51,7 +52,7 @@ impl Jet {
         }
     }
 
-    pub fn draw(&self, font: Font) {
+    pub fn draw(&self, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let l = self.vertices.len();
@@ -82,11 +83,11 @@ impl Jet {
         self.draw_info(font);
     }
 
-    fn draw_info(&self, font: Font) {
+    fn draw_info(&self, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let text_cfg = TextParams {
-            font: font,
+            font: *font,
             font_size: 14,
             color: WHITE,
             ..Default::default()
@@ -100,7 +101,7 @@ impl Jet {
             k_eng,
             (rot * 10.0).round() / 10.0
         );
-        let txt_center = get_text_center(&info, Some(font), 14, 1.0, 0.0);
+        let txt_center = get_text_center(&info, Some(*font), 14, 1.0, 0.0);
         draw_text_ex(
             &info,
             x0 - txt_center.x,

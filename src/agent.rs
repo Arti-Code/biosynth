@@ -44,6 +44,7 @@ pub struct Agent {
 }
 
 impl Agent {
+    
     pub fn new() -> Self {
         let s = rand::gen_range(AGENT_SIZE_MIN, AGENT_SIZE_MAX) as f32;
         let motor = thread_rng().gen_bool(1.0);

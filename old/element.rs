@@ -16,7 +16,7 @@ use rapier2d::prelude::RigidBodyHandle;
 
 pub trait DynamicElement {
     //fn create() -> Self;
-    fn draw(&self, font: Font);
+    fn draw(&self, font: &Font);
     fn update(&mut self, dt: f32, physics: &mut World);
 }
 
@@ -50,7 +50,7 @@ impl Asteroid {
             ang_vel: rand::gen_range(-1.0, 1.0),
             size: (size as f32),
             color: random_color(),
-            points,
+            points: points,
             points2: points2.clone(),
             shape: ConvexPolygon::from_convex_polyline(points2).unwrap(),
             physics_handle: None,
@@ -60,7 +60,7 @@ impl Asteroid {
 }
 
 impl DynamicElement for Asteroid {
-    fn draw(&self, font: Font) {
+    fn draw(&self, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let l = self.points.len();
@@ -88,13 +88,13 @@ impl DynamicElement for Asteroid {
             );
         }
         let text_cfg = TextParams {
-            font,
+            font: *font,
             font_size: 14,
             color: WHITE,
             ..Default::default()
         };
         let kin_eng_info = String::from(&(self.kin_eng / 10000.0).round().to_string());
-        let txt_center = get_text_center(&kin_eng_info, Some(font), 14, 1.0, 0.0);
+        let txt_center = get_text_center(&kin_eng_info, Some(*font), 14, 1.0, 0.0);
         draw_text_ex(
             &kin_eng_info,
             x0 - txt_center.x,
@@ -213,9 +213,9 @@ impl StaticBox {
             key: thread_rng().gen::<u64>(),
             pos: Vec2::new(x, y),
             rot: 0.0,
-            size,
+            size: (size as f32),
             color: random_color(),
-            shape: Cuboid::new([size / 2., size / 2.].into()),
+            shape: Cuboid::new([size as f32 / 2., size as f32 / 2.].into()),
             physics_handle: None,
         }
     }

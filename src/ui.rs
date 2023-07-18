@@ -1,9 +1,11 @@
-use egui::{self, Context, Style};
+#![allow(unused)]
+
+use egui::{self, Context};
 use egui::{Color32, RichText};
 use egui_macroquad;
 use macroquad::prelude::*;
 use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use crate::sim::{*, self};
+use crate::sim::*;
 use crate::util::*;
 use crate::agent::*;
 use crate::progress_bar::*;

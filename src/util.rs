@@ -1,4 +1,4 @@
-//#![allow(unused)]
+#![allow(unused)]
 
 use std::f32::consts::PI;
 
@@ -124,6 +124,7 @@ pub struct Signals {
 }
 
 impl Signals {
+    
     pub fn new() -> Self {
         Self {
             spawn_agent: false,

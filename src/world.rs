@@ -1,11 +1,8 @@
-//use crossbeam::channel::{Receiver, Sender};
-//use crossbeam::*;
-use crate::consts::{ASTER_SPEED, GRAV, PARTICLE_SPEED, WORLD_H, WORLD_W, FIELD_RADIUS};
+
+use crate::consts::*;
 use crate::util::*;
 use macroquad::prelude::*;
-use nalgebra::Point2;
 use rapier2d::{na::Vector2, prelude::*};
-use rapier2d::geometry::Ball;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use crate::particle::ParticleTable;
@@ -64,42 +61,6 @@ impl World {
         self.query_pipeline.update(&self.rigid_bodies, &self.colliders);
     }
 
-    pub fn add_circle_body(
-        &mut self,
-        key: u64,
-        position: &Vec2,
-        radius: f32,
-        detection_range: Option<f32>,
-    ) -> RigidBodyHandle {
-        let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
-        let ball = RigidBodyBuilder::dynamic()
-            .position(iso)
-            .linear_damping(0.01)
-            .angular_damping(0.01)
-            .user_data(key as u128)
-            .build();
-        let mut collider = ColliderBuilder::ball(radius)
-            .density(0.001)
-            .restitution(0.5)
-            .friction(0.6)
-            .active_collision_types(ActiveCollisionTypes::default())
-            .active_events(ActiveEvents::COLLISION_EVENTS)
-            .build();
-        let rb_handle = self.rigid_bodies.insert(ball);
-        let coll_handle =
-            self.colliders
-                .insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
-        if detection_range.is_some() {
-            let detector = ColliderBuilder::ball(detection_range.unwrap())
-                .sensor(true)
-                .build();
-            _ = self
-                .colliders
-                .insert_with_parent(detector, rb_handle, &mut self.rigid_bodies);
-        }
-        return rb_handle;
-    }
-
     pub fn add_particle(&mut self, p_type: u8, position: &Vec2, radius: f32) -> RigidBodyHandle {
         let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
         let particle = RigidBodyBuilder::dynamic().position(iso).linear_damping(0.1).angular_damping(0.1)
@@ -109,7 +70,7 @@ impl World {
             //.active_collision_types(ActiveCollisionTypes::empty())
             .active_events(ActiveEvents::COLLISION_EVENTS | ActiveEvents::CONTACT_FORCE_EVENTS).build();
         let rb_handle = self.rigid_bodies.insert(particle);
-        let coll_handle = self.colliders.insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
+        _ = self.colliders.insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
         //let imp = Vector2::new(rand::gen_range(-1.0, 1.0), rand::gen_range(-1.0, 1.0)) * PARTICLE_SPEED;
         //let obj = self.rigid_bodies.get_mut(rb_handle).unwrap();
         //obj.set_linvel(imp, true);
@@ -118,141 +79,21 @@ impl World {
         return rb_handle;
     }
 
-    pub fn add_static_circle(&mut self, key: u64, position: &Vec2, size: f32) -> RigidBodyHandle {
-        let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
-        let brick = RigidBodyBuilder::fixed()
-            .position(iso)
-            .user_data(key as u128)
-            .build();
-        let collider = ColliderBuilder::ball(size)
-            .restitution(0.5)
-            .friction(0.6)
-            .active_collision_types(
-                ActiveCollisionTypes::default() | ActiveCollisionTypes::DYNAMIC_FIXED,
-            )
-            .build();
-        let rb_handle = self.rigid_bodies.insert(brick);
-        let coll_handle =
-            self.colliders
-                .insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
-        return rb_handle;
-    }
-
-    pub fn add_static_box(&mut self, key: u64, position: &Vec2, size: f32) -> RigidBodyHandle {
-        let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
-        let brick = RigidBodyBuilder::fixed()
-            .position(iso)
-            .user_data(key as u128)
-            .build();
-        let collider = ColliderBuilder::cuboid(size, 10.0)
-            .restitution(0.5)
-            .friction(0.6)
-            .active_collision_types(ActiveCollisionTypes::default())
-            .active_events(ActiveEvents::COLLISION_EVENTS)
-            .build();
-        let rb_handle = self.rigid_bodies.insert(brick);
-        let coll_handle =
-            self.colliders
-                .insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
-        println!("static box");
-        return rb_handle;
-    }
-
     pub fn add_dynamic_agent(&mut self, key: u64, position: &Vec2, radius: f32, rotation: f32, detection_range: Option<f32>) -> RigidBodyHandle {
         let iso = Isometry::new(Vector2::new(position.x, position.y), rotation);
-        let ball = RigidBodyBuilder::dynamic()
-            .position(iso)
-            .linear_damping(0.75)
-            .angular_damping(0.75)
+        let ball = RigidBodyBuilder::dynamic().position(iso).linear_damping(0.75).angular_damping(0.75)
             .additional_mass_properties(MassProperties::from_ball(1.0, radius))
-            .user_data(key as u128)
-            .build();
-        let mut collider = ColliderBuilder::ball(radius)
-            .density(1.0).restitution(0.2).friction(0.8)
-            .active_collision_types(ActiveCollisionTypes::default())
-            .active_events(ActiveEvents::COLLISION_EVENTS)
+            .user_data(key as u128).build();
+        let collider = ColliderBuilder::ball(radius).density(1.0).restitution(0.2).friction(0.8)
+            .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS)
             .build();
         let rb_handle = self.rigid_bodies.insert(ball);
-        let coll_handle =
-            self.colliders
-                .insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
+        _ = self.colliders.insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
         if detection_range.is_some() {
             let detector = ColliderBuilder::ball(detection_range.unwrap())
-                .sensor(true)
-                .density(0.0)
-                .build();
-            _ = self
-                .colliders
-                .insert_with_parent(detector, rb_handle, &mut self.rigid_bodies);
+                .sensor(true).density(0.0).build();
+            _ = self.colliders.insert_with_parent(detector, rb_handle, &mut self.rigid_bodies);
         }
-        return rb_handle;
-    }
-
-    pub fn add_poly_body(&mut self, key: u64, position: &Vec2, points: Vec<Point2<f32>> ) -> RigidBodyHandle {
-        let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
-        let poly = RigidBodyBuilder::dynamic()
-            .position(iso)
-            .linear_damping(0.0)
-            .angular_damping(0.0)
-            .can_sleep(true)
-            .user_data(key as u128)
-            .build();
-        let collider = ColliderBuilder::convex_polyline(points)
-            .unwrap()
-            .restitution(0.5)
-            .friction(0.6)
-            .active_collision_types(
-                ActiveCollisionTypes::default() | ActiveCollisionTypes::DYNAMIC_DYNAMIC,
-            )
-            .active_events(ActiveEvents::COLLISION_EVENTS)
-            .density(1.0)
-            .build();
-        let rb_handle = self.rigid_bodies.insert(poly);
-        let coll_handle =
-            self.colliders
-                .insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
-        let obj = self.rigid_bodies.get_mut(rb_handle).unwrap();
-        let imp =
-            Vector2::new(rand::gen_range(-1.0, 1.0), rand::gen_range(-1.0, 1.0)) * ASTER_SPEED;
-        //obj.apply_impulse(imp, true);
-        obj.set_linvel(imp, true);
-        return rb_handle;
-    }
-
-    pub fn add_jet_hull(
-        &mut self,
-        key: u64,
-        position: &Vec2,
-        points: Vec<Point2<f32>>,
-    ) -> RigidBodyHandle {
-        let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
-        let poly = RigidBodyBuilder::dynamic()
-            .position(iso)
-            .linear_damping(0.05)
-            .angular_damping(0.5)
-            .can_sleep(false)
-            .user_data(key as u128)
-            .build();
-        let collider = ColliderBuilder::convex_polyline(points)
-            .expect("cant build hull collider")
-            .active_collision_types(
-                ActiveCollisionTypes::default() | ActiveCollisionTypes::DYNAMIC_DYNAMIC,
-            )
-            .active_events(ActiveEvents::COLLISION_EVENTS)
-            .density(1.0)
-            .build();
-        let rb_handle = self.rigid_bodies.insert(poly);
-        let coll_handle =
-            self.colliders
-                .insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
-        let obj = self
-            .rigid_bodies
-            .get_mut(rb_handle)
-            .expect("can't get mut hull collider");
-        //obj.add
-        //let imp = Vector2::new(rand::gen_range(-1.0, 1.0), rand::gen_range(-1.0, 1.0)) * 0.0;
-        //obj.apply_impulse(imp, true);
-        //obj.set_linvel(imp, true);
         return rb_handle;
     }
 
@@ -378,9 +219,9 @@ impl World {
         //let rbm = &mut self.rigid_bodies;
         let mut action = Vec2::ZERO;
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
-        let mass = rb.mass();
+        //let mass = rb.mass();
         let pos1 = matric_to_vec2(rb.position().translation);
-        let dist = f32::INFINITY;
+        //let dist = f32::INFINITY;
         //let collider = ColliderBuilder::ball(32.0).build();
         let filter = QueryFilter {
             flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
