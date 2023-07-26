@@ -1,4 +1,5 @@
-//use macroquad::rand::*;
+#![allow(unused)]
+
 use rand::{thread_rng, Rng};
 
 pub struct Timer {

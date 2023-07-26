@@ -1,11 +1,14 @@
+#![allow(unused)]
 
 use crate::consts::*;
 use crate::util::*;
 use macroquad::prelude::*;
 use rapier2d::{na::Vector2, prelude::*};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
 use crate::particle::ParticleTable;
+use crossbeam::channel::{Receiver, Sender};
+//use crossbeam::*;
 
 pub struct World {
     pub attract_num: u32,
@@ -22,18 +25,19 @@ pub struct World {
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
     physics_hooks: (),
-    event_handler: (),
-    //event_handler: ChannelEventCollector,
-    //collision_recv: Receiver<CollisionEvent>,
+    event_handler: ChannelEventCollector,
+    collision_recv: Receiver<CollisionEvent>,
     pub detections: HashMap<RigidBodyHandle, (RigidBodyHandle, f32)>,
     particle_types: ParticleTable,
+    pub contacts: Contacts2,
 }
 
 impl World {
+
     pub fn new() -> Self {
-        //let (collision_send, collision_recv) = crossbeam::channel::unbounded();
-        //let (contact_force_send, contact_force_recv) = crossbeam::channel::unbounded();
-        //let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
+        let (collision_send, collision_recv) = crossbeam::channel::unbounded();
+        let (contact_force_send, contact_force_recv) = crossbeam::channel::unbounded();
+        let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
         Self {
             attract_num: 0,
             rigid_bodies: RigidBodySet::new(),
@@ -49,11 +53,11 @@ impl World {
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
             physics_hooks: (),
-            event_handler: (),
-            //event_handler: event_handler,
-            //collision_recv: collision_recv,
+            event_handler: event_handler,
+            collision_recv: collision_recv,
             detections: HashMap::new(),
             particle_types: ParticleTable::new_random(),
+            contacts: Contacts2::new(),
         }
     }
 
@@ -131,6 +135,8 @@ impl World {
             &self.event_handler,
         );
         self.update_intersections();
+        //self.receive_collisions_evts();
+        
         //if random_unit() <= 0.05 {
         //    println!("ATTRACTIONS: {}", self.attract_num);
         //}
@@ -192,10 +198,7 @@ impl World {
         }
     } */
 
-    fn get_body_handle_from_collider(
-        &self,
-        collider_handle: ColliderHandle,
-    ) -> Option<RigidBodyHandle> {
+    fn get_body_handle_from_collider(&self, collider_handle: ColliderHandle) -> Option<RigidBodyHandle> {
         let collider: &Collider;
         match self.colliders.get(collider_handle) {
             Some(col) => {
@@ -215,14 +218,10 @@ impl World {
         }
     }
 
-    pub fn get_around(&mut self, agent_body_handle: RigidBodyHandle) {
-        //let rbm = &mut self.rigid_bodies;
-        let mut action = Vec2::ZERO;
+    pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
-        //let mass = rb.mass();
         let pos1 = matric_to_vec2(rb.position().translation);
-        //let dist = f32::INFINITY;
-        //let collider = ColliderBuilder::ball(32.0).build();
         let filter = QueryFilter {
             flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
             groups: None,
@@ -234,41 +233,20 @@ impl World {
             if !collider.is_sensor() {
                 continue;
             }
-            self.query_pipeline.intersections_with_shape(
-                &self.rigid_bodies,
-                &self.colliders,
-                rb.position(),
-                &rapier2d::geometry::Ball::new(FIELD_RADIUS),
-                //&Ball::new(FIELD_RADIUS),
-                //collider.shape(),
-                filter,
+            self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), &rapier2d::geometry::Ball::new(radius), filter,
                 |collided| {
                     let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
+                    contacts.insert(rb2_handle);
                     let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
                     let mass2 = rb2.mass();
-                    let act = self.particle_types.get_action(rb.user_data as u8, rb2.user_data as u8);
                     let pos2 = matric_to_vec2(rb2.position().translation);
                     let dist = pos2.distance(pos1);
-                    let mut rel_dist = (FIELD_RADIUS-dist) / FIELD_RADIUS;
-                    let rev = 1.0;
-                    if rel_dist <= rev {
-                        rel_dist = rel_dist * act;
-                    } // else {
-                    //    rel_dist = -((rel_dist-rev)/(1.0-rev));
-                    //    //rel_dist = -((rel_dist-rev)/(1.0-rev));
-                    //}
                     let dir = pos2.normalize() - pos1.normalize();
-                    //rel_vec = rel_vec.normalize();
-                    let f = GRAV * mass2 * rel_dist;
-                    let vf = dir * f;
-                    action += vf;
                     return true;
                 },
             );
         }
-        let rbm = self.rigid_bodies.get_mut(agent_body_handle).unwrap();
-        rbm.reset_forces(true);
-        rbm.add_force(Vector2::new(action.x, action.y), true);
+        return contacts;
     }
 
     pub fn get_closesd_agent(&self, agent_body_handle: RigidBodyHandle) -> Option<RigidBodyHandle> {
@@ -314,6 +292,57 @@ impl World {
             return None;
         }
     }
+
+    pub fn get_contacts_info(&self) -> (i32, i32) {
+        return self.contacts.count();
+    }
+
+    fn receive_collisions_evts(&mut self) {
+        while let Ok(evt) = self.collision_recv.try_recv() {
+            match evt {
+                CollisionEvent::Started(ch1, ch2, CollisionEventFlags::SENSOR) => {
+                    //info!("collision started");
+                },
+                CollisionEvent::Stopped(ch1, ch2, CollisionEventFlags::SENSOR) => {
+                    //info!("collision started");
+                },
+                CollisionEvent::Stopped(ch1, ch2, CollisionEventFlags::REMOVED) => {
+                    self.contacts.del(ch1, &ch2);
+                    self.contacts.del(ch2, &ch1);
+                    info!("collision removed");
+                },
+                CollisionEvent::Started(ch1, ch2, _) => {
+                    if !self.colliders.get(ch1).unwrap().is_sensor() && !self.colliders.get(ch2).unwrap().is_sensor() {
+                        info!("collision started");
+                        self.contacts.insert(ch1, ch2);
+                        self.contacts.insert(ch2, ch1);
+                    }
+                },
+                CollisionEvent::Stopped(ch1, ch2, _) => {
+                    let c1 = self.colliders.get(ch1);
+                    let c2 = self.colliders.get(ch2);
+                    if c1.is_some() {
+                        if c1.unwrap().is_sensor() {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                    if c2.is_some() {
+                        if c2.unwrap().is_sensor() {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                    self.contacts.del(ch1, &ch2);
+                    self.contacts.del(ch2, &ch1);
+                    info!("collision stopped");
+                    
+                }
+            }
+        }
+    }
 }
 
 pub struct PhysicsData {
@@ -322,4 +351,102 @@ pub struct PhysicsData {
     pub mass: f32,
     pub kin_eng: Option<f32>,
     pub force: Option<Vec2>,
+}
+
+
+pub struct Contacts {
+    contacts: HashMap<u128, Vec<u128>>,
+}
+
+impl Contacts {
+    pub fn new() -> Self {
+        Self {
+            contacts: HashMap::new(),
+        }
+    }
+
+    pub fn clean(&mut self) {
+        self.contacts.clear();
+    }
+
+    pub fn get(&self, key: u128) -> Option<&Vec<u128>> {
+        let list = self.contacts.get(&key);
+        return list;
+    }
+
+    pub fn insert(&mut self, key: u128, contact_id: u128) {
+        if let Some(c) = self.contacts.get_mut(&key) {
+            c.push(contact_id);
+        } else {
+            self.contacts.insert(key, vec![contact_id]);
+        }
+    }
+
+    pub fn del(&mut self, key: u128, contact_id: u128) {
+        if let Some(c) = self.contacts.get_mut(&key) {
+            if c.contains(&contact_id) {
+                c.retain(|&v| v != contact_id);
+            }
+        }
+    }
+
+    pub fn count(&self) -> (i32, i32) {
+        let mut key_num = 0;
+        let mut contact_num = 0;
+        for (key, list) in self.contacts.iter() {
+            key_num += 1;
+            contact_num += list.len() as i32;
+        }
+        return (key_num, contact_num);
+    }
+}
+
+pub struct Contacts2 {
+    contacts: HashMap<ColliderHandle, HashSet<ColliderHandle>>,
+}
+
+impl Contacts2 {
+    pub fn new() -> Self {
+        Self {
+            contacts: HashMap::new(),
+        }
+    }
+
+    pub fn clean(&mut self) {
+        self.contacts.clear();
+    }
+
+    pub fn get(&self, key: ColliderHandle) -> Option<&HashSet<ColliderHandle>> {
+        let list = self.contacts.get(&key);
+        return list;
+    }
+
+    pub fn insert(&mut self, key: ColliderHandle, contact_id: ColliderHandle) {
+        if let Some(c) = self.contacts.get_mut(&key) {
+            c.insert(contact_id);
+        } else {
+            let mut set = HashSet::new();
+            set.insert(contact_id);
+            self.contacts.insert(key, set);
+        }
+    }
+
+    pub fn del(&mut self, key: ColliderHandle, contact_id: &ColliderHandle) {
+        if let Some(c) = self.contacts.get_mut(&key) {
+            if c.contains(&contact_id) {
+                c.remove(contact_id);
+            }
+        }
+        self.contacts.remove(&key);
+    }
+
+    pub fn count(&self) -> (i32, i32) {
+        let mut key_num = 0;
+        let mut contact_num = 0;
+        for (key, list) in self.contacts.iter() {
+            key_num += 1;
+            contact_num += list.len() as i32;
+        }
+        return (key_num, contact_num);
+    }
 }

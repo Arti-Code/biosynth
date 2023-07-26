@@ -21,6 +21,7 @@ pub struct ParticleType {
 }
 
 impl ParticleType {
+
     pub fn new_random(id: u8, p_color: Color) -> Self {
         Self {
             id: id,
@@ -42,6 +43,7 @@ pub struct ParticleTable {
 }
 
 impl ParticleTable {
+
     pub fn new_random() -> Self {
         let c = [RED, BLUE, GREEN, YELLOW, WHITE];
         let mut tab: Vec<ParticleType> = vec![];
@@ -54,17 +56,21 @@ impl ParticleTable {
             particle_types: tab.into(),
         }
     }
+    
     pub fn get_type(&self, id: u8) -> &ParticleType {
         return self.particle_types.get(id as usize).unwrap();
     }
+    
     pub fn get_action(&self, particle_type: u8, other_particle_type: u8) -> f32 {
         let pt = self.particle_types.get(particle_type as usize).unwrap();
         return pt.actions[other_particle_type as usize];
     }
+    
     pub fn get_color(&self, particle_type: u8) -> Color {
         let pt = self.particle_types.get(particle_type as usize).unwrap();
         return pt.color;
     }
+
 }
 
 pub struct Particle {
@@ -84,6 +90,7 @@ pub struct Particle {
 }
 
 impl Particle {
+    
     pub fn new(p_type: u8, p_color: Color) -> Self {
         let size = thread_rng().gen_range((PARTICLE_SIZE as u32)-3..=(PARTICLE_SIZE as u32)+3);
 
@@ -147,7 +154,7 @@ impl Particle {
     pub fn attract_repel(&mut self, physics: &mut World) {
         match self.physics_handle {
             Some(handle) => {
-                physics.get_around(handle);
+                //physics.get_around(handle);
             }
             None => {}
         }
@@ -184,6 +191,7 @@ pub struct ParticleCollector {
 }
 
 impl ParticleCollector {
+    
     pub fn new() -> Self {
         Self {
             particle_types: ParticleTable::new_random(),

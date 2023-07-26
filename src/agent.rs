@@ -1,14 +1,14 @@
 #![allow(unused)]
 use std::collections::hash_map::{Iter, IterMut};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
-
 use crate::consts::*;
 use crate::kinetic::make_isometry;
 use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::world::*;
+use crate::being::*;
 use ::rand::{thread_rng, Rng};
 use macroquad::{color, prelude::*};
 use rapier2d::geometry::*;
@@ -35,12 +35,58 @@ pub struct Agent {
     analize_timer: Timer,
     analizer: DummyNetwork,
     pub alife: bool,
-    //enemy: Detection,
+    pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub physics_handle: Option<RigidBodyHandle>,
+}
+
+impl Being for Agent {
+
+    fn draw(&self, selected: bool, font: &Font) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        if self.motor {
+            let tail = Vec2::from_angle(self.rot + (self.motor_phase * 0.5));
+            let x3 = x0 - tail.x * self.size * 1.4;
+            let y3 = y0 - tail.y * self.size * 1.4;
+            draw_circle(x3, y3, self.size / 2.0, self.color);
+        }
+        let pulse = (self.pulse * 2.0) - 1.0;
+        draw_circle_lines(x0, y0, self.size, 4.0, self.color);
+        draw_circle(x0, y0, (self.size / 2.0) * pulse.abs(), self.color);
+        self.draw_front();
+        if selected {
+            self.draw_target();
+            draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
+            self.draw_info(&font);
+        }
+    }    
+
+    fn update(&mut self, dt: f32, physics: &mut World) -> bool {
+        if self.analize_timer.update(dt) {
+            self.watch(physics);
+            self.update_contacts(physics);
+            self.analize();
+        }
+        for (contact, ang) in self.contacts.iter() {
+            if *ang <= PI/4.0 && *ang >= -PI/4.0 {
+                //self.add_energy(dt);
+
+                self.eng += dt*10.0*self.size;
+                if self.eng > self.max_eng {
+                    self.eng = self.max_eng;
+                }
+            }
+        }
+        self.update_physics(physics);
+        self.calc_timers(dt);
+        self.calc_energy(dt);
+        return self.alife;
+    }
+
 }
 
 impl Agent {
@@ -75,40 +121,8 @@ impl Agent {
             enemy: None,
             enemy_position: None,
             enemy_dir: None,
-            //enemy: Detection::new_empty(),
+            contacts: Vec::new(),
             physics_handle: None,
-        }
-    }
-
-    pub fn draw(&self, field_of_view: bool, font: &Font) {
-        //let dir = Vec2::from_angle(self.rot);
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
-        //let x1 = x0 + dir.x * self.size * 1.0;
-        //let y1 = y0 + dir.y * self.size * 1.0;
-        //let x2 = x0 + dir.x * self.size * 2.0;
-        //let y2 = y0 + dir.y * self.size * 2.0;
-        if self.motor {
-            let tail = Vec2::from_angle(self.rot + (self.motor_phase * 0.5));
-            //let tail2 = Vec2::from_angle(self.rot + (self.motor_phase2 * 0.5));
-            let x3 = x0 - tail.x * self.size * 1.4;
-            let y3 = y0 - tail.y * self.size * 1.4;
-            //let x4 = x0 - tail2.x * self.size * 2.4;
-            //let y4 = y0 - tail2.y * self.size * 2.4;
-            draw_circle(x3, y3, self.size / 2.0, self.color);
-            //draw_circle(x4, y4, self.size / 3.0, self.color);
-            //draw_line(x4, y4, x3, y3, self.size / 2.0, self.color)
-        }
-        let pulse = (self.pulse * 2.0) - 1.0;
-        self.draw_target();
-        draw_circle_lines(x0, y0, self.size, 4.0, self.color);
-        draw_circle(x0, y0, (self.size / 2.0) * pulse.abs(), self.color);
-        self.draw_front();
-        //draw_line(x1, y1, x2, y2, 1.0, self.color);
-        //draw_text(&self.key.to_string(), x0-80.0, y0-self.size*2.0, 20.0, WHITE);
-        if field_of_view {
-            draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
-            self.draw_info(&font);
         }
     }
 
@@ -122,8 +136,8 @@ impl Agent {
         let y0r = self.pos.y + v0r.y;
         let x2 = self.pos.x + dir.x * self.size * 2.0;
         let y2 = self.pos.y + dir.y * self.size * 2.0;
-        draw_line(x0l, y0l, x2, y2, 4.0, self.color);
-        draw_line(x0r, y0r, x2, y2, 4.0, self.color);
+        draw_line(x0l, y0l, x2, y2, 2.0, self.color);
+        draw_line(x0r, y0r, x2, y2, 2.0, self.color);
     }
 
     fn draw_target(&self) {
@@ -238,15 +252,23 @@ impl Agent {
         }
     }
 
-    pub fn update(&mut self, dt: f32, physics: &mut World) -> bool {
-        if self.analize_timer.update(dt) {
-            self.watch(physics);
-            self.analize();
+    fn update_contacts(&mut self, physics: &mut World) {
+        match self.physics_handle {
+            Some(rbh) => {
+                self.contacts.clear();
+                let contacts = physics.get_contacts_set(rbh, self.size);
+                for contact in contacts.iter() {
+                    if let Some(pos2) = physics.get_object_position(*contact) {
+                        let mut rel_pos = pos2 - self.pos;
+                        rel_pos = rel_pos.normalize_or_zero();
+                        let target_angle = rel_pos.angle_between(Vec2::from_angle(self.rot));
+                        self.contacts.push((*contact, target_angle));
+                    }
+
+                }
+            },
+            None => {},
         }
-        self.update_physics(physics);
-        self.calc_timers(dt);
-        self.calc_energy(dt);
-        return self.alife;
     }
 
     fn watch(&mut self, physics: &World) {

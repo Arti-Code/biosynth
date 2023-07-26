@@ -1,4 +1,5 @@
 #![allow(unused)]
+
 use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 //use std::f32::consts::PI;
@@ -36,6 +37,7 @@ pub struct Object {
 }
 
 impl Object {
+
     pub fn circle(radius: f32, position: Vec2) -> Self {
         Self {
             key: thread_rng().gen::<u64>(),
@@ -47,6 +49,7 @@ impl Object {
             rigid: None,
         }
     }
+    
     pub fn rect(width: f32, height: f32, position: Vec2) -> Self {
         Self {
             key: thread_rng().gen::<u64>(),
@@ -58,6 +61,7 @@ impl Object {
             rigid: None,
         }
     }
+    
     pub fn cube(side: f32, position: Vec2) -> Self {
         Self {
             key: thread_rng().gen::<u64>(),
@@ -69,6 +73,7 @@ impl Object {
             rigid: None,
         }
     }
+    
     pub fn add_physics_space(&mut self, physics_space: &mut World) {
         match self.shape {
             ObjectShape::CIRCLE{radius} => {
@@ -78,6 +83,7 @@ impl Object {
             _ => {},
         }
     }
+    
     pub fn update(&mut self, dt: f32, physics: &mut World) {
         match self.rigid {
             Some(handle) => {
@@ -113,6 +119,7 @@ impl Object {
         let y0 = self.loc.y;
         draw_circle(x0, y0, radius, self.color); //draw_text(kin_eng_info, x0-18.0, y0, 16.0, WHITE);
     }
+    
     fn edges_check(&mut self, body: &mut RigidBody) {
         let mut raw_pos = matric_to_vec2(body.position().translation);
         let mut out_of_edge = false;
@@ -142,6 +149,7 @@ pub struct ObjectCollector {
 }
 
 impl ObjectCollector {
+    
     pub fn new() -> Self {
         Self {
             elements: HashMap::new(),
@@ -167,6 +175,7 @@ impl ObjectCollector {
         }
         return key;
     }
+    
     pub fn get(&self, id: u64) -> Option<&Object> {
         return self.elements.get(&id);
     }

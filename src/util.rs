@@ -116,6 +116,7 @@ pub fn vec2_to_point2_collection(vec2_list: &Vec<Vec2>) -> Vec<Point2<f32>> {
 //?         [[[SIGNALS]]]
 pub struct Signals {
     pub spawn_agent: bool,
+    pub spawn_plant: bool,
     pub spawn_asteroid: bool,
     pub spawn_jet: bool,
     pub spawn_particles: bool,
@@ -128,6 +129,7 @@ impl Signals {
     pub fn new() -> Self {
         Self {
             spawn_agent: false,
+            spawn_plant: false,
             spawn_asteroid: false,
             spawn_jet: false,
             spawn_particles: false,

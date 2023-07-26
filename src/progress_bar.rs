@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use egui::*;
 
 enum ProgressBarText {

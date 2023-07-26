@@ -12,6 +12,8 @@ mod timer;
 mod ui;
 mod util;
 mod world;
+mod being;
+mod plant;
 
 use crate::consts::*;
 use crate::sim::*;
@@ -35,6 +37,7 @@ async fn main() {
         .await
         .expect("can't load font resource!");
     let mut sim = Simulation::new(cfg, font.clone());
+    sim.ui.load_textures();
     sim.init();
     sim.autorun_new_sim();
 
