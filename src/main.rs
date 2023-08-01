@@ -3,9 +3,7 @@
 mod agent;
 mod camera;
 mod consts;
-mod kinetic;
 mod neuro;
-mod particle;
 mod progress_bar;
 mod sim;
 mod timer;

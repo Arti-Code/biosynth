@@ -6,9 +6,7 @@ use macroquad::prelude::*;
 use rapier2d::{na::Vector2, prelude::*};
 use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
-use crate::particle::ParticleTable;
 use crossbeam::channel::{Receiver, Sender};
-//use crossbeam::*;
 
 pub struct World {
     pub attract_num: u32,
@@ -28,7 +26,6 @@ pub struct World {
     event_handler: ChannelEventCollector,
     collision_recv: Receiver<CollisionEvent>,
     pub detections: HashMap<RigidBodyHandle, (RigidBodyHandle, f32)>,
-    particle_types: ParticleTable,
     pub contacts: Contacts2,
 }
 
@@ -56,7 +53,7 @@ impl World {
             event_handler: event_handler,
             collision_recv: collision_recv,
             detections: HashMap::new(),
-            particle_types: ParticleTable::new_random(),
+            //particle_types: ParticleTable::new_random(),
             contacts: Contacts2::new(),
         }
     }
@@ -65,27 +62,9 @@ impl World {
         self.query_pipeline.update(&self.rigid_bodies, &self.colliders);
     }
 
-    pub fn add_particle(&mut self, p_type: u8, position: &Vec2, radius: f32) -> RigidBodyHandle {
-        let iso = Isometry::new(Vector2::new(position.x, position.y), 0.0);
-        let particle = RigidBodyBuilder::dynamic().position(iso).linear_damping(0.1).angular_damping(0.1)
-            .user_data(p_type as u128).build();
-        let collider = ColliderBuilder::ball(radius).density(0.1).restitution(0.5).friction(0.5)
-            .active_collision_types(ActiveCollisionTypes::default() | ActiveCollisionTypes::DYNAMIC_DYNAMIC)
-            //.active_collision_types(ActiveCollisionTypes::empty())
-            .active_events(ActiveEvents::COLLISION_EVENTS | ActiveEvents::CONTACT_FORCE_EVENTS).build();
-        let rb_handle = self.rigid_bodies.insert(particle);
-        _ = self.colliders.insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
-        //let imp = Vector2::new(rand::gen_range(-1.0, 1.0), rand::gen_range(-1.0, 1.0)) * PARTICLE_SPEED;
-        //let obj = self.rigid_bodies.get_mut(rb_handle).unwrap();
-        //obj.set_linvel(imp, true);
-        let detector = ColliderBuilder::ball(FIELD_RADIUS).sensor(true).density(0.0).build();
-        _ = self.colliders.insert_with_parent(detector, rb_handle, &mut self.rigid_bodies);
-        return rb_handle;
-    }
-
     pub fn add_dynamic_agent(&mut self, key: u64, position: &Vec2, radius: f32, rotation: f32, detection_range: Option<f32>) -> RigidBodyHandle {
         let iso = Isometry::new(Vector2::new(position.x, position.y), rotation);
-        let ball = RigidBodyBuilder::dynamic().position(iso).linear_damping(0.75).angular_damping(0.75)
+        let ball = RigidBodyBuilder::dynamic().position(iso).linear_damping(1.0).angular_damping(1.0)
             .additional_mass_properties(MassProperties::from_ball(1.0, radius))
             .user_data(key as u128).build();
         let collider = ColliderBuilder::ball(radius).density(1.0).restitution(0.2).friction(0.8)
@@ -102,14 +81,7 @@ impl World {
     }
 
     pub fn remove_physics_object(&mut self, body_handle: RigidBodyHandle) {
-        _ = self.rigid_bodies.remove(
-            body_handle,
-            &mut self.island_manager,
-            &mut self.colliders,
-            &mut self.impulse_joint_set,
-            &mut self.multibody_joint_set,
-            true,
-        );
+        _ = self.rigid_bodies.remove(body_handle, &mut self.island_manager, &mut self.colliders, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
     }
 
     pub fn get_physics_obj_num(&self) -> usize {
@@ -266,13 +238,8 @@ impl World {
                 exclude_rigid_body: Some(agent_body_handle),
                 ..Default::default()
             };
-            self.query_pipeline.intersections_with_shape(
-                &self.rigid_bodies,
-                &self.colliders,
-                rb.position(),
-                collider.shape(),
-                filter,
-                |collided| {
+            self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), collider.shape(), filter,
+             |collided| {
                     let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
                     let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
                     let pos2 = matric_to_vec2(rb2.position().translation);

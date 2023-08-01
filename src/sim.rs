@@ -3,17 +3,11 @@
 use crate::agent::*;
 use crate::camera::*;
 use crate::consts::*;
-use crate::kinetic::*;
-//use crate::particle::Particle;
-use crate::particle::ParticleCollector;
-use crate::plant::Plant;
-use crate::plant::PlantsBox;
-//use crate::particle::ParticleTable;
+use crate::plant::*;
 use crate::ui::*;
-use crate::util::Signals;
+use crate::util::{Signals, contact_mouse};
 use crate::world::*;
 use crate::being::Being;
-//use egui_macroquad;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use std::f32::consts::PI;
@@ -23,8 +17,6 @@ pub struct Simulation {
     pub world_size: Vec2,
     pub font: Font,
     pub world: World,
-    //zoom_rate: f32,
-    //screen_ratio: f32,
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
@@ -37,8 +29,6 @@ pub struct Simulation {
     pub mouse_state: MouseState,
     pub agents: AgentsBox,
     pub plants: PlantsBox,
-    //particle_types: ParticleTable,
-    particles: ParticleCollector,
 }
 
 impl Simulation {
@@ -63,7 +53,6 @@ impl Simulation {
             mouse_state: MouseState { pos: Vec2::NAN },
             agents: AgentsBox::new(),
             plants: PlantsBox::new(),
-            particles: ParticleCollector::new(),
         }
     }
 
@@ -75,7 +64,7 @@ impl Simulation {
         self.world = World::new();
         self.agents.agents.clear();
         self.plants.plants.clear();
-        self.particles.elements.clear();
+        //self.particles.elements.clear();
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
@@ -132,16 +121,6 @@ impl Simulation {
         self.plants.plants.retain(|_, plant| plant.alife == true);        
     }
 
-    fn update_particles(&mut self) {
-        self.sim_state.total_mass = 0.0;
-        self.sim_state.total_eng = 0.0;
-        for (_, elem) in self.particles.get_iter_mut() {
-            elem.update(self.sim_state.dt, &mut self.world);
-            self.sim_state.total_eng += elem.eng; 
-            self.sim_state.total_mass += elem.mass; 
-        }
-    }
-
     pub fn update(&mut self) {
         self.signals_check();
         self.update_sim_state();
@@ -150,7 +129,6 @@ impl Simulation {
         self.update_agents();
         self.update_plants();
         self.sim_state.contacts_info = self.world.get_contacts_info();
-        //self.update_particles();
         self.world.step_physics();
     }
 
@@ -162,13 +140,6 @@ impl Simulation {
         self.draw_grid(50);
         self.draw_agents();
         self.draw_plants();
-        self.draw_particles();
-    }
-
-    fn draw_particles(&self) {
-        for (_, p) in self.particles.get_iter() {
-            p.draw();
-        }
     }
 
     fn draw_agents(&self) {
@@ -237,10 +208,6 @@ impl Simulation {
             self.plants.add_plant(plant, &mut self.world);
             self.signals.spawn_plant = false;
         }
-        if self.signals.spawn_particles {
-            self.particles.add_many_elements(5, &mut self.world);
-            self.signals.spawn_particles = false;
-        }
         if self.signals.new_sim {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
@@ -295,9 +262,6 @@ impl Simulation {
         }
         if self.sim_state.plants_num < (self.config.plant_min_num as i32) {
             self.plants.add_many_plants(1, &mut self.world);
-        }
-        if self.particles.count() < PARTICLES_NUM as usize {
-            self.particles.add_many_elements(1, &mut self.world);
         }
     }
 

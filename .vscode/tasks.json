@@ -8,7 +8,35 @@
 				"$rustc"
 			],
 			"label": "rust: cargo run (--release)",
-			"args": ["--release"]
+			"args": [
+				"--release"
+			]
+		},
+		{
+			"type": "cargo",
+			"command": "build",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"label": "rust: cargo build wasm32 (--release)",
+			"args": [
+				"--target", 
+				"wasm32-unknown-unknown",
+				"--release"
+			]
+		},
+		{
+			"type": "cargo",
+			"command": "build",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "rust: cargo build"
 		}
 	]
 }
+
+
+
+//cargo build --target wasm32-unknown-unknown

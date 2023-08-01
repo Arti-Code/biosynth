@@ -21,6 +21,7 @@ pub struct ParticleType {
 }
 
 impl ParticleType {
+
     pub fn new_random(id: u8, p_color: Color) -> Self {
         Self {
             id: id,
@@ -42,6 +43,7 @@ pub struct ParticleTable {
 }
 
 impl ParticleTable {
+
     pub fn new_random() -> Self {
         let c = [RED, BLUE, GREEN, YELLOW, WHITE];
         let mut tab: Vec<ParticleType> = vec![];
@@ -54,17 +56,21 @@ impl ParticleTable {
             particle_types: tab.into(),
         }
     }
+    
     pub fn get_type(&self, id: u8) -> &ParticleType {
         return self.particle_types.get(id as usize).unwrap();
     }
+    
     pub fn get_action(&self, particle_type: u8, other_particle_type: u8) -> f32 {
         let pt = self.particle_types.get(particle_type as usize).unwrap();
         return pt.actions[other_particle_type as usize];
     }
+    
     pub fn get_color(&self, particle_type: u8) -> Color {
         let pt = self.particle_types.get(particle_type as usize).unwrap();
         return pt.color;
     }
+
 }
 
 pub struct Particle {
@@ -78,39 +84,57 @@ pub struct Particle {
     pub color: color::Color,
     pub shape: Ball,
     pub physics_handle: Option<RigidBodyHandle>,
-    pub kin_eng: f32,
+    pub eng: f32,
+    pub mass: f32,
+    force: Option<Vec2>,
 }
 
 impl Particle {
+    
     pub fn new(p_type: u8, p_color: Color) -> Self {
-        let size = PARTICLE_SIZE;
+        let size = thread_rng().gen_range((PARTICLE_SIZE as u32)-3..=(PARTICLE_SIZE as u32)+3);
 
         Self {
             key: thread_rng().gen::<u64>(),
             pos: random_position(WORLD_W, WORLD_H),
             particle_type: p_type,
-            rot: random_rotation(),
-            vel: rand::gen_range(0.0, 1.0) * PARTICLE_SPEED,
+            rot: 0.0,
+            vel: 0.0,
             ang_vel: 0.0,
-            size: (size as f32),
+            size: size as f32,
             color: p_color,
-            shape: Ball::new(size),
+            shape: Ball::new(size as f32),
             physics_handle: None,
-            kin_eng: 0.0,
+            eng: 0.0,
+            mass: 0.0,
+            force: None,
         }
     }
+    
     pub fn draw(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        draw_circle(x0, y0, self.size, self.color); //draw_text(kin_eng_info, x0-18.0, y0, 16.0, WHITE);
+        draw_circle(x0, y0, self.size, self.color);
+        match self.force {
+            Some(f) => {
+                draw_line(x0, y0, x0+f.x, y0+f.y, 0.5, PINK); 
+            },
+            None => {},
+        }
+        //let pos_txt = format!("[x:{}|y:{}]", x0.round(), y0.round());
+        //let txtc = get_text_center(&pos_txt, None, 12, 1.0, 0.0);
+        //draw_text(&pos_txt, x0-txtc.x, y0-txtc.y-5.0*self.size, 14.0, WHITE);
     }
+
     pub fn update(&mut self, dt: f32, physics: &mut World) {
         match self.physics_handle {
             Some(handle) => {
                 let physics_data = physics.get_physics_data(handle);
                 self.pos = physics_data.position;
                 self.rot = physics_data.rotation;
-                self.kin_eng = physics_data.kin_eng.unwrap();
+                self.eng = physics_data.kin_eng.unwrap();
+                self.mass = physics_data.mass;
+                self.force = physics_data.force;
                 match physics.rigid_bodies.get_mut(handle) {
                     Some(body) => {
                         let dir = Vec2::from_angle(self.rot);
@@ -124,12 +148,13 @@ impl Particle {
             }
             None => {}
         }
+        self.attract_repel(physics);
     }
 
     pub fn attract_repel(&mut self, physics: &mut World) {
         match self.physics_handle {
             Some(handle) => {
-                physics.get_around(handle);
+                //physics.get_around(handle);
             }
             None => {}
         }
@@ -166,6 +191,7 @@ pub struct ParticleCollector {
 }
 
 impl ParticleCollector {
+    
     pub fn new() -> Self {
         Self {
             particle_types: ParticleTable::new_random(),

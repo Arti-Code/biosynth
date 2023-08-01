@@ -70,6 +70,7 @@ impl UISystem {
                 None => {}
             }
             self.build_net_graph(egui_ctx);
+            self.build_about_window(egui_ctx);
         });
     }
 
@@ -154,11 +155,11 @@ impl UISystem {
                     ui.separator();
                     ui.add_space(10.0);
                     egui::menu::menu_button(ui, RichText::new("ABOUT").strong(), |ui| {
-                        if ui.button(RichText::new("DRAW").strong().color(Color32::WHITE)).clicked() {
+                        if ui.button(RichText::new("Draw Neuro").strong().color(Color32::WHITE)).clicked() {
                             self.state.net = !self.state.net;
                         }
-                        if ui.button(RichText::new("Credits").strong().color(Color32::WHITE)).clicked() {
-                            self.state.credits = !self.state.credits;
+                        if ui.button(RichText::new("About").strong().color(Color32::WHITE)).clicked() {
+                            self.state.about = !self.state.about;
                         }
                         if ui.button(RichText::new("Documentation").strong().color(Color32::WHITE)).clicked() {
                             self.state.docs = !self.state.docs;
@@ -395,7 +396,7 @@ impl UISystem {
 
     fn build_net_graph(&mut self, egui_ctx: &Context) {
         if self.state.net {
-            egui::Window::new("DRAW").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
+            egui::Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
             .title_bar(true).show(egui_ctx, |ui| {
                 let (response, painter) = ui.allocate_painter(egui::Vec2::new(400., 400.), Sense::hover());
                 let rect = response.rect;
@@ -411,6 +412,20 @@ impl UISystem {
                     painter.circle(end, 15., Color32::BLUE, egui::Stroke::default());
                 }
                 painter.circle(c, 25., Color32::GREEN, egui::Stroke::default());
+            });
+        }
+    }
+
+    fn build_about_window(&mut self, egui_ctx: &Context) {
+        if self.state.about {
+            egui::Window::new("About Simulation").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(250.).min_width(300.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                ui.separator();
+                ui.label(RichText::new("BioSynth Simulation").color(Color32::LIGHT_BLUE).strong().heading());
+                ui.separator();
+                ui.label(RichText::new("Artur Gwoździowski").color(Color32::WHITE).italics());
+                ui.separator();
+                ui.label(RichText::new("2023").color(Color32::WHITE).italics());
             });
         }
     }
@@ -432,7 +447,8 @@ pub struct UIState {
     pub new_sim: bool,
     pub credits: bool,
     pub docs: bool,
-    pub net: bool
+    pub net: bool,
+    pub about: bool
 }
 
 impl UIState {
@@ -449,6 +465,7 @@ impl UIState {
             credits: false,
             docs: false,
             net: false,
+            about: false,
         }
     }
 }

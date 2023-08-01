@@ -3,7 +3,6 @@ use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use crate::consts::*;
-use crate::kinetic::make_isometry;
 use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
