@@ -8,8 +8,8 @@ use crate::timer::*;
 use crate::util::*;
 use crate::world::*;
 use crate::being::*;
-use ::rand::{thread_rng, Rng};
 use macroquad::{color, prelude::*};
+use macroquad::rand::*;
 use rapier2d::geometry::*;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 
@@ -92,11 +92,14 @@ impl Agent {
     
     pub fn new() -> Self {
         let s = rand::gen_range(AGENT_SIZE_MIN, AGENT_SIZE_MAX) as f32;
-        let motor = thread_rng().gen_bool(1.0);
-        let p = thread_rng().gen_range(0.2..0.8);
+        let mut motor = false;
+        if gen_range(0, 2) == 1 {
+            motor = true;
+        }
+        let p = gen_range(0.2, 0.8);
 
         Self {
-            key: thread_rng().gen::<u64>(),
+            key: gen_range(u64::MIN, u64::MAX),
             pos: random_position(WORLD_W, WORLD_H),
             rot: random_rotation(),
             mass: 0.0,
@@ -109,7 +112,7 @@ impl Agent {
             color: random_color(),
             pulse: rand::gen_range(0.0, 1.0),
             shape: Ball { radius: s },
-            motor: motor,
+            motor: motor as bool,
             motor_phase: p,
             motor_phase2: p,
             motor_side: true,

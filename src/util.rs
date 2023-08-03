@@ -4,8 +4,7 @@ use std::f32::consts::PI;
 
 use crate::consts::*;
 use macroquad::{color, prelude::*};
-use nalgebra::*;
-use rapier2d::{prelude::Ball, parry::query::contact};
+use rapier2d::{prelude::Ball, parry::query::contact, na::{Isometry2, Vector2, Translation, Point2}};
 
 pub fn random_unit() -> f32 {
     return rand::gen_range(-1.0, 1.0);
@@ -64,7 +63,7 @@ pub fn wrap_around(v: &Vec2) -> Vec2 {
     return vr;
 }
 
-pub fn make_isometry(posx: f32, posy: f32, rotation: f32) -> nalgebra::Isometry2<f32> {
+pub fn make_isometry(posx: f32, posy: f32, rotation: f32) -> Isometry2<f32> {
     let iso = Isometry2::new(Vector2::new(posx, posy), rotation);
     return iso;
 }

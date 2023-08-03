@@ -6,7 +6,6 @@ use macroquad::prelude::*;
 use rapier2d::{na::Vector2, prelude::*};
 use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
-use crossbeam::channel::{Receiver, Sender};
 
 pub struct World {
     pub attract_num: u32,
@@ -23,8 +22,8 @@ pub struct World {
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
     physics_hooks: (),
-    event_handler: ChannelEventCollector,
-    collision_recv: Receiver<CollisionEvent>,
+    event_handler: (),
+    collision_recv: (),
     pub detections: HashMap<RigidBodyHandle, (RigidBodyHandle, f32)>,
     pub contacts: Contacts2,
 }
@@ -32,9 +31,6 @@ pub struct World {
 impl World {
 
     pub fn new() -> Self {
-        let (collision_send, collision_recv) = crossbeam::channel::unbounded();
-        let (contact_force_send, contact_force_recv) = crossbeam::channel::unbounded();
-        let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
         Self {
             attract_num: 0,
             rigid_bodies: RigidBodySet::new(),
@@ -50,8 +46,8 @@ impl World {
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
             physics_hooks: (),
-            event_handler: event_handler,
-            collision_recv: collision_recv,
+            event_handler: (),
+            collision_recv: (),
             detections: HashMap::new(),
             //particle_types: ParticleTable::new_random(),
             contacts: Contacts2::new(),
@@ -262,53 +258,6 @@ impl World {
 
     pub fn get_contacts_info(&self) -> (i32, i32) {
         return self.contacts.count();
-    }
-
-    fn receive_collisions_evts(&mut self) {
-        while let Ok(evt) = self.collision_recv.try_recv() {
-            match evt {
-                CollisionEvent::Started(ch1, ch2, CollisionEventFlags::SENSOR) => {
-                    //info!("collision started");
-                },
-                CollisionEvent::Stopped(ch1, ch2, CollisionEventFlags::SENSOR) => {
-                    //info!("collision started");
-                },
-                CollisionEvent::Stopped(ch1, ch2, CollisionEventFlags::REMOVED) => {
-                    self.contacts.del(ch1, &ch2);
-                    self.contacts.del(ch2, &ch1);
-                    info!("collision removed");
-                },
-                CollisionEvent::Started(ch1, ch2, _) => {
-                    if !self.colliders.get(ch1).unwrap().is_sensor() && !self.colliders.get(ch2).unwrap().is_sensor() {
-                        info!("collision started");
-                        self.contacts.insert(ch1, ch2);
-                        self.contacts.insert(ch2, ch1);
-                    }
-                },
-                CollisionEvent::Stopped(ch1, ch2, _) => {
-                    let c1 = self.colliders.get(ch1);
-                    let c2 = self.colliders.get(ch2);
-                    if c1.is_some() {
-                        if c1.unwrap().is_sensor() {
-                            continue;
-                        }
-                    } else {
-                        continue;
-                    }
-                    if c2.is_some() {
-                        if c2.unwrap().is_sensor() {
-                            continue;
-                        }
-                    } else {
-                        continue;
-                    }
-                    self.contacts.del(ch1, &ch2);
-                    self.contacts.del(ch2, &ch1);
-                    info!("collision stopped");
-                    
-                }
-            }
-        }
     }
 }
 

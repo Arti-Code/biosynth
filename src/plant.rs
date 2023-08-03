@@ -8,8 +8,8 @@ use crate::timer::*;
 use crate::util::*;
 use crate::world::*;
 use crate::being::*;
-use ::rand::{thread_rng, Rng};
 use macroquad::{color, prelude::*};
+use macroquad::rand::*;
 use rapier2d::geometry::*;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 
@@ -54,7 +54,7 @@ impl Plant {
         let s = 2;
 
         Self {
-            key: thread_rng().gen::<u64>(),
+            key: gen_range(u64::MIN, u64::MAX),
             pos: random_position(WORLD_W, WORLD_H),
             rot: random_rotation(),
             mass: 0.0,
