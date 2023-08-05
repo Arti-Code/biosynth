@@ -12,6 +12,17 @@ use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use std::f32::consts::PI;
 
+
+pub static mut SIM_PARAMS: SimConfig = SimConfig {
+    agent_min_num: AGENTS_NUM_MIN,
+    agents_init_num: AGENTS_NUM,
+    plant_init_num: PLANTS_NUM,
+    plant_min_num: PLANTS_MIN_NUM,
+    agent_rotation: AGENT_ROTATION,
+    agent_speed: AGENT_SPEED,
+    agent_vision_range: AGENT_VISION_RANGE,
+};
+
 pub struct Simulation {
     pub simulation_name: String,
     pub world_size: Vec2,
@@ -256,9 +267,11 @@ impl Simulation {
     }
 
     fn check_agents_num(&mut self) {
-        if self.sim_state.agents_num < (self.config.agent_min_num as i32) {
-            let agent = Agent::new();
-            self.agents.add_agent(agent, &mut self.world);
+        unsafe {
+            if self.sim_state.agents_num < (SIM_PARAMS.agent_min_num as i32) {
+                let agent = Agent::new();
+                self.agents.add_agent(agent, &mut self.world);
+            }
         }
         if self.sim_state.plants_num < (self.config.plant_min_num as i32) {
             self.plants.add_many_plants(1, &mut self.world);
@@ -294,8 +307,6 @@ pub struct SimConfig {
     pub agent_speed: f32,
     pub agent_vision_range: f32,
     pub agent_rotation: f32,
-    pub sources_init_num: usize,
-    pub sources_min_num: usize,
 }
 
 impl Default for SimConfig {
@@ -308,8 +319,6 @@ impl Default for SimConfig {
             agent_speed: AGENT_SPEED,
             agent_rotation: AGENT_ROTATION,
             agent_vision_range: AGENT_VISION_RANGE,
-            sources_init_num: 0,
-            sources_min_num: 0,
         }
     }
 }

@@ -61,13 +61,30 @@ impl World {
     pub fn add_dynamic_agent(&mut self, key: u64, position: &Vec2, radius: f32, rotation: f32, detection_range: Option<f32>) -> RigidBodyHandle {
         let iso = Isometry::new(Vector2::new(position.x, position.y), rotation);
         let ball = RigidBodyBuilder::dynamic().position(iso).linear_damping(1.0).angular_damping(1.0)
-            .additional_mass_properties(MassProperties::from_ball(1.0, radius))
+            //.additional_mass_properties(MassProperties::from_ball(1.0, radius))
             .user_data(key as u128).build();
         let collider = ColliderBuilder::ball(radius).density(1.0).restitution(0.2).friction(0.8)
             .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS)
             .build();
         let rb_handle = self.rigid_bodies.insert(ball);
         _ = self.colliders.insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
+        if detection_range.is_some() {
+            let detector = ColliderBuilder::ball(detection_range.unwrap())
+                .sensor(true).density(0.0).build();
+            _ = self.colliders.insert_with_parent(detector, rb_handle, &mut self.rigid_bodies);
+        }
+        return rb_handle;
+    }
+
+    pub fn add_complex_agent(&mut self, key: u64, position: &Vec2, points: Vec<Vec2>, rotation: f32, detection_range: Option<f32>) -> RigidBodyHandle {
+        let iso = Isometry::new(Vector2::new(position.x, position.y), rotation);
+        let rb = RigidBodyBuilder::dynamic().position(iso).linear_damping(1.0).angular_damping(1.0)
+            .user_data(key as u128).build();
+        let complex = ColliderBuilder::polyline(vec2_to_point2_collection(&points), None).density(0.1)
+            .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS)
+            .build();
+        let rb_handle = self.rigid_bodies.insert(rb);
+        _ = self.colliders.insert_with_parent(complex, rb_handle, &mut self.rigid_bodies);
         if detection_range.is_some() {
             let detector = ColliderBuilder::ball(detection_range.unwrap())
                 .sensor(true).density(0.0).build();

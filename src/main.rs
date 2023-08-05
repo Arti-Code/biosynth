@@ -17,6 +17,7 @@ use crate::consts::*;
 use crate::sim::*;
 use macroquad::prelude::*;
 
+
 fn app_configuration() -> Conf {
     Conf {
         window_title: "BIO-SYNTH".to_string(),

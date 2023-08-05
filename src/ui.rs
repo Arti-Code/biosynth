@@ -68,6 +68,7 @@ impl UISystem {
             }
             self.build_net_graph(egui_ctx);
             self.build_about_window(egui_ctx);
+            self.build_enviroment_window(egui_ctx);
         });
     }
 
@@ -120,6 +121,7 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
+
                 menu::menu_button(ui, RichText::new("TOOLS").strong(), |ui| {
                     if ui
                         .button(RichText::new("Monitor").strong().color(Color32::WHITE))
@@ -149,6 +151,17 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
+
+                menu::menu_button(ui, RichText::new("SETTINGS").strong(), |ui| {
+                    if ui.button(RichText::new("Enviroment Settings").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.enviroment = !self.state.enviroment;
+                    }
+                });
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
                 menu::menu_button(ui, RichText::new("ABOUT").strong(), |ui| {
                     if ui.button(RichText::new("Draw Neuro").strong().color(Color32::WHITE)).clicked() {
                         self.state.net = !self.state.net;
@@ -279,7 +292,7 @@ impl UISystem {
                             self.state.new_sim = false;
                             self.temp_sim_name = String::new();
                         }
-                        if columns[1].button(RichText::new("Yes").color(Color32::RED)).clicked() {
+                        if columns[1].button(RichText::new("Yes").color(Color32::BLUE)).clicked() {
                             self.state.new_sim = false;
                             signals.new_sim = true;
                             signals.new_sim_name = String::from(&self.temp_sim_name);
@@ -368,7 +381,7 @@ impl UISystem {
 
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {
-            Window::new("About Simulation").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(250.).min_width(300.)
+            Window::new("ABOUT SIMULATION").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(250.).min_width(300.)
             .title_bar(true).show(egui_ctx, |ui| {
                 ui.separator();
                 ui.label(RichText::new("BioSynth Simulation").color(Color32::LIGHT_BLUE).strong().heading());
@@ -376,6 +389,24 @@ impl UISystem {
                 ui.label(RichText::new("Artur Gwoździowski").color(Color32::WHITE).italics());
                 ui.separator();
                 ui.label(RichText::new("2023").color(Color32::WHITE).italics());
+            });
+        }
+    }
+
+    fn build_enviroment_window(&mut self, egui_ctx: &Context) {
+        if self.state.enviroment {
+            Window::new("ENVIROMENT SETTINGS").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(250.).min_width(400.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                ui.separator();
+                ui.columns(2, |column| {
+                    unsafe {
+                        let mut agents_num: i32 = SIM_PARAMS.agent_min_num as i32;
+                        column[0].label(RichText::new("AGENTS MINIMAL NUMBER").color(Color32::WHITE).strong());
+                        if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
+                            SIM_PARAMS.agent_min_num = agents_num as usize;
+                        }
+                    }
+                });
             });
         }
     }
@@ -398,7 +429,8 @@ pub struct UIState {
     pub credits: bool,
     pub docs: bool,
     pub net: bool,
-    pub about: bool
+    pub about: bool,
+    pub enviroment: bool,
 }
 
 impl UIState {
@@ -416,6 +448,7 @@ impl UIState {
             docs: false,
             net: false,
             about: false,
+            enviroment: false,
         }
     }
 }

@@ -23,7 +23,7 @@ pub struct Plant {
     pub max_eng: f32,
     pub eng: f32,
     pub color: color::Color,
-    pub shape: Ball,
+    pub shape: Vec<Vec2>,
     pub alife: bool,
     pub physics_handle: Option<RigidBodyHandle>,
 }
@@ -33,7 +33,8 @@ impl Being for Plant {
     fn draw(&self, selected: bool, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        draw_circle_lines(x0, y0, self.size as f32, 4.0, self.color);
+        self.draw_shape();
+        //draw_circle_lines(x0, y0, self.size as f32, 4.0, self.color);
         //self.draw_info(font);
         if selected {
             //self.draw_info(&font);
@@ -63,10 +64,27 @@ impl Plant {
             max_eng: s as f32 * 20.0,
             eng: s as f32 * 10.0,
             color: LIME,
-            shape: Ball { radius: s as f32 },
+            shape: map_polygon(6, 16., 0.4),
             alife: true,
             physics_handle: None,
         }
+    }
+
+    fn draw_shape(&self) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        let pos = self.pos;
+        for i in 0..self.shape.len() {
+            if i > 0 {
+                let p0 = self.shape[i-1];
+                let p1 = self.shape[i];
+                draw_line(x0+p0.x, y0+p0.y, x0+p1.x, y0+p1.y, 2.0, self.color);
+            }
+        }
+        let last = self.shape.len();
+        let p0 = self.shape[last-1];
+        let p1 = self.shape[0];
+        draw_line(x0+p0.x, y0+p0.y, x0+p1.x, y0+p1.y, 2.0, self.color);
     }
 
     fn draw_info(&self, font: &Font) {
@@ -108,7 +126,7 @@ impl Plant {
                         if self.eng >= self.max_eng && (self.size as i32) < PLANT_MAX_SIZE {
                             self.size += 1;
                             self.max_eng = self.size as f32 * 20.0;
-                            self.shape = Ball {radius: self.size as f32};
+                            //self.shape = Ball {radius: self.size as f32};
                             for collider_handle in body.colliders().iter() {
                                 match physics.colliders.get_mut(*collider_handle) {
                                     Some(collider) => {
@@ -199,7 +217,7 @@ impl PlantsBox {
 
     pub fn add_plant(&mut self, mut plant: Plant, physics_world: &mut World) -> u64 {
         let key = plant.key;
-        let handle = physics_world.add_dynamic_agent(key, &plant.pos, plant.size as f32, plant.rot, None);
+        let handle = physics_world.add_complex_agent(key, &plant.pos, plant.shape.clone(), plant.rot, None);
         plant.physics_handle = Some(handle);
         self.plants.insert(key, plant);
         return key;
