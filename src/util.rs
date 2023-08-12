@@ -4,7 +4,9 @@ use std::f32::consts::PI;
 
 use crate::consts::*;
 use macroquad::{color, prelude::*};
-use rapier2d::{prelude::Ball, parry::query::contact, na::{Isometry2, Vector2, Translation, Point2}};
+use rapier2d::prelude::*;
+use rapier2d::parry::query::contact; 
+use rapier2d::na::{Isometry2, Vector2, Translation, Point2};
 
 pub fn random_unit() -> f32 {
     return rand::gen_range(-1.0, 1.0);
@@ -110,8 +112,10 @@ pub fn vec2_to_point2_collection(vec2_list: &Vec<Vec2>) -> Vec<Point2<f32>> {
         let p = Point2::new(v.x, v.y);
         points.push(p);
     }
+    //let d = points.as_chunks();
     return points;
 }
+
 
 pub fn contact_mouse(mouse_pos: Vec2, target_pos: Vec2, target_rad: f32) -> bool {
     let v1 = Vec2::new(mouse_pos.x, mouse_pos.y);

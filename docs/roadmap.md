@@ -9,8 +9,8 @@
 
 * * *
 
-- [ ] rapier physics integration
-- [ ] sources of energy
+- [x] rapier physics integration
+- [x] sources of energy
 - [ ] biomes
 - [x] sensing (vision)
 - [ ] fitness function

@@ -43,7 +43,7 @@ impl UISystem {
 
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
-            let img =  Self::load_image(Path::new("assets/img/logo.png")).unwrap();
+            let img =  Self::load_image(Path::new("assets/img/microbes32.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
         });
     }
@@ -184,7 +184,7 @@ impl UISystem {
             let delta = sim_state.dt;
             let time = sim_state.sim_time;
             let physics_num = sim_state.physics_num;
-            let contacts = sim_state.contacts_info;
+            //let contacts = sim_state.contacts_info;
             let mut eng = String::new();
             let eng2: Option<f32> = Some(sim_state.total_eng);
             match eng2 {
@@ -207,20 +207,20 @@ impl UISystem {
                 Some(_) => {},
                 None => {},
             }
-            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(125.0).show(egui_ctx, |ui| {
+            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(150.0).show(egui_ctx, |ui| {
                 ui.label(format!("DELTA: {}ms", (delta * 1000.0).round()));
                 ui.separator();
                 ui.label(format!("FPS: {}", fps));
                 ui.separator();
                 ui.label(format!("TIME: {}", time.round()));
                 ui.separator();
-                ui.label(format!("TOTAL ENERGY: {}", eng));
+                ui.label(format!("TOTAL ENG: {}", eng));
                 ui.separator();
                 ui.label(format!("TOTAL MASS: {}", total_mass.round()));
                 ui.separator();
-                ui.label(format!("PHYSICS OBJECTS: {}", physics_num));
-                ui.separator();
-                ui.label(format!("CONTACTS: {} | {}", contacts.0, contacts.0));
+                ui.label(format!("OBJECTS: {}", physics_num));
+                //ui.separator();
+                //ui.label(format!("CONTACTS: {} | {}", contacts.0, contacts.0));
             });
         }
     }
@@ -404,6 +404,15 @@ impl UISystem {
                         column[0].label(RichText::new("AGENTS MINIMAL NUMBER").color(Color32::WHITE).strong());
                         if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
                             SIM_PARAMS.agent_min_num = agents_num as usize;
+                        }
+                    }
+                });
+                ui.columns(2, |column| {
+                    unsafe {
+                        let mut lifes_num: i32 = SIM_PARAMS.lifes_min_num as i32;
+                        column[0].label(RichText::new("LIFES NUMBER").color(Color32::WHITE).strong());
+                        if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut lifes_num, 0..=100)).changed() {
+                            SIM_PARAMS.lifes_min_num = lifes_num as usize;
                         }
                     }
                 });

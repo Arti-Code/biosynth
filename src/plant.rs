@@ -64,7 +64,7 @@ impl Plant {
             max_eng: s as f32 * 20.0,
             eng: s as f32 * 10.0,
             color: LIME,
-            shape: map_polygon(6, 16., 0.4),
+            shape: map_polygon(6, 16., 0.0),
             alife: true,
             physics_handle: None,
         }

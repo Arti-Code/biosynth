@@ -26,3 +26,7 @@ pub const PLANTS_MIN_NUM: usize = 0;
 pub const PLANT_MAX_SIZE: i32 = 10;
 
 pub const GRAV: f32 = 50.0;
+
+pub const LIFE_SIZE_MIN: i32 = 4;
+pub const LIFE_SIZE_MAX: i32 = 10;
+pub const LIFE_NUM_MIN: i32 = 0;

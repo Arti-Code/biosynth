@@ -10,6 +10,7 @@ mod timer;
 mod ui;
 mod util;
 mod world;
+mod physics;
 mod being;
 mod plant;
 
@@ -32,7 +33,7 @@ fn app_configuration() -> Conf {
 #[macroquad::main(app_configuration)]
 async fn main() {
     let cfg = SimConfig::default();
-    let font = load_ttf_font("firacode.ttf")
+    let font = load_ttf_font("assets/fonts/firacode.ttf")
         .await
         .expect("can't load font resource!");
     let mut sim = Simulation::new(cfg, font.clone());

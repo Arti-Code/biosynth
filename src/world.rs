@@ -1,10 +1,11 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use crate::consts::*;
 use crate::util::*;
 use macroquad::prelude::*;
+//use rapier2d::na::Point2;
 use rapier2d::{na::Vector2, prelude::*};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::f32::consts::PI;
 
 pub struct World {
@@ -23,9 +24,9 @@ pub struct World {
     ccd_solver: CCDSolver,
     physics_hooks: (),
     event_handler: (),
-    collision_recv: (),
-    pub detections: HashMap<RigidBodyHandle, (RigidBodyHandle, f32)>,
-    pub contacts: Contacts2,
+    //collision_recv: (),
+    //pub detections: HashMap<RigidBodyHandle, (RigidBodyHandle, f32)>,
+    //pub contacts: Contacts2,
 }
 
 impl World {
@@ -47,10 +48,10 @@ impl World {
             ccd_solver: CCDSolver::new(),
             physics_hooks: (),
             event_handler: (),
-            collision_recv: (),
-            detections: HashMap::new(),
+            //collision_recv: (),
+            //detections: HashMap::new(),
             //particle_types: ParticleTable::new_random(),
-            contacts: Contacts2::new(),
+            //contacts: Contacts2::new(),
         }
     }
 
@@ -63,7 +64,7 @@ impl World {
         let ball = RigidBodyBuilder::dynamic().position(iso).linear_damping(1.0).angular_damping(1.0)
             //.additional_mass_properties(MassProperties::from_ball(1.0, radius))
             .user_data(key as u128).build();
-        let collider = ColliderBuilder::ball(radius).density(1.0).restitution(0.2).friction(0.8)
+        let collider = ColliderBuilder::ball(radius).density(1.0).restitution(0.2).friction(0.2)
             .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS)
             .build();
         let rb_handle = self.rigid_bodies.insert(ball);
@@ -76,20 +77,20 @@ impl World {
         return rb_handle;
     }
 
-    pub fn add_complex_agent(&mut self, key: u64, position: &Vec2, points: Vec<Vec2>, rotation: f32, detection_range: Option<f32>) -> RigidBodyHandle {
+    pub fn add_complex_agent(&mut self, key: u64, position: &Vec2, points: Vec<Vec2>, rotation: f32, _detection_range: Option<f32>) -> RigidBodyHandle {
+        let p = points.to_owned();
+        let binding = vec2_to_point2_collection(&p);
+        //let mut opoints2 = binding.to_vec().into();
         let iso = Isometry::new(Vector2::new(position.x, position.y), rotation);
-        let rb = RigidBodyBuilder::dynamic().position(iso).linear_damping(1.0).angular_damping(1.0)
-            .user_data(key as u128).build();
-        let complex = ColliderBuilder::polyline(vec2_to_point2_collection(&points), None).density(0.1)
-            .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS)
-            .build();
+        let rb = RigidBodyBuilder::dynamic().position(iso).linear_damping(0.1).angular_damping(0.1)
+            .user_data(key as u128).can_sleep(false).build();
+        let complex = ColliderBuilder::convex_decomposition(&binding, &[[1,1], [1,1], [1,1], [1,1], [1,1], [1,1]])
+        //let complex = ColliderBuilder::segment(Point2::new(rotation.sin()*12.0, rotation.cos()*12.0), Point2::new(-rotation.sin()*12.0, rotation.cos()*12.0))
+        //let complex = ColliderBuilder::convex_decomposition(opoints2, &[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]).density(0.01)
+            .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS)
+            .restitution(0.2).friction(0.2).density(0.01).build();
         let rb_handle = self.rigid_bodies.insert(rb);
         _ = self.colliders.insert_with_parent(complex, rb_handle, &mut self.rigid_bodies);
-        if detection_range.is_some() {
-            let detector = ColliderBuilder::ball(detection_range.unwrap())
-                .sensor(true).density(0.0).build();
-            _ = self.colliders.insert_with_parent(detector, rb_handle, &mut self.rigid_bodies);
-        }
         return rb_handle;
     }
 
@@ -171,18 +172,6 @@ impl World {
         }
     }
 
-    /*  pub fn get_contacts(&self, agent_body_handle: RigidBodyHandle) -> Option<RigidBodyHandle> {
-        let target = self.detections.get(&agent_body_handle);
-        match target {
-            Some((tg, dst)) => {
-                return Some(*tg);
-            },
-            None => {
-                return None;
-            }
-        }
-    } */
-
     fn get_body_handle_from_collider(&self, collider_handle: ColliderHandle) -> Option<RigidBodyHandle> {
         let collider: &Collider;
         match self.colliders.get(collider_handle) {
@@ -206,7 +195,7 @@ impl World {
     pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
         let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
-        let pos1 = matric_to_vec2(rb.position().translation);
+        //let pos1 = matric_to_vec2(rb.position().translation);
         let filter = QueryFilter {
             flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
             groups: None,
@@ -222,11 +211,11 @@ impl World {
                 |collided| {
                     let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
                     contacts.insert(rb2_handle);
-                    let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
-                    let mass2 = rb2.mass();
-                    let pos2 = matric_to_vec2(rb2.position().translation);
-                    let dist = pos2.distance(pos1);
-                    let dir = pos2.normalize() - pos1.normalize();
+                    //let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
+                    //let mass2 = rb2.mass();
+                    //let pos2 = matric_to_vec2(rb2.position().translation);
+                    //let dist = pos2.distance(pos1);
+                    //let dir = pos2.normalize() - pos1.normalize();
                     return true;
                 },
             );
@@ -273,9 +262,9 @@ impl World {
         }
     }
 
-    pub fn get_contacts_info(&self) -> (i32, i32) {
+/*     pub fn get_contacts_info(&self) -> (i32, i32) {
         return self.contacts.count();
-    }
+    } */
 }
 
 pub struct PhysicsData {
@@ -287,7 +276,7 @@ pub struct PhysicsData {
 }
 
 
-pub struct Contacts {
+/* pub struct Contacts {
     contacts: HashMap<u128, Vec<u128>>,
 }
 
@@ -332,9 +321,9 @@ impl Contacts {
         }
         return (key_num, contact_num);
     }
-}
+} */
 
-pub struct Contacts2 {
+/* pub struct Contacts2 {
     contacts: HashMap<ColliderHandle, HashSet<ColliderHandle>>,
 }
 
@@ -382,4 +371,4 @@ impl Contacts2 {
         }
         return (key_num, contact_num);
     }
-}
+} */
