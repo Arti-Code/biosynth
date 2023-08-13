@@ -4,9 +4,10 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 use crate::consts::*;
 use crate::neuro::*;
+use crate::physics::PhysicsWorld;
 use crate::timer::*;
 use crate::util::*;
-use crate::world::*;
+use crate::physics::*;
 use crate::being::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
@@ -41,7 +42,7 @@ impl Being for Plant {
         }
     }    
 
-    fn update(&mut self, dt: f32, physics: &mut World) -> bool {
+    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         self.update_physics(physics);
         self.calc_energy(dt);
         return self.alife;
@@ -114,7 +115,7 @@ impl Plant {
         draw_text_ex(&info3, x0 - txt_center.x, y0 - txt_center.y + self.size as f32 * 2.0 + 38.0, text_cfg.clone());
     }
 
-    fn update_physics(&mut self, physics: &mut World) {
+    fn update_physics(&mut self, physics: &mut PhysicsWorld) {
         match self.physics_handle {
             Some(handle) => {
                 let physics_data = physics.get_physics_data(handle);
@@ -208,16 +209,17 @@ impl PlantsBox {
         }
     }
 
-    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut World) {
+    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut PhysicsWorld) {
         for _ in 0..plants_num {
             let plant = Plant::new();
             _ = self.add_plant(plant, physics_world);
         }
     }
 
-    pub fn add_plant(&mut self, mut plant: Plant, physics_world: &mut World) -> u64 {
+    pub fn add_plant(&mut self, mut plant: Plant, physics_world: &mut PhysicsWorld) -> u64 {
         let key = plant.key;
-        let handle = physics_world.add_complex_agent(key, &plant.pos, plant.shape.clone(), plant.rot, None);
+        let props = PhysicsProperities::new(0.5, 0.5, 1.0, 0.5, 0.5);
+        let handle = physics_world.add_dynamic_ball(key, plant.size as f32, &plant.pos, plant.rot, props);
         plant.physics_handle = Some(handle);
         self.plants.insert(key, plant);
         return key;

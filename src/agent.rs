@@ -6,7 +6,7 @@ use crate::consts::*;
 use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
-use crate::world::*;
+use crate::physics::*;
 use crate::being::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
@@ -64,7 +64,7 @@ impl Being for Agent {
         }
     }    
 
-    fn update(&mut self, dt: f32, physics: &mut World) -> bool {
+    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         if self.analize_timer.update(dt) {
             self.watch(physics);
             self.update_contacts(physics);
@@ -189,7 +189,7 @@ impl Agent {
         );
     }
 
-    fn update_physics(&mut self, physics: &mut World) {
+    fn update_physics(&mut self, physics: &mut PhysicsWorld) {
         match self.physics_handle {
             Some(handle) => {
                 self.update_enemy_position(physics);
@@ -236,7 +236,7 @@ impl Agent {
         }
     }
 
-    fn update_enemy_position(&mut self, physics: &World) {
+    fn update_enemy_position(&mut self, physics: &PhysicsWorld) {
         if let Some(rb) = self.enemy {
             if let Some(enemy_position) = physics.get_object_position(rb) {
                 self.enemy_position = Some(enemy_position);
@@ -254,7 +254,7 @@ impl Agent {
         }
     }
 
-    fn update_contacts(&mut self, physics: &mut World) {
+    fn update_contacts(&mut self, physics: &mut PhysicsWorld) {
         match self.physics_handle {
             Some(rbh) => {
                 self.contacts.clear();
@@ -273,10 +273,10 @@ impl Agent {
         }
     }
 
-    fn watch(&mut self, physics: &World) {
+    fn watch(&mut self, physics: &PhysicsWorld) {
         match self.physics_handle {
             Some(handle) => {
-                if let Some(tg) = physics.get_closesd_agent(handle) {
+                if let Some(tg) = physics.get_closesd_agent(handle, self.vision_range) {
                     self.enemy = Some(tg);
                     self.update_enemy_position(physics);
                 } else {
@@ -352,14 +352,14 @@ impl AgentsBox {
         }
     }
 
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut World) {
+    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld) {
         for _ in 0..agents_num {
             let agent = Agent::new();
             _ = self.add_agent(agent, physics_world);
         }
     }
 
-    pub fn add_agent(&mut self, mut agent: Agent, physics_world: &mut World) -> u64 {
+    pub fn add_agent(&mut self, mut agent: Agent, physics_world: &mut PhysicsWorld) -> u64 {
         let key = agent.key;
         let handle = physics_world.add_dynamic_agent(
             key,

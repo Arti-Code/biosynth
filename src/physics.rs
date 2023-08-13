@@ -12,6 +12,7 @@ use std::f32::consts::PI;
 pub struct PhysicsProperities {
     pub friction: f32,
     pub restitution: f32,
+    pub density: f32,
     pub linear_damping: f32,
     pub angular_damping: f32,
 }
@@ -19,14 +20,14 @@ pub struct PhysicsProperities {
 impl Default for PhysicsProperities {
     
     fn default() -> Self {
-        Self { friction: 0.5, restitution: 0.5, linear_damping: 0.5, angular_damping: 0.5 }
+        Self { friction: 0.5, restitution: 0.5, density: 0.5, linear_damping: 0.5, angular_damping: 0.5 }
     }
 }
 
 impl PhysicsProperities {
     
-    fn new(friction: f32, restitution: f32, linear_damping: f32, angular_damping: f32) -> Self {
-        Self { friction, restitution, linear_damping, angular_damping }
+    pub fn new(friction: f32, restitution: f32, density: f32, linear_damping: f32, angular_damping: f32) -> Self {
+        Self { friction, restitution, density, linear_damping, angular_damping }
     }
 }
 
@@ -44,7 +45,7 @@ pub struct PhysicsWorld {
     impulse_joint_set: ImpulseJointSet,
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
-    query_pipeline: Option<QueryPipeline>,
+    query_pipeline: QueryPipeline,
     physics_hooks: (),
     event_handler: (),
 }
@@ -65,7 +66,7 @@ impl PhysicsWorld {
             impulse_joint_set: ImpulseJointSet::new(),
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
-            query_pipeline: None,
+            query_pipeline: QueryPipeline::new(),
             physics_hooks: (),
             event_handler: (),
         }
@@ -73,6 +74,7 @@ impl PhysicsWorld {
 
     pub fn step_physics(&mut self) {
         self.attract_num = 0;
+
         self.physics_pipeline.step(
             &self.gravity,
             &self.integration_parameters,
@@ -84,7 +86,7 @@ impl PhysicsWorld {
             &mut self.impulse_joint_set,
             &mut self.multibody_joint_set,
             &mut self.ccd_solver,
-            None,
+            Some(&mut self.query_pipeline),
             &self.physics_hooks,
             &self.event_handler,
         );
@@ -136,6 +138,12 @@ impl PhysicsWorld {
         let ball = ColliderBuilder::ball(radius).density(density).friction(friction).restitution(restitution)
             .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build();
         return self.colliders.insert_with_parent(ball, body_handle, &mut self.rigid_bodies);
+    }
+
+    pub fn add_dynamic_ball(&mut self, key: u64, size: f32, position: &Vec2, rotation: f32, physics_props: PhysicsProperities) -> RigidBodyHandle {
+        let rbh = self.add_dynamic_rigidbody(key, position, rotation, physics_props.linear_damping, physics_props.angular_damping);
+        let _colh = self.add_ball_collider(rbh, size, physics_props.density, physics_props.restitution, physics_props.friction);
+        return rbh;
     }
 
     pub fn add_dynamic_agent(&mut self, key: u64, position: &Vec2, radius: f32, rotation: f32, detection_range: Option<f32>) -> RigidBodyHandle {
@@ -194,7 +202,7 @@ impl PhysicsWorld {
         }
     }
 
-/*     pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+    pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
         let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let filter = QueryFilter {
@@ -217,47 +225,41 @@ impl PhysicsWorld {
             );
         }
         return contacts;
-    } */
+    }
 
-
-    /* pub fn get_closesd_agent(&self, agent_body_handle: RigidBodyHandle) -> Option<RigidBodyHandle> {
+    pub fn get_closesd_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matric_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
         let mut target: RigidBodyHandle = RigidBodyHandle::invalid();
-        for c in rb.colliders() {
-            let collider = self.colliders.get(*c).unwrap();
-            if !collider.is_sensor() {
-                continue;
-            }
-            let filter = QueryFilter {
-                flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
-                groups: None,
-                exclude_collider: Some(*c),
-                exclude_rigid_body: Some(agent_body_handle),
-                ..Default::default()
-            };
-            self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), collider.shape(), filter,
-             |collided| {
-                    let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
-                    let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
-                    let pos2 = matric_to_vec2(rb2.position().translation);
-
-                    let new_dist = pos1.distance(pos2);
-                    if new_dist < dist {
-                        dist = new_dist;
-                        target = rb2_handle;
-                    }
-                    return true;
-                },
-            );
-        }
+        let detector = ColliderBuilder::ball(detection_range).sensor(true).density(0.0).build();
+        let filter = QueryFilter {
+            flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
+            groups: None,
+            exclude_collider: None,
+            exclude_rigid_body: Some(agent_body_handle),
+            ..Default::default()
+        };
+        self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), detector.shape(), filter,
+            |collided| {
+                let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
+                let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
+                let pos2 = matric_to_vec2(rb2.position().translation);
+                let new_dist = pos1.distance(pos2);
+                if new_dist < dist {
+                    dist = new_dist;
+                    target = rb2_handle;
+                }
+                return true;
+            },
+        );
         if dist < f32::INFINITY {
             return Some(target);
         } else {
             return None;
         }
-    } */
+    }
+
 }
 
 pub struct PhysicsData {

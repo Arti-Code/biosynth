@@ -7,8 +7,9 @@ use crate::consts::*;
 use crate::plant::*;
 use crate::ui::*;
 use crate::util::{Signals, contact_mouse};
-use crate::world::*;
+//use crate::world::*;
 use crate::being::Being;
+use crate::physics::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use std::f32::consts::PI;
@@ -29,7 +30,7 @@ pub struct Simulation {
     pub simulation_name: String,
     pub world_size: Vec2,
     pub font: Font,
-    pub world: World,
+    pub physics: PhysicsWorld,
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
@@ -54,7 +55,7 @@ impl Simulation {
                 y: WORLD_H,
             },
             font: font,
-            world: World::new(),
+            physics: PhysicsWorld::new(),
             camera: create_camera(),
             running: false,
             sim_time: 0.0,
@@ -76,10 +77,10 @@ impl Simulation {
             Some(name) => name.to_string(),
             None => String::new(),
         };
-        self.world = World::new();
+        self.physics = PhysicsWorld::new();
         self.agents.agents.clear();
         self.plants.plants.clear();
-        self.lifes.plants.clear();
+        self.lifes.elements.clear();
         //self.particles.elements.clear();
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
@@ -96,8 +97,8 @@ impl Simulation {
     pub fn init(&mut self) {
         let agents_num = self.config.agents_init_num;
         let lifes_num = self.config.lifes_min_num;
-        self.agents.add_many_agents(agents_num as usize, &mut self.world);
-        self.plants.add_many_plants(PLANTS_NUM, &mut self.world);
+        self.agents.add_many_agents(agents_num as usize, &mut self.physics);
+        //self.plants.add_many_plants(PLANTS_NUM, &mut self.physics);
         //self.lifes.add_many_plants(lifes_num, &mut self.world);
         //self.sources.add_many(48);
     }
@@ -111,10 +112,10 @@ impl Simulation {
         let dt = self.sim_state.dt;
         for (_, agent) in self.agents.get_iter_mut() {
             //let uid = *id;
-            if !agent.update(dt, &mut self.world) {
+            if !agent.update(dt, &mut self.physics) {
                 match agent.physics_handle {
                     Some(handle) => {
-                        self.world.remove_physics_object(handle);
+                        self.physics.remove_physics_object(handle);
                     }
                     None => {}
                 }
@@ -127,10 +128,10 @@ impl Simulation {
         let dt = self.sim_state.dt;
         for (_, plant) in self.plants.get_iter_mut() {
             //let uid = *id;
-            if !plant.update(dt, &mut self.world) {
+            if !plant.update(dt, &mut self.physics) {
                 match plant.physics_handle {
                     Some(handle) => {
-                        self.world.remove_physics_object(handle);
+                        self.physics.remove_physics_object(handle);
                     }
                     None => {}
                 }
@@ -143,16 +144,16 @@ impl Simulation {
         let dt = self.sim_state.dt;
         for (_, life) in self.lifes.get_iter_mut() {
             //let uid = *id;
-            if !life.update(dt, &mut self.world) {
+            if !life.update(dt, &mut self.physics) {
                 match life.physics_handle {
                     Some(handle) => {
-                        self.world.remove_physics_object(handle);
+                        self.physics.remove_physics_object(handle);
                     }
                     None => {}
                 }
             };
         }
-        self.lifes.plants.retain(|_, plant| plant.alife == true);        
+        self.lifes.elements.retain(|_, plant| plant.alife == true);        
     }
 
     pub fn update(&mut self) {
@@ -164,7 +165,7 @@ impl Simulation {
         self.update_plants();
         self.update_lifes();
         //self.sim_state.contacts_info = self.world.get_contacts_info();
-        self.world.step_physics();
+        self.physics.step_physics();
     }
 
     pub fn draw(&self) {
@@ -246,14 +247,14 @@ impl Simulation {
     pub fn signals_check(&mut self) {
         if self.signals.spawn_agent {
             let agent = Agent::new();
-            self.agents.add_agent(agent, &mut self.world);
+            self.agents.add_agent(agent, &mut self.physics);
             self.signals.spawn_agent = false;
         }
-        if self.signals.spawn_plant {
+        /* if self.signals.spawn_plant {
             let plant: Plant = Plant::new();
-            self.plants.add_plant(plant, &mut self.world);
+            self.plants.add_plant(plant, &mut self.physics);
             self.signals.spawn_plant = false;
-        }
+        } */
         if self.signals.new_sim {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
@@ -290,11 +291,11 @@ impl Simulation {
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
         self.sim_state.plants_num = self.plants.plants.len() as i32;
-        self.sim_state.lifes_num = self.lifes.plants.len() as i32;
-        self.sim_state.physics_num = self.world.get_physics_obj_num() as i32;
+        self.sim_state.lifes_num = self.lifes.elements.len() as i32;
+        self.sim_state.physics_num = self.physics.get_physics_obj_num() as i32;
         let mut kin_eng = 0.0;
         let mut total_mass = 0.0;
-        for (_, rb) in self.world.rigid_bodies.iter() {
+        for (_, rb) in self.physics.rigid_bodies.iter() {
             kin_eng += rb.kinetic_energy();
             total_mass += rb.mass();
         }
@@ -306,15 +307,15 @@ impl Simulation {
         unsafe {
             if self.sim_state.agents_num < (SIM_PARAMS.agent_min_num as i32) {
                 let agent = Agent::new();
-                self.agents.add_agent(agent, &mut self.world);
+                self.agents.add_agent(agent, &mut self.physics);
             }
             if self.sim_state.lifes_num < (SIM_PARAMS.lifes_min_num as i32) {
-                self.lifes.add_many_plants(1, &mut self.world);
+                self.lifes.add_many_plants(1, &mut self.physics);
             }
         }
-        if self.sim_state.plants_num < (self.config.plant_min_num as i32) {
-            self.plants.add_many_plants(1, &mut self.world);
-        }
+        /* if self.sim_state.plants_num < (self.config.plant_min_num as i32) {
+            self.plants.add_many_plants(1, &mut self.physics);
+        } */
         
     }
 

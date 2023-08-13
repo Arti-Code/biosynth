@@ -7,20 +7,20 @@ use macroquad::prelude::*;
 use macroquad::color::*;
 use rapier2d::prelude::*;
 use macroquad::rand::*;
-use crate::world::*;
+use crate::physics::*;
 use crate::util::*;
 use crate::consts::*;
 
 pub trait Being {
     //fn new() -> Self;
     fn draw(&self, selected: bool, font: &Font);
-    fn update(&mut self, dt: f32, physics: &mut World) -> bool;
+    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool;
 }
 
 trait Collector<T> {
     fn new() -> Self;
-    fn add_many(&mut self, number: usize, physics: &mut World);
-    fn add(&mut self, being: T, physics: &mut World);
+    fn add_many(&mut self, number: usize, physics: &mut PhysicsWorld);
+    fn add(&mut self, being: T, physics: &mut PhysicsWorld);
     fn get(&self, id: u64) -> Option<T>;
     fn remove(&mut self, id: u64);
     fn get_iter(&self) -> Iter<u64, T>;
@@ -55,7 +55,7 @@ impl Being for Life {
         }
     }    
 
-    fn update(&mut self, dt: f32, physics: &mut World) -> bool {
+    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         self.update_physics(physics);
         //self.calc_energy(dt);
         return self.alife;
@@ -127,7 +127,7 @@ impl Life {
         draw_text_ex(&info3, x0 - txt_center.x, y0 - txt_center.y + self.size as f32 * 2.0 + 38.0, text_cfg.clone());
     }
 
-    fn update_physics(&mut self, physics: &mut World) {
+    fn update_physics(&mut self, physics: &mut PhysicsWorld) {
         match self.physics_handle {
             Some(handle) => {
                 let physics_data = physics.get_physics_data(handle);
@@ -194,48 +194,50 @@ impl Life {
 
 
 pub struct LifesBox {
-    pub plants: HashMap<u64, Life>,
+    pub elements: HashMap<u64, Life>,
 }
 
 impl LifesBox {
     pub fn new() -> Self {
         Self {
-            plants: HashMap::new(),
+            elements: HashMap::new(),
         }
     }
 
-    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut World) {
+    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut PhysicsWorld) {
         for _ in 0..plants_num {
             let plant = Life::new();
             _ = self.add_plant(plant, physics_world);
         }
     }
 
-    pub fn add_plant(&mut self, mut plant: Life, physics_world: &mut World) -> u64 {
+    pub fn add_plant(&mut self, mut plant: Life, physics_world: &mut PhysicsWorld) -> u64 {
         let key = plant.key;
-        let handle = physics_world.add_complex_agent(key, &plant.pos, plant.shape.to_vec().to_owned(), plant.rot, None);
+        let props = PhysicsProperities::new(0.5, 0.5, 1.0, 0.5, 0.5);
+        let handle = physics_world.add_dynamic_ball(key, plant.size as f32, &plant.pos, plant.rot, props);
+        //let handle2 = physics_world.add_complex_agent(key, &plant.pos, plant.shape.to_vec().to_owned(), plant.rot, None);
         plant.physics_handle = Some(handle);
-        self.plants.insert(key, plant);
+        self.elements.insert(key, plant);
         return key;
     }
 
     pub fn get(&self, id: u64) -> Option<&Life> {
-        return self.plants.get(&id);
+        return self.elements.get(&id);
     }
 
     pub fn remove(&mut self, id: u64) {
-        self.plants.remove(&id);
+        self.elements.remove(&id);
     }
 
     pub fn get_iter(&self) -> Iter<u64, Life> {
-        return self.plants.iter();
+        return self.elements.iter();
     }
 
     pub fn get_iter_mut(&mut self) -> IterMut<u64, Life> {
-        return self.plants.iter_mut();
+        return self.elements.iter_mut();
     }
 
     pub fn count(&self) -> usize {
-        return self.plants.len();
+        return self.elements.len();
     }
 }

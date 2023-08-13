@@ -9,7 +9,6 @@ mod sim;
 mod timer;
 mod ui;
 mod util;
-mod world;
 mod physics;
 mod being;
 mod plant;
