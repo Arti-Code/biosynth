@@ -10,8 +10,8 @@ keywords = ["physics", "sandbox", "simulation"]
 [dependencies]
 macroquad = "0.3.26"
 rapier2d = { version = "0.17.2", features = [ "simd-stable" ] }
-egui-macroquad = "0.15.0"
-egui_extras = {version = "0.21.0", features = ["image"]}
+egui-macroquad = {version = "0.15.0"}
+egui_extras = {version = "0.22.0", features = ["image"]}
 image = "0.24.6"
 
 [build-dependencies]
