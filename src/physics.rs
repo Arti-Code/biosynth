@@ -135,11 +135,11 @@ impl PhysicsWorld {
         return self.rigid_bodies.insert(dynamic_body);
     }
 
-/*     pub fn add_ball_collider(&mut self, body_handle: RigidBodyHandle, radius: f32, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
+    pub fn add_ball_collider(&mut self, body_handle: RigidBodyHandle, radius: f32, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
         let ball = ColliderBuilder::ball(radius).density(density).friction(friction).restitution(restitution)
             .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build();
         return self.colliders.insert_with_parent(ball, body_handle, &mut self.rigid_bodies);
-    } */
+    }
     
     pub fn add_triangle_shape(&mut self, body_handle: RigidBodyHandle, shape: SharedShape, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
         let collider = ColliderBuilder::new(shape).density(density).friction(friction).restitution(restitution)

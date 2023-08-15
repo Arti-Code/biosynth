@@ -11,6 +11,7 @@ mod ui;
 mod util;
 mod physics;
 mod being;
+mod part;
 
 use crate::consts::*;
 use crate::sim::*;
