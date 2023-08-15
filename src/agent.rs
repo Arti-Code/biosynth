@@ -11,6 +11,7 @@ use crate::being::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
+use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 
 pub struct Agent {
@@ -26,7 +27,8 @@ pub struct Agent {
     pub eng: f32,
     pub color: color::Color,
     pub pulse: f32,
-    pub shape: Ball,
+    pub shape: SharedShape,
+    pub vertices: Vec<Vec2>,
     motor: bool,
     motor_phase: f32,
     motor_phase2: f32,
@@ -47,16 +49,8 @@ impl Being for Agent {
     fn draw(&self, selected: bool, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        if self.motor {
-            let tail = Vec2::from_angle(self.rot + (self.motor_phase * 0.5));
-            let x3 = x0 - tail.x * self.size * 1.4;
-            let y3 = y0 - tail.y * self.size * 1.4;
-            draw_circle(x3, y3, self.size / 2.0, self.color);
-        }
-        let pulse = (self.pulse * 2.0) - 1.0;
-        draw_circle_lines(x0, y0, self.size, 4.0, self.color);
-        draw_circle(x0, y0, (self.size / 2.0) * pulse.abs(), self.color);
-        self.draw_front();
+        self.draw_tri();
+        //self.draw_circle();
         if selected {
             self.draw_target();
             draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
@@ -96,12 +90,19 @@ impl Agent {
         if gen_range(0, 2) == 1 {
             motor = true;
         }
+        let v0 = Vec2::from_angle(0.0)*s;
+        let v1 = Vec2::from_angle(-2.0*PI/3.0)*s;
+        let v2 = Vec2::from_angle(2.0*PI/3.0)*s;
         let p = gen_range(0.2, 0.8);
-
+        let vertices = vec![v0, v2, v1];
+        //let vertices = map_polygon(3, s, 0.0);
+        let vecs = vec2_to_point2_collection(&vertices).to_owned();
+        let points = vecs.as_slice();
         Self {
             key: gen_range(u64::MIN, u64::MAX),
             pos: random_position(WORLD_W, WORLD_H),
-            rot: random_rotation(),
+            //rot: random_rotation(),
+            rot: 0.0,
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
@@ -111,7 +112,9 @@ impl Agent {
             eng: s.powi(2) * 10.0,
             color: random_color(),
             pulse: rand::gen_range(0.0, 1.0),
-            shape: Ball { radius: s },
+            vertices: vertices,
+            shape: SharedShape::triangle(points[0], points[1], points[2]),
+            //shape: SharedShape::triangle(points[0], points[1], points[2]),
             motor: motor as bool,
             motor_phase: p,
             motor_phase2: p,
@@ -140,6 +143,36 @@ impl Agent {
         let y2 = self.pos.y + dir.y * self.size * 2.0;
         draw_line(x0l, y0l, x2, y2, 2.0, self.color);
         draw_line(x0r, y0r, x2, y2, 2.0, self.color);
+    }
+
+    fn draw_tri(&self) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        let dir = Vec2::from_angle(self.rot);
+        let mut v0 = self.vertices[0];
+        v0 = dir.rotate(v0);
+        let mut v1 = self.vertices[1];
+        v1 = dir.rotate(v1);
+        let mut v2 = self.vertices[2];
+        v2 = dir.rotate(v2);
+        draw_triangle_lines(self.pos+v0, self.pos+v1, self.pos+v2, 2.0, self.color);
+        draw_line(x0, y0, x0+dir.x*self.size, y0+dir.y*self.size, 3.0, GREEN)
+        //draw_poly_lines(x0, y0, 3, self.size, 0.0, 2.0, RED);
+    }
+
+    fn draw_circle(&self) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        if self.motor {
+            let tail = Vec2::from_angle(self.rot + (self.motor_phase * 0.5));
+            let x3 = x0 - tail.x * self.size * 1.4;
+            let y3 = y0 - tail.y * self.size * 1.4;
+            draw_circle(x3, y3, self.size / 2.0, self.color);
+        }
+        let pulse = (self.pulse * 2.0) - 1.0;
+        draw_circle_lines(x0, y0, self.size, 4.0, self.color);
+        draw_circle(x0, y0, (self.size / 2.0) * pulse.abs(), self.color);
+        self.draw_front();
     }
 
     fn draw_target(&self) {
@@ -200,10 +233,14 @@ impl Agent {
                 match physics.rigid_bodies.get_mut(handle) {
                     Some(body) => {
                         let dir = Vec2::from_angle(self.rot);
-                        let rot = self.ang_vel * AGENT_TORQUE * self.size.powi(2);
-                        let v = dir * self.vel * AGENT_IMPULSE * self.size.powi(2);
-                        body.apply_impulse([v.x, v.y].into(), true);
-                        body.apply_torque_impulse(rot, true);
+                        //let rot = self.ang_vel * AGENT_TORQUE * self.size.powi(2);
+                        //let v = dir * self.vel * AGENT_IMPULSE * self.size.powi(2);
+                        let v = dir * self.vel * AGENT_VELOCITY;
+                        let rot = self.ang_vel * AGENT_TORQUE;
+                        body.set_linvel(Vector2::new(v.x, v.y), true);
+                        body.set_angvel(rot, true);
+                        //body.apply_impulse([v.x, v.y].into(), true);
+                        //body.apply_torque_impulse(rot, true);
                         self.check_edges(body);
                     }
                     None => {}
@@ -214,25 +251,27 @@ impl Agent {
     }
 
     fn check_edges(&mut self, body: &mut RigidBody) {
-        let mut raw_pos = matric_to_vec2(body.position().translation);
+        let mut raw_pos = matrix_to_vec2(body.position().translation);
         let mut out_of_edge = false;
-        if raw_pos.x < -5.0 {
+        if raw_pos.x < 0.0 {
             raw_pos.x = 0.0;
             out_of_edge = true;
-        } else if raw_pos.x > WORLD_W + 5.0 {
+        } else if raw_pos.x > WORLD_W {
             raw_pos.x = WORLD_W;
             out_of_edge = true;
         }
-        if raw_pos.y < -5.0 {
+        if raw_pos.y < 0.0 {
             raw_pos.y = 0.0;
             out_of_edge = true;
-        } else if raw_pos.y > WORLD_H + 5.0 {
+        } else if raw_pos.y > WORLD_H {
             raw_pos.y = WORLD_H;
             out_of_edge = true;
         }
         if out_of_edge {
-            body.set_position(make_isometry(raw_pos.x, raw_pos.y, -self.rot), true);
-            body.set_linvel([0.0, 0.0].into(), true);
+            //self.rot = -self.rot;
+            body.set_position(make_isometry(raw_pos.x, raw_pos.y, self.rot), true);
+            //body.set_linvel([0.0, 0.0].into(), true);
+            //self.vel = 0.0;
         }
     }
 
@@ -361,13 +400,8 @@ impl AgentsBox {
 
     pub fn add_agent(&mut self, mut agent: Agent, physics_world: &mut PhysicsWorld) -> u64 {
         let key = agent.key;
-        let handle = physics_world.add_dynamic_agent(
-            key,
-            &agent.pos,
-            agent.size,
-            agent.rot,
-            Some(agent.vision_range),
-        );
+        //let handle = physics_world.add_dynamic_ball(key, agent.size, &agent.pos, agent.rot, PhysicsProperities::default());
+        let handle = physics_world.add_dynamic_tri(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
         agent.physics_handle = Some(handle);
         self.agents.insert(key, agent);
         return key;

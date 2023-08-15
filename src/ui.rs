@@ -395,13 +395,13 @@ impl UISystem {
 
     fn build_enviroment_window(&mut self, egui_ctx: &Context) {
         if self.state.enviroment {
-            Window::new("ENVIROMENT SETTINGS").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(250.).min_width(400.)
+            Window::new("ENVIROMENT SETTINGS").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(260.).min_width(300.)
             .title_bar(true).show(egui_ctx, |ui| {
-                ui.separator();
+                ui.heading("AGENTS");
                 ui.columns(2, |column| {
                     unsafe {
                         let mut agents_num: i32 = SIM_PARAMS.agent_min_num as i32;
-                        column[0].label(RichText::new("AGENTS MINIMAL NUMBER").color(Color32::WHITE).strong());
+                        column[0].label(RichText::new("MINIMAL NUMBER").color(Color32::WHITE).strong());
                         if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
                             SIM_PARAMS.agent_min_num = agents_num as usize;
                         }
@@ -409,10 +409,10 @@ impl UISystem {
                 });
                 ui.columns(2, |column| {
                     unsafe {
-                        let mut lifes_num: i32 = SIM_PARAMS.lifes_min_num as i32;
-                        column[0].label(RichText::new("LIFES NUMBER").color(Color32::WHITE).strong());
-                        if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut lifes_num, 0..=100)).changed() {
-                            SIM_PARAMS.lifes_min_num = lifes_num as usize;
+                        let mut agent_init_num: i32 = SIM_PARAMS.agent_init_num as i32;
+                        column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
+                        if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_init_num, 0..=100)).changed() {
+                            SIM_PARAMS.agent_init_num = agent_init_num as usize;
                         }
                     }
                 });

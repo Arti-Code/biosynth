@@ -1,10 +1,9 @@
 #![allow(unused)]
 
 use crate::agent::*;
-use crate::being::LifesBox;
+use crate::being::*;
 use crate::camera::*;
 use crate::consts::*;
-use crate::plant::*;
 use crate::ui::*;
 use crate::util::{Signals, contact_mouse};
 //use crate::world::*;
@@ -17,13 +16,10 @@ use std::f32::consts::PI;
 
 pub static mut SIM_PARAMS: SimConfig = SimConfig {
     agent_min_num: AGENTS_NUM_MIN,
-    agents_init_num: AGENTS_NUM,
-    plant_init_num: PLANTS_NUM,
-    plant_min_num: PLANTS_MIN_NUM,
+    agent_init_num: AGENTS_NUM,
     agent_rotation: AGENT_ROTATION,
     agent_speed: AGENT_SPEED,
     agent_vision_range: AGENT_VISION_RANGE,
-    lifes_min_num: LIFE_NUM_MIN as usize,
 };
 
 pub struct Simulation {
@@ -42,11 +38,12 @@ pub struct Simulation {
     pub selected: u64,
     pub mouse_state: MouseState,
     pub agents: AgentsBox,
-    pub plants: PlantsBox,
-    pub lifes: LifesBox,
+    //pub plants: PlantsBox,
+    //pub lifes: LifesBox,
 }
 
 impl Simulation {
+    
     pub fn new(configuration: SimConfig, font: Font) -> Self {
         Self {
             simulation_name: String::new(),
@@ -67,8 +64,8 @@ impl Simulation {
             select_phase: 0.0,
             mouse_state: MouseState { pos: Vec2::NAN },
             agents: AgentsBox::new(),
-            plants: PlantsBox::new(),
-            lifes: LifesBox::new(),
+            //plants: PlantsBox::new(),
+            //lifes: LifesBox::new(),
         }
     }
 
@@ -79,8 +76,8 @@ impl Simulation {
         };
         self.physics = PhysicsWorld::new();
         self.agents.agents.clear();
-        self.plants.plants.clear();
-        self.lifes.elements.clear();
+        //self.plants.plants.clear();
+        //self.lifes.elements.clear();
         //self.particles.elements.clear();
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
@@ -91,16 +88,13 @@ impl Simulation {
         self.mouse_state = MouseState { pos: Vec2::NAN };
         self.running = true;
         self.init();
-        //self.build_wall();
     }
 
     pub fn init(&mut self) {
-        let agents_num = self.config.agents_init_num;
-        let lifes_num = self.config.lifes_min_num;
-        self.agents.add_many_agents(agents_num as usize, &mut self.physics);
-        //self.plants.add_many_plants(PLANTS_NUM, &mut self.physics);
-        //self.lifes.add_many_plants(lifes_num, &mut self.world);
-        //self.sources.add_many(48);
+        unsafe {
+            let agents_num = SIM_PARAMS.agent_init_num;
+            self.agents.add_many_agents(agents_num as usize, &mut self.physics);
+        }
     }
 
     pub fn autorun_new_sim(&mut self) {
@@ -124,47 +118,12 @@ impl Simulation {
         self.agents.agents.retain(|_, agent| agent.alife == true);
     }
 
-    fn update_plants(&mut self) {
-        let dt = self.sim_state.dt;
-        for (_, plant) in self.plants.get_iter_mut() {
-            //let uid = *id;
-            if !plant.update(dt, &mut self.physics) {
-                match plant.physics_handle {
-                    Some(handle) => {
-                        self.physics.remove_physics_object(handle);
-                    }
-                    None => {}
-                }
-            };
-        }
-        self.plants.plants.retain(|_, plant| plant.alife == true);        
-    }
-
-    fn update_lifes(&mut self) {
-        let dt = self.sim_state.dt;
-        for (_, life) in self.lifes.get_iter_mut() {
-            //let uid = *id;
-            if !life.update(dt, &mut self.physics) {
-                match life.physics_handle {
-                    Some(handle) => {
-                        self.physics.remove_physics_object(handle);
-                    }
-                    None => {}
-                }
-            };
-        }
-        self.lifes.elements.retain(|_, plant| plant.alife == true);        
-    }
-
     pub fn update(&mut self) {
         self.signals_check();
         self.update_sim_state();
         self.check_agents_num();
         self.calc_selection_time();
         self.update_agents();
-        self.update_plants();
-        self.update_lifes();
-        //self.sim_state.contacts_info = self.world.get_contacts_info();
         self.physics.step_physics();
     }
 
@@ -175,8 +134,6 @@ impl Simulation {
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_grid(50);
         self.draw_agents();
-        self.draw_plants();
-        self.draw_lifes();
     }
 
     fn draw_agents(&self) {
@@ -201,34 +158,6 @@ impl Simulation {
             }
             None => {}
         };
-    }
-
-    fn draw_plants(&self) {
-        for (id, plant) in self.plants.get_iter() {
-            let mut marked: bool = false;
-            if *id == self.selected {
-                marked = true;
-            };
-            plant.draw(marked, &self.font);
-        }
-        match self.plants.get(self.selected) {
-            Some(selected_plant) => {
-                let pos = Vec2::new(selected_plant.pos.x, selected_plant.pos.y);
-                let s = selected_plant.size;
-                draw_circle_lines(pos.x, pos.y, 2.0 * (s as f32) + (self.select_phase.sin() * (s as f32) * 0.5), 1.0, ORANGE);
-            }
-            None => {}
-        };
-    }
-
-    fn draw_lifes(&self) {
-        for (id, life) in self.lifes.get_iter() {
-            let mut marked: bool = false;
-            if *id == self.selected {
-                marked = true;
-            };
-            life.draw(marked, &self.font);
-        }
     }
 
     fn draw_grid(&self, cell_size: u32) {
@@ -290,8 +219,6 @@ impl Simulation {
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
-        self.sim_state.plants_num = self.plants.plants.len() as i32;
-        self.sim_state.lifes_num = self.lifes.elements.len() as i32;
         self.sim_state.physics_num = self.physics.get_physics_obj_num() as i32;
         let mut kin_eng = 0.0;
         let mut total_mass = 0.0;
@@ -309,14 +236,7 @@ impl Simulation {
                 let agent = Agent::new();
                 self.agents.add_agent(agent, &mut self.physics);
             }
-            if self.sim_state.lifes_num < (SIM_PARAMS.lifes_min_num as i32) {
-                self.lifes.add_many_plants(1, &mut self.physics);
-            }
         }
-        /* if self.sim_state.plants_num < (self.config.plant_min_num as i32) {
-            self.plants.add_many_plants(1, &mut self.physics);
-        } */
-        
     }
 
     fn calc_selection_time(&mut self) {
@@ -341,27 +261,21 @@ impl Simulation {
 //?         [[[SIM_CONFIG]]]
 #[derive(Clone, Copy)]
 pub struct SimConfig {
-    pub agents_init_num: usize,
-    pub plant_min_num: usize,
-    pub plant_init_num: usize,
     pub agent_min_num: usize,
+    pub agent_init_num: usize,
     pub agent_speed: f32,
     pub agent_vision_range: f32,
     pub agent_rotation: f32,
-    pub lifes_min_num: usize,
 }
 
 impl Default for SimConfig {
     fn default() -> Self {
         Self {
-            agents_init_num: AGENTS_NUM,
             agent_min_num: AGENTS_NUM_MIN,
-            plant_init_num: PLANTS_NUM,
-            plant_min_num: PLANTS_MIN_NUM,
+            agent_init_num: AGENTS_NUM,
             agent_speed: AGENT_SPEED,
             agent_rotation: AGENT_ROTATION,
             agent_vision_range: AGENT_VISION_RANGE,
-            lifes_min_num: LIFE_NUM_MIN as usize,
         }
     }
 }

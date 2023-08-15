@@ -190,3 +190,54 @@ impl Life {
         }
     }
 }
+
+
+
+pub struct LifesBox {
+    pub elements: HashMap<u64, Life>,
+}
+
+impl LifesBox {
+    pub fn new() -> Self {
+        Self {
+            elements: HashMap::new(),
+        }
+    }
+
+    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut PhysicsWorld) {
+        for _ in 0..plants_num {
+            let plant = Life::new();
+            _ = self.add_plant(plant, physics_world);
+        }
+    }
+
+    pub fn add_plant(&mut self, mut plant: Life, physics_world: &mut PhysicsWorld) -> u64 {
+        let key = plant.key;
+        let props = PhysicsProperities::new(0.5, 0.5, 1.0, 0.5, 0.5);
+        let handle = physics_world.add_dynamic_ball(key, plant.size as f32, &plant.pos, plant.rot, props);
+        //let handle2 = physics_world.add_complex_agent(key, &plant.pos, plant.shape.to_vec().to_owned(), plant.rot, None);
+        plant.physics_handle = Some(handle);
+        self.elements.insert(key, plant);
+        return key;
+    }
+
+    pub fn get(&self, id: u64) -> Option<&Life> {
+        return self.elements.get(&id);
+    }
+
+    pub fn remove(&mut self, id: u64) {
+        self.elements.remove(&id);
+    }
+
+    pub fn get_iter(&self) -> Iter<u64, Life> {
+        return self.elements.iter();
+    }
+
+    pub fn get_iter_mut(&mut self) -> IterMut<u64, Life> {
+        return self.elements.iter_mut();
+    }
+
+    pub fn count(&self) -> usize {
+        return self.elements.len();
+    }
+}
