@@ -398,11 +398,11 @@ impl UISystem {
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|author| {
-                    author.label(RichText::new("Artur Gwoździowski 2023").color(Color32::LIGHT_RED).strong());
+                    author.label(RichText::new("Artur Gwoździowski 2023").color(Color32::BLUE).strong());
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|author| {
-                    author.label(RichText::new("version 0.2.x").color(Color32::LIGHT_BLUE).strong());
+                    author.label(RichText::new(format!("version {}", env!("CARGO_PKG_VERSION"))).color(Color32::LIGHT_RED).strong());
                 });
             });
         }

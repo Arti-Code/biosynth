@@ -308,6 +308,7 @@ impl Default for SimConfig {
 //?         [[[SIM_STATE]]]
 pub struct SimState {
     pub sim_name: String,
+    pub ver: String,
     pub agents_num: i32,
     pub plants_num: i32,
     pub lifes_num: i32,
@@ -325,6 +326,7 @@ impl SimState {
     pub fn new() -> Self {
         Self {
             sim_name: String::new(),
+            ver: String::from(env!("CARGO_PKG_VERSION")),
             agents_num: AGENTS_NUM as i32,
             plants_num: PLANTS_NUM as i32,
             lifes_num: 0,
