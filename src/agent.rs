@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
 use crate::consts::*;
 use crate::neuro::*;
+use crate::sim::SIM_PARAMS;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
@@ -50,6 +51,12 @@ impl Being for Agent {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         self.draw_tri();
+        unsafe {
+            if SIM_PARAMS.agent_eng_bar {
+                let e = self.eng/self.max_eng;
+                self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
+            }
+        }
         //self.draw_circle();
         if selected {
             self.draw_target();
@@ -208,18 +215,16 @@ impl Agent {
         let info_mass = format!("mass: {}", mass.round());
         let txt_center = get_text_center(&info, Some(*font), 13, 1.0, 0.0);
         let txt_center2 = get_text_center(&info_mass, Some(*font), 13, 1.0, 0.0);
-        draw_text_ex(
-            &info,
-            x0 - txt_center.x,
-            y0 - txt_center.y + self.size * 2.0+8.0,
-            text_cfg.clone(),
-        );
-        draw_text_ex(
-            &info_mass,
-            x0 - txt_center.x,
-            y0 - txt_center.y + self.size * 2.0 + 23.0,
-            text_cfg.clone(),
-        );
+        draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 30.0, text_cfg.clone());
+        draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
+    }
+
+    fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {
+        let xc = self.pos.x + offset.x; let yc = self.pos.y + offset.y;
+        let x0 = xc-20.0; let y0 = yc -1.5;
+        let w = 40.0*percent;
+        draw_rectangle(x0, y0, 40.0, 3.0, color2);
+        draw_rectangle(x0, y0, w, 3.0, color1);
     }
 
     fn update_physics(&mut self, physics: &mut PhysicsWorld) {

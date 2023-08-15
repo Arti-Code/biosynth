@@ -5,6 +5,7 @@ use std::f32::consts::PI;
 use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
+use macroquad::math::Vec2 as Vec2;
 use macroquad::prelude::*;
 use image::{io::*, *};
 use macroquad::ui::widgets::Texture;
@@ -19,6 +20,7 @@ pub struct UISystem {
     pub pointer_over: bool,
     temp_sim_name: String,
     logo: Option<egui_macroquad::egui::TextureHandle>,
+    big_logo: Option<egui_macroquad::egui::TextureHandle>,
 }
 
 impl UISystem {
@@ -29,6 +31,7 @@ impl UISystem {
             pointer_over: false,
             temp_sim_name: String::new(),
             logo: None,
+            big_logo: None,
             //egui_extras::RetainedImage::from_color_image("mylogo.png", ColorImage::new([64, 256], Color32::WHITE)).
         }
     }
@@ -40,11 +43,13 @@ impl UISystem {
         let pixels = image_buffer.as_flat_samples();
         Ok(egui_macroquad::egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice()))
     }
-
+    
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
             let img =  Self::load_image(Path::new("assets/img/microbes32.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
+            let img2 =  Self::load_image(Path::new("assets/img/microbes.png")).unwrap();
+            self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
         });
     }
 
@@ -381,43 +386,69 @@ impl UISystem {
 
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {
-            Window::new("ABOUT SIMULATION").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(250.).min_width(300.)
+            Window::new("ABOUT SIMULATION").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(340.).min_width(300.)
             .title_bar(true).show(egui_ctx, |ui| {
-                ui.separator();
-                ui.label(RichText::new("BioSynth Simulation").color(Color32::LIGHT_BLUE).strong().heading());
-                ui.separator();
-                ui.label(RichText::new("Artur Gwoździowski").color(Color32::WHITE).italics());
-                ui.separator();
-                ui.label(RichText::new("2023").color(Color32::WHITE).italics());
+                let big_logo = self.big_logo.clone().unwrap();
+                ui.vertical_centered(|pic| {
+                    pic.image(big_logo.id(), big_logo.size_vec2());
+                });
+                ui.add_space(10.0);
+                ui.vertical_centered(|title| {
+                    title.label(RichText::new("BioSynth Simulation").color(Color32::GREEN).strong().heading());
+                });
+                ui.add_space(10.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new("Artur Gwoździowski 2023").color(Color32::LIGHT_RED).strong());
+                });
+                ui.add_space(10.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new("version 0.2.x").color(Color32::LIGHT_BLUE).strong());
+                });
             });
         }
     }
 
     fn build_enviroment_window(&mut self, egui_ctx: &Context) {
-        if self.state.enviroment {
-            Window::new("ENVIROMENT SETTINGS").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(260.).min_width(300.)
-            .title_bar(true).show(egui_ctx, |ui| {
-                ui.heading("AGENTS");
-                ui.columns(2, |column| {
-                    unsafe {
-                        let mut agents_num: i32 = SIM_PARAMS.agent_min_num as i32;
-                        column[0].label(RichText::new("MINIMAL NUMBER").color(Color32::WHITE).strong());
-                        if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
-                            SIM_PARAMS.agent_min_num = agents_num as usize;
-                        }
-                    }
-                });
-                ui.columns(2, |column| {
-                    unsafe {
-                        let mut agent_init_num: i32 = SIM_PARAMS.agent_init_num as i32;
-                        column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
-                        if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_init_num, 0..=100)).changed() {
-                            SIM_PARAMS.agent_init_num = agent_init_num as usize;
-                        }
-                    }
-                });
-            });
+        if !self.state.enviroment {
+            return;
         }
+        Window::new("ENVIROMENT SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([290., 300.])
+        .title_bar(true).show(egui_ctx, |ui| {
+            ui.heading("AGENTS");
+            ui.columns(2, |column| {
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                unsafe {
+                    let mut agents_num: i32 = SIM_PARAMS.agent_min_num as i32;
+                    column[0].label(RichText::new("MINIMAL NUMBER").color(Color32::WHITE).strong());
+                    if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
+                        SIM_PARAMS.agent_min_num = agents_num as usize;
+                    }
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                unsafe {
+                    let mut agent_init_num: i32 = SIM_PARAMS.agent_init_num as i32;
+                    column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
+                    if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_init_num, 0..=100)).changed() {
+                        SIM_PARAMS.agent_init_num = agent_init_num as usize;
+                    }
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                unsafe {
+                    let mut agent_eng_bar: bool = SIM_PARAMS.agent_eng_bar;
+                    column[0].label(RichText::new("SHOW ENG BAR").color(Color32::WHITE).strong());
+                    if column[1].add(egui_macroquad::egui::Checkbox::without_text(&mut agent_eng_bar)).changed() {
+                        SIM_PARAMS.agent_eng_bar = agent_eng_bar;
+                    }
+                }
+            });
+        });
     }
 
     pub fn ui_draw(&self) {

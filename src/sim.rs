@@ -20,6 +20,7 @@ pub static mut SIM_PARAMS: SimConfig = SimConfig {
     agent_rotation: AGENT_ROTATION,
     agent_speed: AGENT_SPEED,
     agent_vision_range: AGENT_VISION_RANGE,
+    agent_eng_bar: true,
 };
 
 pub struct Simulation {
@@ -266,6 +267,7 @@ pub struct SimConfig {
     pub agent_speed: f32,
     pub agent_vision_range: f32,
     pub agent_rotation: f32,
+    pub agent_eng_bar: bool,
 }
 
 impl Default for SimConfig {
@@ -276,6 +278,7 @@ impl Default for SimConfig {
             agent_speed: AGENT_SPEED,
             agent_rotation: AGENT_ROTATION,
             agent_vision_range: AGENT_VISION_RANGE,
+            agent_eng_bar: true,
         }
     }
 }
