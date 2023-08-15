@@ -8,6 +8,7 @@ use egui_macroquad::egui::*;
 use macroquad::math::Vec2 as Vec2;
 use macroquad::prelude::*;
 use image::{io::*, *};
+use macroquad::ui::StyleBuilder;
 use macroquad::ui::widgets::Texture;
 use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::sim::{*, self};
@@ -386,15 +387,15 @@ impl UISystem {
 
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {
-            Window::new("ABOUT SIMULATION").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(340.).min_width(300.)
+            Window::new("ABOUT").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(380.).min_width(300.)
             .title_bar(true).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
-                ui.vertical_centered(|pic| {
-                    pic.image(big_logo.id(), big_logo.size_vec2());
+                ui.vertical_centered(|title| {
+                    title.label(RichText::new("NEUROEvolution Simulator").color(Color32::GREEN).strong().heading());
                 });
                 ui.add_space(10.0);
-                ui.vertical_centered(|title| {
-                    title.label(RichText::new("BioSynth Simulation").color(Color32::GREEN).strong().heading());
+                ui.vertical_centered(|pic| {
+                    pic.image(big_logo.id(), big_logo.size_vec2());
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|author| {
@@ -402,7 +403,14 @@ impl UISystem {
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|author| {
-                    author.label(RichText::new(format!("version {}", env!("CARGO_PKG_VERSION"))).color(Color32::LIGHT_RED).strong());
+                    author.label(RichText::new(format!("version {}", env!("CARGO_PKG_VERSION"))).color(Color32::YELLOW).italics());
+                });
+                ui.add_space(10.0);
+                ui.vertical_centered(|closer| {
+                    let mut stylus = closer.style();
+                    if closer.button(RichText::new("CLOSE").color(Color32::RED).strong()).clicked() {
+                        self.state.about = false;
+                    }
                 });
             });
         }
@@ -487,7 +495,7 @@ impl UIState {
             credits: false,
             docs: false,
             net: false,
-            about: false,
+            about: true,
             enviroment: false,
         }
     }
