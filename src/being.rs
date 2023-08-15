@@ -66,7 +66,7 @@ impl Being for Life {
 impl Life {
     
     pub fn new() -> Self {
-        let s = gen_range(LIFE_SIZE_MIN, LIFE_SIZE_MAX);
+        let s = gen_range(AGENT_SIZE_MIN, AGENT_SIZE_MAX);
 
         Self {
             key: gen_range(u64::MIN, u64::MAX),

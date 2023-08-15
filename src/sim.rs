@@ -328,7 +328,7 @@ impl SimState {
             sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
             agents_num: AGENTS_NUM as i32,
-            plants_num: PLANTS_NUM as i32,
+            plants_num: AGENTS_NUM as i32,
             lifes_num: 0,
             physics_num: 0,
             total_mass: 0.0,

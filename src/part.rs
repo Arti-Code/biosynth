@@ -1,4 +1,4 @@
-#![allow(unused)]
+/* #![allow(unused)]
 
 use macroquad::prelude::*;
 use rapier2d::prelude::*;
@@ -37,4 +37,4 @@ impl Part {
         todo!();
     }
 
-}
+} */

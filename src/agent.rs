@@ -50,14 +50,14 @@ impl Being for Agent {
     fn draw(&self, selected: bool, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        self.draw_tri();
+        //self.draw_tri();
         unsafe {
             if SIM_PARAMS.agent_eng_bar {
                 let e = self.eng/self.max_eng;
                 self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
             }
         }
-        //self.draw_circle();
+        self.draw_circle();
         if selected {
             self.draw_target();
             draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
@@ -120,7 +120,7 @@ impl Agent {
             color: random_color(),
             pulse: rand::gen_range(0.0, 1.0),
             vertices: vertices,
-            shape: SharedShape::triangle(points[0], points[1], points[2]),
+            shape: SharedShape::ball(s),
             //shape: SharedShape::triangle(points[0], points[1], points[2]),
             motor: motor as bool,
             motor_phase: p,
@@ -406,7 +406,8 @@ impl AgentsBox {
     pub fn add_agent(&mut self, mut agent: Agent, physics_world: &mut PhysicsWorld) -> u64 {
         let key = agent.key;
         //let handle = physics_world.add_dynamic_ball(key, agent.size, &agent.pos, agent.rot, PhysicsProperities::default());
-        let handle = physics_world.add_dynamic_tri(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
+        //let handle = physics_world.add_dynamic_tri(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
+        let handle = physics_world.add_dynamic(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
         agent.physics_handle = Some(handle);
         self.agents.insert(key, agent);
         return key;

@@ -9,6 +9,7 @@ use rapier2d::na::{Point2, Vector2};
 use rapier2d::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
+use std::ops::Deref;
 
 pub struct PhysicsProperities {
     pub friction: f32,
@@ -135,7 +136,32 @@ impl PhysicsWorld {
         return self.rigid_bodies.insert(dynamic_body);
     }
 
-    pub fn add_ball_collider(&mut self, body_handle: RigidBodyHandle, radius: f32, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
+    pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) {
+        let iso = make_isometry(rel_position.x, rel_position.y, rotation);
+        let collider = match shape.shape_type() {
+            ShapeType::Ball => {
+                let radius = shape.0.as_ball().unwrap().radius;
+                ColliderBuilder::ball(radius).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
+                    .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
+            },
+            ShapeType::Triangle => {
+                let verts = shape.0.as_triangle().unwrap().vertices().to_vec();
+                ColliderBuilder::triangle(verts[0], verts[1], verts[2]).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
+                .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
+            },
+            ShapeType::Cuboid => {
+                let hx = shape.0.as_cuboid().unwrap().half_extents.x; let hy = shape.0.as_cuboid().unwrap().half_extents.y;
+                ColliderBuilder::cuboid(hx, hy).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
+                .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
+            },
+            _ => {
+                ColliderBuilder::ball(5.0).position(iso).build()
+            },
+        };
+        self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
+    }
+
+/*     pub fn add_ball_collider(&mut self, body_handle: RigidBodyHandle, radius: f32, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
         let ball = ColliderBuilder::ball(radius).density(density).friction(friction).restitution(restitution)
             .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build();
         return self.colliders.insert_with_parent(ball, body_handle, &mut self.rigid_bodies);
@@ -145,45 +171,13 @@ impl PhysicsWorld {
         let collider = ColliderBuilder::new(shape).density(density).friction(friction).restitution(restitution)
             .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS).build();
         return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
-    }
-
-/*     pub fn add_tri_collider(&mut self, body_handle: RigidBodyHandle, vertices: &Vec<Vec2>, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
-        let ind = [[0, 1], [1, 2], [2, 0]];
-        let mut pts = vec2_to_point2_collection(vertices);
-        let verts = pts.as_slice();
-        let collider = ColliderBuilder::convex_hull(verts).unwrap().density(density).friction(friction).restitution(restitution)
-            .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS).build();
-        return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
     } */
 
-/*     pub fn add_dynamic_ball(&mut self, key: u64, size: f32, position: &Vec2, rotation: f32, physics_props: PhysicsProperities) -> RigidBodyHandle {
+    pub fn add_dynamic(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> RigidBodyHandle {
         let rbh = self.add_dynamic_rigidbody(key, position, rotation, physics_props.linear_damping, physics_props.angular_damping);
-        let _colh = self.add_ball_collider(rbh, size, physics_props.density, physics_props.restitution, physics_props.friction);
-        return rbh;
-    } */
-
-    pub fn add_dynamic_tri(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> RigidBodyHandle {
-        let rbh = self.add_dynamic_rigidbody(key, position, rotation, physics_props.linear_damping, physics_props.angular_damping);
-        let _colh = self.add_triangle_shape(rbh, shape, physics_props.density, physics_props.restitution, physics_props.friction);
+        let _colh = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props);
         return rbh;
     }
-
-/*     pub fn add_dynamic_agent(&mut self, key: u64, position: &Vec2, radius: f32, rotation: f32, detection_range: Option<f32>) -> RigidBodyHandle {
-        let iso = Isometry::new(Vector2::new(position.x, position.y), rotation);
-        let ball = RigidBodyBuilder::dynamic().position(iso).linear_damping(1.0).angular_damping(1.0)
-            .user_data(key as u128).build();
-        let collider = ColliderBuilder::ball(radius).density(1.0).restitution(0.2).friction(0.2)
-            .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS)
-            .build();
-        let rb_handle = self.rigid_bodies.insert(ball);
-        _ = self.colliders.insert_with_parent(collider, rb_handle, &mut self.rigid_bodies);
-        if detection_range.is_some() {
-            let detector = ColliderBuilder::ball(detection_range.unwrap())
-                .sensor(true).density(0.0).build();
-            _ = self.colliders.insert_with_parent(detector, rb_handle, &mut self.rigid_bodies);
-        }
-        return rb_handle;
-    } */
 
     pub fn get_physics_data(&self, handle: RigidBodyHandle) -> PhysicsData {
         if let Some(rb) = self.rigid_bodies.get(handle) {
