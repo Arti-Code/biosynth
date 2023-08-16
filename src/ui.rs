@@ -22,6 +22,7 @@ pub struct UISystem {
     temp_sim_name: String,
     logo: Option<egui_macroquad::egui::TextureHandle>,
     big_logo: Option<egui_macroquad::egui::TextureHandle>,
+    title: Option<egui_macroquad::egui::TextureHandle>,
 }
 
 impl UISystem {
@@ -33,6 +34,7 @@ impl UISystem {
             temp_sim_name: String::new(),
             logo: None,
             big_logo: None,
+            title: None,
             //egui_extras::RetainedImage::from_color_image("mylogo.png", ColorImage::new([64, 256], Color32::WHITE)).
         }
     }
@@ -51,10 +53,12 @@ impl UISystem {
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
             let img2 =  Self::load_image(Path::new("assets/img/microbes.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
+            let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
+            self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
         });
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>) {
+    pub fn ui_process(&mut self, settings: &mut SimConfig, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>) {
         egui_macroquad::ui(|egui_ctx| {
             //let mut style = (*egui_ctx.style()).clone();
             //style.text_styles. = [
@@ -74,7 +78,7 @@ impl UISystem {
             }
             self.build_net_graph(egui_ctx);
             self.build_about_window(egui_ctx);
-            self.build_enviroment_window(egui_ctx);
+            self.build_enviroment_window(egui_ctx, settings);
         });
     }
 
@@ -390,8 +394,12 @@ impl UISystem {
             Window::new("ABOUT").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(380.).min_width(300.)
             .title_bar(true).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
-                ui.vertical_centered(|title| {
+                let title = self.title.clone().unwrap();
+                /* ui.vertical_centered(|title| {
                     title.label(RichText::new("NEUROEvolution Simulator").color(Color32::GREEN).strong().heading());
+                }); */
+                ui.vertical_centered(|pic| {
+                    pic.image(title.id(), title.size_vec2());
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|pic| {
@@ -416,7 +424,7 @@ impl UISystem {
         }
     }
 
-    fn build_enviroment_window(&mut self, egui_ctx: &Context) {
+    fn build_enviroment_window(&mut self, egui_ctx: &Context, settings: &mut SimConfig) {
         if !self.state.enviroment {
             return;
         }
@@ -427,10 +435,10 @@ impl UISystem {
                 column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
                 column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
                 unsafe {
-                    let mut agents_num: i32 = SIM_PARAMS.agent_min_num as i32;
+                    let mut agents_num: i32 = settings.agent_min_num as i32;
                     column[0].label(RichText::new("MINIMAL NUMBER").color(Color32::WHITE).strong());
                     if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
-                        SIM_PARAMS.agent_min_num = agents_num as usize;
+                        settings.agent_min_num = agents_num as usize;
                     }
                 }
             });
@@ -438,10 +446,21 @@ impl UISystem {
                 column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
                 column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
                 unsafe {
-                    let mut agent_init_num: i32 = SIM_PARAMS.agent_init_num as i32;
+                    let mut agent_init_num: i32 = settings.agent_init_num as i32;
                     column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
                     if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_init_num, 0..=100)).changed() {
-                        SIM_PARAMS.agent_init_num = agent_init_num as usize;
+                        settings.agent_init_num = agent_init_num as usize;
+                    }
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                unsafe {
+                    let mut agent_vision_range: i32 = settings.agent_vision_range as i32;
+                    column[0].label(RichText::new("VISUAL RANGE").color(Color32::WHITE).strong());
+                    if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
+                        settings.agent_vision_range = agent_vision_range as f32;
                     }
                 }
             });
@@ -449,10 +468,10 @@ impl UISystem {
                 column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
                 column[1].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
                 unsafe {
-                    let mut agent_eng_bar: bool = SIM_PARAMS.agent_eng_bar;
+                    let mut agent_eng_bar: bool = settings.agent_eng_bar;
                     column[0].label(RichText::new("SHOW ENG BAR").color(Color32::WHITE).strong());
                     if column[1].add(egui_macroquad::egui::Checkbox::without_text(&mut agent_eng_bar)).changed() {
-                        SIM_PARAMS.agent_eng_bar = agent_eng_bar;
+                        settings.agent_eng_bar = agent_eng_bar;
                     }
                 }
             });

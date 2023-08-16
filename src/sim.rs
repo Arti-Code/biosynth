@@ -31,7 +31,7 @@ pub struct Simulation {
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
-    config: SimConfig,
+    pub config: SimConfig,
     pub ui: UISystem,
     pub sim_state: SimState,
     pub signals: Signals,
@@ -92,10 +92,8 @@ impl Simulation {
     }
 
     pub fn init(&mut self) {
-        unsafe {
-            let agents_num = SIM_PARAMS.agent_init_num;
-            self.agents.add_many_agents(agents_num as usize, &mut self.physics);
-        }
+        let agents_num = self.config.agent_init_num;
+        self.agents.add_many_agents(agents_num as usize, &mut self.physics);
     }
 
     pub fn autorun_new_sim(&mut self) {
@@ -232,11 +230,9 @@ impl Simulation {
     }
 
     fn check_agents_num(&mut self) {
-        unsafe {
-            if self.sim_state.agents_num < (SIM_PARAMS.agent_min_num as i32) {
-                let agent = Agent::new();
-                self.agents.add_agent(agent, &mut self.physics);
-            }
+        if self.sim_state.agents_num < (self.config.agent_min_num as i32) {
+            let agent = Agent::new();
+            self.agents.add_agent(agent, &mut self.physics);
         }
     }
 
@@ -247,7 +243,7 @@ impl Simulation {
 
     pub fn process_ui(&mut self) {
         let marked_agent = self.agents.get(self.selected);
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, marked_agent);
+        self.ui.ui_process(&mut self.config ,&self.sim_state, &mut self.signals, &self.camera, marked_agent);
     }
 
     pub fn draw_ui(&self) {
@@ -283,27 +279,18 @@ impl Default for SimConfig {
     }
 }
 
-/* impl SimConfig {
-    pub fn new(
-        agents_num: usize,
-        agents_min_num: usize,
-        agent_speed: f32,
-        agent_turn: f32,
-        vision_range: f32,
-        sources_num: usize,
-        sources_min_num: usize,
-    ) -> Self {
+impl SimConfig {
+    pub fn new(agent_init_num: usize, agent_min_num: usize, agent_speed: f32, agent_turn: f32, vision_range: f32, agent_energy_bar: bool) -> Self {
         Self {
-            agents_init_num: agents_num,
-            agent_min_num: agents_min_num,
+            agent_init_num: agent_init_num,
+            agent_min_num: agent_min_num,
             agent_speed: agent_speed,
             agent_rotation: agent_turn,
             agent_vision_range: vision_range,
-            sources_init_num: sources_num,
-            sources_min_num: sources_min_num,
+            agent_eng_bar: agent_energy_bar,
         }
     }
-} */
+}
 
 //?         [[[SIM_STATE]]]
 pub struct SimState {

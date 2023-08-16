@@ -4,12 +4,10 @@ use crate::consts::*;
 use crate::util::*;
 use macroquad::prelude::*;
 use rapier2d::na::Isometry2;
-use rapier2d::na::OPoint;
 use rapier2d::na::{Point2, Vector2};
 use rapier2d::prelude::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::f32::consts::PI;
-use std::ops::Deref;
 
 pub struct PhysicsProperities {
     pub friction: f32,
@@ -160,18 +158,6 @@ impl PhysicsWorld {
         };
         self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
     }
-
-/*     pub fn add_ball_collider(&mut self, body_handle: RigidBodyHandle, radius: f32, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
-        let ball = ColliderBuilder::ball(radius).density(density).friction(friction).restitution(restitution)
-            .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build();
-        return self.colliders.insert_with_parent(ball, body_handle, &mut self.rigid_bodies);
-    }
-    
-    pub fn add_triangle_shape(&mut self, body_handle: RigidBodyHandle, shape: SharedShape, density: f32, restitution: f32, friction: f32) -> ColliderHandle {
-        let collider = ColliderBuilder::new(shape).density(density).friction(friction).restitution(restitution)
-            .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS).build();
-        return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
-    } */
 
     pub fn add_dynamic(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> RigidBodyHandle {
         let rbh = self.add_dynamic_rigidbody(key, position, rotation, physics_props.linear_damping, physics_props.angular_damping);
