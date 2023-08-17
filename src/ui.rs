@@ -471,7 +471,6 @@ impl UISystem {
     }
 }
 
-//?         [[[UISTATE]]]
 pub struct UIState {
     pub new_sim_name: String,
     pub performance: bool,
