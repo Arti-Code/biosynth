@@ -131,6 +131,7 @@ pub struct Signals {
     pub spawn_particles: bool,
     pub new_sim: bool,
     pub new_sim_name: String,
+    pub new_settings: bool,
 }
 
 impl Signals {
@@ -144,6 +145,7 @@ impl Signals {
             spawn_particles: false,
             new_sim: false,
             new_sim_name: String::new(),
+            new_settings: false,
         }
     }
 }

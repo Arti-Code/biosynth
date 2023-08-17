@@ -1,4 +1,6 @@
-use egui::*;
+#![allow(unused)]
+
+use egui_macroquad::egui::*;
 
 enum ProgressBarText {
     Custom(WidgetText),

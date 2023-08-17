@@ -1,27 +1,16 @@
 #![allow(unused)]
 
-use crate::agent::*;
-use crate::being::*;
+use crate::unit::*;
 use crate::camera::*;
 use crate::consts::*;
 use crate::ui::*;
 use crate::util::{Signals, contact_mouse};
-//use crate::world::*;
-use crate::being::Being;
 use crate::physics::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use std::f32::consts::PI;
 
 
-pub static mut SIM_PARAMS: SimConfig = SimConfig {
-    agent_min_num: AGENTS_NUM_MIN,
-    agent_init_num: AGENTS_NUM,
-    agent_rotation: AGENT_ROTATION,
-    agent_speed: AGENT_SPEED,
-    agent_vision_range: AGENT_VISION_RANGE,
-    agent_eng_bar: true,
-};
 
 pub struct Simulation {
     pub simulation_name: String,
@@ -31,42 +20,38 @@ pub struct Simulation {
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
-    pub config: SimConfig,
+    pub settings: Settings,
     pub ui: UISystem,
     pub sim_state: SimState,
     pub signals: Signals,
     select_phase: f32,
     pub selected: u64,
     pub mouse_state: MouseState,
-    pub agents: AgentsBox,
-    //pub plants: PlantsBox,
-    //pub lifes: LifesBox,
+    pub units: UnitsBox,
 }
 
 impl Simulation {
     
-    pub fn new(configuration: SimConfig, font: Font) -> Self {
+    pub fn new(settings: Settings, font: Font) -> Self {
         Self {
             simulation_name: String::new(),
             world_size: Vec2 {
                 x: WORLD_W,
                 y: WORLD_H,
             },
-            font: font,
+            font,
             physics: PhysicsWorld::new(),
             camera: create_camera(),
             running: false,
             sim_time: 0.0,
-            config: configuration,
+            settings,
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
             selected: 0,
             select_phase: 0.0,
             mouse_state: MouseState { pos: Vec2::NAN },
-            agents: AgentsBox::new(),
-            //plants: PlantsBox::new(),
-            //lifes: LifesBox::new(),
+            units: UnitsBox::new(),
         }
     }
 
@@ -76,10 +61,7 @@ impl Simulation {
             None => String::new(),
         };
         self.physics = PhysicsWorld::new();
-        self.agents.agents.clear();
-        //self.plants.plants.clear();
-        //self.lifes.elements.clear();
-        //self.particles.elements.clear();
+        self.units.agents.clear();
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
@@ -92,8 +74,8 @@ impl Simulation {
     }
 
     pub fn init(&mut self) {
-        let agents_num = self.config.agent_init_num;
-        self.agents.add_many_agents(agents_num as usize, &mut self.physics);
+        let agents_num = self.settings.agent_init_num;
+        self.units.add_many_agents(agents_num as usize, &mut self.physics, &self.settings);
     }
 
     pub fn autorun_new_sim(&mut self) {
@@ -103,7 +85,7 @@ impl Simulation {
 
     fn update_agents(&mut self) {
         let dt = self.sim_state.dt;
-        for (_, agent) in self.agents.get_iter_mut() {
+        for (_, agent) in self.units.get_iter_mut() {
             //let uid = *id;
             if !agent.update(dt, &mut self.physics) {
                 match agent.physics_handle {
@@ -114,7 +96,7 @@ impl Simulation {
                 }
             };
         }
-        self.agents.agents.retain(|_, agent| agent.alife == true);
+        self.units.agents.retain(|_, agent| agent.alife == true);
     }
 
     pub fn update(&mut self) {
@@ -136,14 +118,14 @@ impl Simulation {
     }
 
     fn draw_agents(&self) {
-        for (id, agent) in self.agents.get_iter() {
+        for (id, agent) in self.units.get_iter() {
             let mut draw_field_of_view: bool = false;
             if *id == self.selected {
                 draw_field_of_view = true;
             };
             agent.draw(draw_field_of_view, &self.font);
         }
-        match self.agents.get(self.selected) {
+        match self.units.get(self.selected) {
             Some(selected_agent) => {
                 let pos = Vec2::new(selected_agent.pos.x, selected_agent.pos.y);
                 let s = selected_agent.size;
@@ -164,7 +146,6 @@ impl Simulation {
         let h = self.world_size.y;
         let col_num = (w / cell_size as f32).floor() as u32;
         let row_num = (h / cell_size as f32).floor() as u32;
-        //draw_grid(100, 20.0, GRAY, DARKGRAY);
         for x in 0..col_num + 1 {
             for y in 0..row_num + 1 {
                 draw_circle((x * cell_size) as f32, (y * cell_size) as f32, 1.0, GRAY);
@@ -174,18 +155,16 @@ impl Simulation {
 
     pub fn signals_check(&mut self) {
         if self.signals.spawn_agent {
-            let agent = Agent::new();
-            self.agents.add_agent(agent, &mut self.physics);
+            self.units.add_many_agents(1, &mut self.physics, &self.settings);
             self.signals.spawn_agent = false;
         }
-        /* if self.signals.spawn_plant {
-            let plant: Plant = Plant::new();
-            self.plants.add_plant(plant, &mut self.physics);
-            self.signals.spawn_plant = false;
-        } */
         if self.signals.new_sim {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
+        }
+        if self.signals.new_settings {
+            self.signals.new_settings = false;
+            self.units.reload_settings(&self.settings)
         }
     }
 
@@ -201,7 +180,7 @@ impl Simulation {
                 let (mouse_posx, mouse_posy) = mouse_position();
                 let mouse_pos = Vec2::new(mouse_posx, mouse_posy);
                 let rel_coords = self.camera.screen_to_world(mouse_pos);
-                for (id, agent) in self.agents.get_iter() {
+                for (id, agent) in self.units.get_iter() {
                     if contact_mouse(rel_coords, agent.pos, agent.size) {
                         self.selected = *id;
                         break;
@@ -217,7 +196,7 @@ impl Simulation {
         self.sim_state.sim_time += self.sim_state.dt as f64;
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
-        self.sim_state.agents_num = self.agents.agents.len() as i32;
+        self.sim_state.agents_num = self.units.agents.len() as i32;
         self.sim_state.physics_num = self.physics.get_physics_obj_num() as i32;
         let mut kin_eng = 0.0;
         let mut total_mass = 0.0;
@@ -230,9 +209,8 @@ impl Simulation {
     }
 
     fn check_agents_num(&mut self) {
-        if self.sim_state.agents_num < (self.config.agent_min_num as i32) {
-            let agent = Agent::new();
-            self.agents.add_agent(agent, &mut self.physics);
+        if self.sim_state.agents_num < (self.settings.agent_min_num as i32) {
+            self.units.add_many_agents(1, &mut self.physics, &self.settings);
         }
     }
 
@@ -242,8 +220,8 @@ impl Simulation {
     }
 
     pub fn process_ui(&mut self) {
-        let marked_agent = self.agents.get(self.selected);
-        self.ui.ui_process(&mut self.config ,&self.sim_state, &mut self.signals, &self.camera, marked_agent);
+        let marked_agent = self.units.get(self.selected);
+        self.ui.ui_process(&mut self.settings ,&self.sim_state, &mut self.signals, &self.camera, marked_agent);
     }
 
     pub fn draw_ui(&self) {
@@ -257,35 +235,35 @@ impl Simulation {
 
 //?         [[[SIM_CONFIG]]]
 #[derive(Clone, Copy)]
-pub struct SimConfig {
+pub struct Settings {
     pub agent_min_num: usize,
     pub agent_init_num: usize,
     pub agent_speed: f32,
     pub agent_vision_range: f32,
-    pub agent_rotation: f32,
+    pub agent_rotate: f32,
     pub agent_eng_bar: bool,
 }
 
-impl Default for SimConfig {
+impl Default for Settings {
     fn default() -> Self {
         Self {
             agent_min_num: AGENTS_NUM_MIN,
             agent_init_num: AGENTS_NUM,
             agent_speed: AGENT_SPEED,
-            agent_rotation: AGENT_ROTATION,
+            agent_rotate: AGENT_ROTATE,
             agent_vision_range: AGENT_VISION_RANGE,
             agent_eng_bar: true,
         }
     }
 }
 
-impl SimConfig {
+impl Settings {
     pub fn new(agent_init_num: usize, agent_min_num: usize, agent_speed: f32, agent_turn: f32, vision_range: f32, agent_energy_bar: bool) -> Self {
         Self {
             agent_init_num: agent_init_num,
             agent_min_num: agent_min_num,
             agent_speed: agent_speed,
-            agent_rotation: agent_turn,
+            agent_rotate: agent_turn,
             agent_vision_range: vision_range,
             agent_eng_bar: agent_energy_bar,
         }

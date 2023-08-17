@@ -1,17 +1,15 @@
 //#![allow(unused)]
 
-mod agent;
 mod camera;
 mod consts;
 mod neuro;
-mod progress_bar;
 mod sim;
 mod timer;
 mod ui;
 mod util;
 mod physics;
-mod being;
 mod part;
+mod unit;
 
 use crate::consts::*;
 use crate::sim::*;
@@ -31,12 +29,12 @@ fn app_configuration() -> Conf {
 
 #[macroquad::main(app_configuration)]
 async fn main() {
-    let cfg = SimConfig {
+    let cfg = Settings {
         agent_eng_bar: true,
         agent_init_num: 10,
         agent_min_num: 4,
-        agent_rotation: 120.0,
-        agent_speed: 500.0,
+        agent_rotate: 2.0,
+        agent_speed: 100.0,
         agent_vision_range: 300.0
     };
     let font = load_ttf_font("assets/fonts/firacode.ttf")

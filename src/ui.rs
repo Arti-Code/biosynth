@@ -13,8 +13,7 @@ use macroquad::ui::widgets::Texture;
 use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::sim::{*, self};
 use crate::util::*;
-use crate::agent::*;
-use crate::progress_bar;
+use crate::unit::*;
 
 pub struct UISystem {
     pub state: UIState,
@@ -58,13 +57,8 @@ impl UISystem {
         });
     }
 
-    pub fn ui_process(&mut self, settings: &mut SimConfig, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>) {
+    pub fn ui_process(&mut self, settings: &mut Settings, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Unit>) {
         egui_macroquad::ui(|egui_ctx| {
-            //let mut style = (*egui_ctx.style()).clone();
-            //style.text_styles. = [
-            //    (egui::TextStyle::Button, FontId::new(15.0, Proportional)),
-            //].into();
-            //egui_ctx.set_style(style);
             self.pointer_over = egui_ctx.is_pointer_over_area();
             self.build_top_menu(egui_ctx, &sim_state.sim_name);
             self.build_quit_window(egui_ctx);
@@ -78,7 +72,7 @@ impl UISystem {
             }
             self.build_net_graph(egui_ctx);
             self.build_about_window(egui_ctx);
-            self.build_enviroment_window(egui_ctx, settings);
+            self.build_enviroment_window(egui_ctx, settings, signals);
         });
     }
 
@@ -90,7 +84,6 @@ impl UISystem {
             menu::bar(ui, |ui| {
                 let logo = self.logo.clone().unwrap();
                 ui.image(logo.id(), logo.size_vec2());
-                //ui.heading(RichText::new(sim_name).strong().color(Color32::GREEN));
                 ui.add_space(5.0);
                 ui.separator();
                 ui.add_space(5.0);
@@ -194,43 +187,16 @@ impl UISystem {
             let delta = sim_state.dt;
             let time = sim_state.sim_time;
             let physics_num = sim_state.physics_num;
-            //let contacts = sim_state.contacts_info;
-            let mut eng = String::new();
-            let eng2: Option<f32> = Some(sim_state.total_eng);
-            match eng2 {
-                Some(e) if e < 1000.0 => {
-                    eng = e.to_string();
-                    eng.push_str(" eV");
-                },
-                Some(e) if e < 1000000.0 => {
-                    eng = (e/1000.0).round().to_string();
-                    eng.push_str(" KeV");
-                }
-                Some(e) if e < 1000000000.0 => {
-                    eng = (e/1000000.0).round().to_string();
-                    eng.push_str(" MeV");
-                }
-                Some(e) if e < 1000000000000.0 => {
-                    eng = (e/1000000000.0).round().to_string();
-                    eng.push_str(" GeV");
-                },
-                Some(_) => {},
-                None => {},
-            }
-            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(150.0).show(egui_ctx, |ui| {
+            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
                 ui.label(format!("DELTA: {}ms", (delta * 1000.0).round()));
                 ui.separator();
                 ui.label(format!("FPS: {}", fps));
                 ui.separator();
                 ui.label(format!("TIME: {}", time.round()));
                 ui.separator();
-                ui.label(format!("TOTAL ENG: {}", eng));
-                ui.separator();
                 ui.label(format!("TOTAL MASS: {}", total_mass.round()));
                 ui.separator();
                 ui.label(format!("OBJECTS: {}", physics_num));
-                //ui.separator();
-                //ui.label(format!("CONTACTS: {} | {}", contacts.0, contacts.0));
             });
         }
     }
@@ -329,7 +295,7 @@ impl UISystem {
         }
     }
 
-    fn build_inspect_window(&self, egui_ctx: &Context, agent: &Agent) {
+    fn build_inspect_window(&self, egui_ctx: &Context, agent: &Unit) {
         if self.state.inspect {
             let rot = agent.rot;
             let size = agent.size;
@@ -361,8 +327,6 @@ impl UISystem {
                 }
                 ui.separator();
                 ui.label(format!("energy: {}/{}", agent.eng.round(), agent.max_eng.round()));
-                let eng_prog = agent.eng / agent.max_eng;
-                ui.add(progress_bar::ProgressBar::new(eng_prog).desired_width(100.0).fill(Color32::BLUE).show_percentage());
             });
         }
     }
@@ -424,7 +388,7 @@ impl UISystem {
         }
     }
 
-    fn build_enviroment_window(&mut self, egui_ctx: &Context, settings: &mut SimConfig) {
+    fn build_enviroment_window(&mut self, egui_ctx: &Context, settings: &mut Settings, signals: &mut Signals) {
         if !self.state.enviroment {
             return;
         }
@@ -439,6 +403,7 @@ impl UISystem {
                     column[0].label(RichText::new("MINIMAL NUMBER").color(Color32::WHITE).strong());
                     if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
                         settings.agent_min_num = agents_num as usize;
+                        signals.new_settings = true;
                     }
                 }
             });
@@ -450,6 +415,7 @@ impl UISystem {
                     column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
                     if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_init_num, 0..=100)).changed() {
                         settings.agent_init_num = agent_init_num as usize;
+                        signals.new_settings = true;
                     }
                 }
             });
@@ -461,6 +427,7 @@ impl UISystem {
                     column[0].label(RichText::new("VISUAL RANGE").color(Color32::WHITE).strong());
                     if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
                         settings.agent_vision_range = agent_vision_range as f32;
+                        signals.new_settings = true;
                     }
                 }
             });
@@ -472,6 +439,7 @@ impl UISystem {
                     column[0].label(RichText::new("SHOW ENG BAR").color(Color32::WHITE).strong());
                     if column[1].add(egui_macroquad::egui::Checkbox::without_text(&mut agent_eng_bar)).changed() {
                         settings.agent_eng_bar = agent_eng_bar;
+                        signals.new_settings = true;
                     }
                 }
             });

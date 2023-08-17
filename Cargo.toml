@@ -1,6 +1,6 @@
 [package]
 name = "biosynth"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
 keywords = ["physics", "sandbox", "simulation"]

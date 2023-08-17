@@ -1,21 +1,22 @@
-#![allow(unused)]
+//#![allow(unused)]
+
+
 use std::collections::hash_map::{Iter, IterMut};
 use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
-use crate::consts::*;
+use crate::consts::{AGENT_SIZE_MIN, AGENT_SIZE_MAX, WORLD_H, WORLD_W};
 use crate::neuro::*;
-use crate::sim::SIM_PARAMS;
+use crate::sim::Settings;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
-use crate::being::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 
-pub struct Agent {
+pub struct Unit {
     pub key: u64,
     pub pos: Vec2,
     pub rot: f32,
@@ -27,13 +28,8 @@ pub struct Agent {
     pub max_eng: f32,
     pub eng: f32,
     pub color: color::Color,
-    pub pulse: f32,
     pub shape: SharedShape,
     pub vertices: Vec<Vec2>,
-    motor: bool,
-    motor_phase: f32,
-    motor_phase2: f32,
-    motor_side: bool,
     analize_timer: Timer,
     analizer: DummyNetwork,
     pub alife: bool,
@@ -43,19 +39,18 @@ pub struct Agent {
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub physics_handle: Option<RigidBodyHandle>,
+    settings: Settings
 }
 
-impl Being for Agent {
+impl Unit {
 
-    fn draw(&self, selected: bool, font: &Font) {
+    pub fn draw(&self, selected: bool, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         //self.draw_tri();
-        unsafe {
-            if SIM_PARAMS.agent_eng_bar {
-                let e = self.eng/self.max_eng;
-                self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
-            }
+        if self.settings.agent_eng_bar {
+            let e = self.eng/self.max_eng;
+            self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
         }
         self.draw_circle();
         if selected {
@@ -65,7 +60,7 @@ impl Being for Agent {
         }
     }    
 
-    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
+    pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         if self.analize_timer.update(dt) {
             self.watch(physics);
             self.update_contacts(physics);
@@ -86,12 +81,8 @@ impl Being for Agent {
         self.calc_energy(dt);
         return self.alife;
     }
-
-}
-
-impl Agent {
     
-    pub fn new() -> Self {
+    pub fn new(settings: &Settings) -> Self {
         let s = rand::gen_range(AGENT_SIZE_MIN, AGENT_SIZE_MAX) as f32;
         let mut motor = false;
         if gen_range(0, 2) == 1 {
@@ -114,18 +105,12 @@ impl Agent {
             vel: 0.0,
             ang_vel: 0.0,
             size: s,
-            vision_range: (rand::gen_range(0.5, 1.5) * AGENT_VISION_RANGE).round(),
+            vision_range: (rand::gen_range(0.5, 1.5) * settings.agent_vision_range).round(),
             max_eng: s.powi(2) * 10.0,
             eng: s.powi(2) * 10.0,
             color: random_color(),
-            pulse: rand::gen_range(0.0, 1.0),
             vertices: vertices,
             shape: SharedShape::ball(s),
-            //shape: SharedShape::triangle(points[0], points[1], points[2]),
-            motor: motor as bool,
-            motor_phase: p,
-            motor_phase2: p,
-            motor_side: true,
             analize_timer: Timer::new(0.3, true, true, true),
             analizer: DummyNetwork::new(2),
             alife: true,
@@ -135,6 +120,7 @@ impl Agent {
             enemy_dir: None,
             contacts: Vec::new(),
             physics_handle: None,
+            settings: settings.clone()
         }
     }
 
@@ -170,15 +156,7 @@ impl Agent {
     fn draw_circle(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        if self.motor {
-            let tail = Vec2::from_angle(self.rot + (self.motor_phase * 0.5));
-            let x3 = x0 - tail.x * self.size * 1.4;
-            let y3 = y0 - tail.y * self.size * 1.4;
-            draw_circle(x3, y3, self.size / 2.0, self.color);
-        }
-        let pulse = (self.pulse * 2.0) - 1.0;
         draw_circle_lines(x0, y0, self.size, 4.0, self.color);
-        draw_circle(x0, y0, (self.size / 2.0) * pulse.abs(), self.color);
         self.draw_front();
     }
 
@@ -238,14 +216,10 @@ impl Agent {
                 match physics.rigid_bodies.get_mut(handle) {
                     Some(body) => {
                         let dir = Vec2::from_angle(self.rot);
-                        //let rot = self.ang_vel * AGENT_TORQUE * self.size.powi(2);
-                        //let v = dir * self.vel * AGENT_IMPULSE * self.size.powi(2);
-                        let v = dir * self.vel * AGENT_VELOCITY;
-                        let rot = self.ang_vel * AGENT_TORQUE;
+                        let v = dir * self.vel * self.settings.agent_speed;
+                        let rot = self.ang_vel * self.settings.agent_rotate;
                         body.set_linvel(Vector2::new(v.x, v.y), true);
                         body.set_angvel(rot, true);
-                        //body.apply_impulse([v.x, v.y].into(), true);
-                        //body.apply_torque_impulse(rot, true);
                         self.check_edges(body);
                     }
                     None => {}
@@ -344,25 +318,7 @@ impl Agent {
     }
 
     fn calc_timers(&mut self, dt: f32) {
-        self.pulse = (self.pulse + dt * 0.25) % 1.0;
-        if self.motor {
-            if self.motor_side {
-                self.motor_phase = self.motor_phase + dt * (self.vel) * 30.0;
-                if self.motor_phase >= 1.0 {
-                    self.motor_side = false;
-                }
-            } else {
-                self.motor_phase = self.motor_phase - dt * (self.vel) * 30.0;
-                if self.motor_phase <= -1.0 {
-                    self.motor_side = true;
-                }
-            }
-            if self.motor_side {
-                self.motor_phase2 = self.motor_phase2 + dt * (0.75 + self.vel);
-            } else {
-                self.motor_phase2 = self.motor_phase2 - dt * (0.75 + self.vel);
-            }
-        }
+
     }
 
     fn calc_energy(&mut self, dt: f32) {
@@ -385,25 +341,31 @@ impl Agent {
     }
 }
 
-pub struct AgentsBox {
-    pub agents: HashMap<u64, Agent>,
+pub struct UnitsBox {
+    pub agents: HashMap<u64, Unit>,
 }
 
-impl AgentsBox {
+impl UnitsBox {
     pub fn new() -> Self {
         Self {
             agents: HashMap::new(),
         }
     }
 
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld) {
+    pub fn reload_settings(&mut self, settings: &Settings) {
+        for (_, agent) in self.get_iter_mut() {
+            agent.settings = settings.clone();
+        }
+    }
+
+    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld, settings: &Settings) {
         for _ in 0..agents_num {
-            let agent = Agent::new();
+            let agent = Unit::new(settings);
             _ = self.add_agent(agent, physics_world);
         }
     }
 
-    pub fn add_agent(&mut self, mut agent: Agent, physics_world: &mut PhysicsWorld) -> u64 {
+    pub fn add_agent(&mut self, mut agent: Unit, physics_world: &mut PhysicsWorld) -> u64 {
         let key = agent.key;
         //let handle = physics_world.add_dynamic_ball(key, agent.size, &agent.pos, agent.rot, PhysicsProperities::default());
         //let handle = physics_world.add_dynamic_tri(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
@@ -413,7 +375,7 @@ impl AgentsBox {
         return key;
     }
 
-    pub fn get(&self, id: u64) -> Option<&Agent> {
+    pub fn get(&self, id: u64) -> Option<&Unit> {
         return self.agents.get(&id);
     }
 
@@ -421,11 +383,11 @@ impl AgentsBox {
         self.agents.remove(&id);
     }
 
-    pub fn get_iter(&self) -> Iter<u64, Agent> {
+    pub fn get_iter(&self) -> Iter<u64, Unit> {
         return self.agents.iter();
     }
 
-    pub fn get_iter_mut(&mut self) -> IterMut<u64, Agent> {
+    pub fn get_iter_mut(&mut self) -> IterMut<u64, Unit> {
         return self.agents.iter_mut();
     }
 
