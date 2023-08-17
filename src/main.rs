@@ -36,6 +36,8 @@ async fn main() {
         agent_min_num: 4,
         agent_rotate: 2.0,
         agent_speed: 100.0,
+        agent_size_min: 2,
+        agent_size_max: 10,
         agent_vision_range: 300.0
     };
     let font = load_ttf_font("assets/fonts/firacode.ttf")

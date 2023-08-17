@@ -5,6 +5,7 @@ use std::f32::consts::PI;
 use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
+use egui_macroquad::egui::widgets::Slider;
 use macroquad::math::Vec2 as Vec2;
 use macroquad::prelude::*;
 use image::{io::*, *};
@@ -156,7 +157,7 @@ impl UISystem {
                 ui.add_space(10.0);
 
                 menu::menu_button(ui, RichText::new("SETTINGS").strong(), |ui| {
-                    if ui.button(RichText::new("Enviroment Settings").strong().color(Color32::YELLOW)).clicked() {
+                    if ui.button(RichText::new("Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.enviroment = !self.state.enviroment;
                     }
                 });
@@ -304,12 +305,13 @@ impl UISystem {
             let pos = agent.pos;
             let contacts_num = agent.contacts.len();
             Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
-                ui.label(RichText::new("AGENT").strong());
+                ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
                 ui.label(format!("direction: [{}]", ((rot * 10.0).round()) / 10.0));
                 ui.label(format!("size: [{}]", size));
                 ui.label(format!("position: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
+                ui.label(RichText::new(format!("energy: {}/{}", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::BLUE));
                 ui.separator();
-                ui.label(RichText::new("ENEMY").strong());
+                ui.label(RichText::new("ENEMY").strong().color(Color32::RED));
                 ui.label(format!("contacts: [{}]", contacts_num));
                 match (tg_pos, tg_ang) {
                     (Some(target), Some(ang)) => {
@@ -326,7 +328,6 @@ impl UISystem {
                     }
                 }
                 ui.separator();
-                ui.label(format!("energy: {}/{}", agent.eng.round(), agent.max_eng.round()));
             });
         }
     }
@@ -392,41 +393,60 @@ impl UISystem {
         if !self.state.enviroment {
             return;
         }
-        Window::new("ENVIROMENT SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([290., 300.])
+        Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 300.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.heading("AGENTS");
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(280., 75.));
                 unsafe {
                     let mut agents_num: i32 = settings.agent_min_num as i32;
-                    column[0].label(RichText::new("MINIMAL NUMBER").color(Color32::WHITE).strong());
-                    if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agents_num, 0..=100)).changed() {
+                    column[0].label(RichText::new("MIN NUMBER").color(Color32::WHITE).strong());
+                    if column[1].add(Slider::new(&mut agents_num, 0..=100)).changed() {
                         settings.agent_min_num = agents_num as usize;
                         signals.new_settings = true;
                     }
                 }
             });
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(280., 75.));
                 unsafe {
                     let mut agent_init_num: i32 = settings.agent_init_num as i32;
                     column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
-                    if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_init_num, 0..=100)).changed() {
+                    if column[1].add(Slider::new(&mut agent_init_num, 0..=100)).changed() {
                         settings.agent_init_num = agent_init_num as usize;
                         signals.new_settings = true;
                     }
                 }
             });
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(280., 75.));
                 unsafe {
                     let mut agent_vision_range: i32 = settings.agent_vision_range as i32;
-                    column[0].label(RichText::new("VISUAL RANGE").color(Color32::WHITE).strong());
-                    if column[1].add(egui_macroquad::egui::widgets::Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
+                    column[0].label(RichText::new("VISION").color(Color32::WHITE).strong());
+                    if column[1].add(Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
                         settings.agent_vision_range = agent_vision_range as f32;
+                        signals.new_settings = true;
+                    }
+                }
+            });
+            ui.style_mut().spacing.slider_width = 75.0;
+            ui.columns(3, |column| {
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                column[2].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                unsafe {
+                    let mut agent_size_min: i32 = settings.agent_size_min as i32;
+                    let mut agent_size_max: i32 = (settings.agent_size_max as i32).max(agent_size_min);
+                    column[0].label(RichText::new("SIZE [MIN|MAX]").color(Color32::WHITE).strong());
+                    if column[1].add(Slider::new(&mut agent_size_min, 1..=20)).changed() {
+                        settings.agent_size_min = agent_size_min as i32;
+                        signals.new_settings = true;
+                    }
+                    if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=20)).changed() {
+                        settings.agent_size_max = agent_size_max as i32;
                         signals.new_settings = true;
                     }
                 }

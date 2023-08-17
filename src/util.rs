@@ -156,9 +156,11 @@ pub struct Settings {
     pub agent_min_num: usize,
     pub agent_init_num: usize,
     pub agent_speed: f32,
-    pub agent_vision_range: f32,
     pub agent_rotate: f32,
     pub agent_eng_bar: bool,
+    pub agent_vision_range: f32,
+    pub agent_size_min: i32,
+    pub agent_size_max: i32,
 }
 
 impl Default for Settings {
@@ -168,21 +170,10 @@ impl Default for Settings {
             agent_init_num: AGENTS_NUM,
             agent_speed: AGENT_SPEED,
             agent_rotate: AGENT_ROTATE,
-            agent_vision_range: AGENT_VISION_RANGE,
             agent_eng_bar: true,
-        }
-    }
-}
-
-impl Settings {
-    pub fn new(agent_init_num: usize, agent_min_num: usize, agent_speed: f32, agent_turn: f32, vision_range: f32, agent_energy_bar: bool) -> Self {
-        Self {
-            agent_init_num: agent_init_num,
-            agent_min_num: agent_min_num,
-            agent_speed: agent_speed,
-            agent_rotate: agent_turn,
-            agent_vision_range: vision_range,
-            agent_eng_bar: agent_energy_bar,
+            agent_vision_range: AGENT_VISION_RANGE,
+            agent_size_min: AGENT_SIZE_MIN,
+            agent_size_max: AGENT_SIZE_MAX,
         }
     }
 }

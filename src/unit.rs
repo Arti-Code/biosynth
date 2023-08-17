@@ -2,11 +2,11 @@
 
 
 use std::collections::hash_map::{Iter, IterMut};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::f32::consts::PI;
-use crate::consts::{AGENT_SIZE_MIN, AGENT_SIZE_MAX, WORLD_H, WORLD_W};
+use crate::consts::{WORLD_H, WORLD_W};
 use crate::neuro::*;
-use crate::sim::*;
+//use crate::sim::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
@@ -43,59 +43,15 @@ pub struct Unit {
 }
 
 impl Unit {
-
-    pub fn draw(&self, selected: bool, font: &Font) {
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
-        //self.draw_tri();
-        if self.settings.agent_eng_bar {
-            let e = self.eng/self.max_eng;
-            self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
-        }
-        self.draw_circle();
-        if selected {
-            self.draw_target();
-            draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
-            self.draw_info(&font);
-        }
-    }    
-
-    pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
-        if self.analize_timer.update(dt) {
-            self.watch(physics);
-            self.update_contacts(physics);
-            self.analize();
-        }
-        for (contact, ang) in self.contacts.iter() {
-            if *ang <= PI/4.0 && *ang >= -PI/4.0 {
-                //self.add_energy(dt);
-
-                self.eng += dt*10.0*self.size;
-                if self.eng > self.max_eng {
-                    self.eng = self.max_eng;
-                }
-            }
-        }
-        self.update_physics(physics);
-        self.calc_timers(dt);
-        self.calc_energy(dt);
-        return self.alife;
-    }
     
     pub fn new(settings: &Settings) -> Self {
-        let s = rand::gen_range(AGENT_SIZE_MIN, AGENT_SIZE_MAX) as f32;
-        let mut motor = false;
-        if gen_range(0, 2) == 1 {
-            motor = true;
-        }
+        let s = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let v0 = Vec2::from_angle(0.0)*s;
         let v1 = Vec2::from_angle(-2.0*PI/3.0)*s;
         let v2 = Vec2::from_angle(2.0*PI/3.0)*s;
-        let p = gen_range(0.2, 0.8);
         let vertices = vec![v0, v2, v1];
-        //let vertices = map_polygon(3, s, 0.0);
-        let vecs = vec2_to_point2_collection(&vertices).to_owned();
-        let points = vecs.as_slice();
+        //let vecs = vec2_to_point2_collection(&vertices).to_owned();
+        //let points = vecs.as_slice();
         Self {
             key: gen_range(u64::MIN, u64::MAX),
             pos: random_position(WORLD_W, WORLD_H),
@@ -124,6 +80,43 @@ impl Unit {
         }
     }
 
+    pub fn draw(&self, selected: bool, font: &Font) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        //self.draw_tri();
+        if self.settings.agent_eng_bar {
+            let e = self.eng/self.max_eng;
+            self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
+        }
+        self.draw_circle();
+        if selected {
+            self.draw_target();
+            draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
+            self.draw_info(&font);
+        }
+    }    
+
+    pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
+        if self.analize_timer.update(dt) {
+            self.watch(physics);
+            self.update_contacts(physics);
+            self.analize();
+        }
+        for (_contact, ang) in self.contacts.iter() {
+            if *ang <= PI/4.0 && *ang >= -PI/4.0 {
+                //self.add_energy(dt);
+                self.eng += dt*10.0*self.size;
+                if self.eng > self.max_eng {
+                    self.eng = self.max_eng;
+                }
+            }
+        }
+        self.update_physics(physics);
+        self.calc_timers(dt);
+        self.calc_energy(dt);
+        return self.alife;
+    }
+
     fn draw_front(&self) {
         let dir = Vec2::from_angle(self.rot);
         let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
@@ -138,7 +131,7 @@ impl Unit {
         draw_line(x0r, y0r, x2, y2, 2.0, self.color);
     }
 
-    fn draw_tri(&self) {
+    fn _draw_tri(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let dir = Vec2::from_angle(self.rot);
@@ -192,7 +185,6 @@ impl Unit {
         let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
         let info_mass = format!("mass: {}", mass.round());
         let txt_center = get_text_center(&info, Some(*font), 13, 1.0, 0.0);
-        let txt_center2 = get_text_center(&info_mass, Some(*font), 13, 1.0, 0.0);
         draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 30.0, text_cfg.clone());
         draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
     }
@@ -247,7 +239,6 @@ impl Unit {
             out_of_edge = true;
         }
         if out_of_edge {
-            //self.rot = -self.rot;
             body.set_position(make_isometry(raw_pos.x, raw_pos.y, self.rot), true);
             //body.set_linvel([0.0, 0.0].into(), true);
             //self.vel = 0.0;
@@ -317,7 +308,7 @@ impl Unit {
         self.ang_vel = outputs[1];
     }
 
-    fn calc_timers(&mut self, dt: f32) {
+    fn calc_timers(&mut self, _dt: f32) {
 
     }
 
@@ -333,7 +324,7 @@ impl Unit {
         }
     }
 
-    pub fn add_energy(&mut self, e: f32) {
+    pub fn _add_energy(&mut self, e: f32) {
         self.eng += e;
         if self.eng > self.max_eng {
             self.eng = self.max_eng;
@@ -367,8 +358,6 @@ impl UnitsBox {
 
     pub fn add_agent(&mut self, mut agent: Unit, physics_world: &mut PhysicsWorld) -> u64 {
         let key = agent.key;
-        //let handle = physics_world.add_dynamic_ball(key, agent.size, &agent.pos, agent.rot, PhysicsProperities::default());
-        //let handle = physics_world.add_dynamic_tri(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
         let handle = physics_world.add_dynamic(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
         agent.physics_handle = Some(handle);
         self.agents.insert(key, agent);
@@ -379,7 +368,7 @@ impl UnitsBox {
         return self.agents.get(&id);
     }
 
-    pub fn remove(&mut self, id: u64) {
+    pub fn _remove(&mut self, id: u64) {
         self.agents.remove(&id);
     }
 
@@ -391,7 +380,7 @@ impl UnitsBox {
         return self.agents.iter_mut();
     }
 
-    pub fn count(&self) -> usize {
+    pub fn _count(&self) -> usize {
         return self.agents.len();
     }
 }
