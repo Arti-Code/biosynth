@@ -13,12 +13,13 @@ mod unit;
 
 use crate::consts::*;
 use crate::sim::*;
+use crate::util::*;
 use macroquad::prelude::*;
 
 
 fn app_configuration() -> Conf {
     Conf {
-        window_title: "BIO-SYNTH".to_string(),
+        window_title: env!("CARGO_PKG_NAME").to_string().to_uppercase(),
         window_width: SCREEN_WIDTH as i32,
         window_height: SCREEN_HEIGHT as i32,
         sample_count: 16,

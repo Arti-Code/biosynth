@@ -4,7 +4,7 @@ use crate::unit::*;
 use crate::camera::*;
 use crate::consts::*;
 use crate::ui::*;
-use crate::util::{Signals, contact_mouse};
+use crate::util::*;
 use crate::physics::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
@@ -233,80 +233,3 @@ impl Simulation {
     }
 }
 
-//?         [[[SIM_CONFIG]]]
-#[derive(Clone, Copy)]
-pub struct Settings {
-    pub agent_min_num: usize,
-    pub agent_init_num: usize,
-    pub agent_speed: f32,
-    pub agent_vision_range: f32,
-    pub agent_rotate: f32,
-    pub agent_eng_bar: bool,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            agent_min_num: AGENTS_NUM_MIN,
-            agent_init_num: AGENTS_NUM,
-            agent_speed: AGENT_SPEED,
-            agent_rotate: AGENT_ROTATE,
-            agent_vision_range: AGENT_VISION_RANGE,
-            agent_eng_bar: true,
-        }
-    }
-}
-
-impl Settings {
-    pub fn new(agent_init_num: usize, agent_min_num: usize, agent_speed: f32, agent_turn: f32, vision_range: f32, agent_energy_bar: bool) -> Self {
-        Self {
-            agent_init_num: agent_init_num,
-            agent_min_num: agent_min_num,
-            agent_speed: agent_speed,
-            agent_rotate: agent_turn,
-            agent_vision_range: vision_range,
-            agent_eng_bar: agent_energy_bar,
-        }
-    }
-}
-
-//?         [[[SIM_STATE]]]
-pub struct SimState {
-    pub sim_name: String,
-    pub ver: String,
-    pub agents_num: i32,
-    pub plants_num: i32,
-    pub lifes_num: i32,
-    pub physics_num: i32,
-    pub total_mass: f32,
-    pub total_eng: f32,
-    pub sim_time: f64,
-    pub fps: i32,
-    pub dt: f32,
-    pub total_kin_eng: f32,
-    pub contacts_info: (i32, i32),
-}
-
-impl SimState {
-    pub fn new() -> Self {
-        Self {
-            sim_name: String::new(),
-            ver: String::from(env!("CARGO_PKG_VERSION")),
-            agents_num: AGENTS_NUM as i32,
-            plants_num: AGENTS_NUM as i32,
-            lifes_num: 0,
-            physics_num: 0,
-            total_mass: 0.0,
-            total_eng: 0.0,
-            sim_time: 0.0,
-            fps: 0,
-            dt: 0.0,
-            total_kin_eng: 0.0,
-            contacts_info: (0, 0),
-        }
-    }
-}
-//?         [[[MOUSESTATE]]]
-pub struct MouseState {
-    pub pos: Vec2,
-}

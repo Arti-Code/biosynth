@@ -1,6 +1,6 @@
 [package]
-name = "biosynth"
-version = "0.3.1"
+name = "evolve"
+version = "0.3.2"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
 keywords = ["physics", "sandbox", "simulation"]

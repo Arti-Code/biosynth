@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
 use crate::consts::{AGENT_SIZE_MIN, AGENT_SIZE_MAX, WORLD_H, WORLD_W};
 use crate::neuro::*;
-use crate::sim::Settings;
+use crate::sim::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
