@@ -24,6 +24,7 @@ fn app_configuration() -> Conf {
         window_height: SCREEN_HEIGHT as i32,
         sample_count: 16,
         window_resizable: false,
+        //icon: Some(image::io::Reader::open("assets/ico/molecular.ico").unwrap().decode().unwrap().into()),
         ..Default::default()
     }
 }
@@ -31,6 +32,8 @@ fn app_configuration() -> Conf {
 #[macroquad::main(app_configuration)]
 async fn main() {
     let cfg = Settings {
+        world_w: WORLD_W as i32,
+        world_h: WORLD_H as i32,
         agent_eng_bar: true,
         agent_init_num: 10,
         agent_min_num: 4,

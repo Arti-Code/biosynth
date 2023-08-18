@@ -151,8 +151,48 @@ impl Signals {
 }
 
 
+pub struct UIState {
+    pub new_sim_name: String,
+    pub performance: bool,
+    pub inspect: bool,
+    pub mouse: bool,
+    pub create: bool,
+    pub quit: bool,
+    pub agents_num: i32,
+    pub new_sim: bool,
+    pub credits: bool,
+    pub docs: bool,
+    pub net: bool,
+    pub about: bool,
+    pub enviroment: bool,
+    pub static_rect: bool,
+}
+
+impl UIState {
+    pub fn new() -> Self {
+        Self {
+            new_sim_name: String::new(),
+            performance: false,
+            inspect: false,
+            mouse: false,
+            create: false,
+            quit: false,
+            agents_num: 0,
+            new_sim: false,
+            credits: false,
+            docs: false,
+            net: false,
+            about: true,
+            enviroment: false,
+            static_rect: false,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Settings {
+    pub world_w: i32,
+    pub world_h: i32,
     pub agent_min_num: usize,
     pub agent_init_num: usize,
     pub agent_speed: f32,
@@ -166,6 +206,8 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            world_w: WORLD_W as i32,
+            world_h: WORLD_H as i32,
             agent_min_num: AGENTS_NUM_MIN,
             agent_init_num: AGENTS_NUM,
             agent_speed: AGENT_SPEED,

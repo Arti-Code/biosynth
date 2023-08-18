@@ -66,7 +66,7 @@ impl UISystem {
             self.build_monit_window(egui_ctx, &sim_state);
             self.build_debug_window(egui_ctx, camera2d);
             //self.build_create_window(egui_ctx, signals);
-            self.build_new_sim_window(egui_ctx, signals);
+            self.build_new_sim_window(egui_ctx, signals, settings);
             match agent {
                 Some(agent) => self.build_inspect_window(egui_ctx, agent),
                 None => {}
@@ -74,6 +74,7 @@ impl UISystem {
             self.build_net_graph(egui_ctx);
             self.build_about_window(egui_ctx);
             self.build_enviroment_window(egui_ctx, settings, signals);
+            self.build_static_rect_win(egui_ctx, signals);
         });
     }
 
@@ -155,7 +156,19 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
+                menu::menu_button(ui, RichText::new("BUILD").strong(), |ui| {
+                    if ui
+                        .button(RichText::new("Static Rect").strong().color(Color32::WHITE))
+                        .clicked()
+                    {
+                        self.state.static_rect = !self.state.static_rect;
+                    }
+                });
 
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
                 menu::menu_button(ui, RichText::new("SETTINGS").strong(), |ui| {
                     if ui.button(RichText::new("Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.enviroment = !self.state.enviroment;
@@ -238,14 +251,14 @@ impl UISystem {
         }
     }
 
-    fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+    fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals, settings: &mut Settings) {
         if self.state.new_sim {
             //let mut sim_name: String = String::new();
-            Window::new("NEW SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(125.0).show(egui_ctx, |ui| {
-                ui.horizontal(|head| {
-                    head.heading("Start new simulation?");
+            Window::new("NEW SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).fixed_size([380., 100.]).show(egui_ctx, |ui| {
+                ui.vertical_centered(|head| {
+                    head.label("Start new simulation");
                 });
-                ui.horizontal(|txt| {
+                ui.vertical_centered(|txt| {
                     let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
                     if response.gained_focus() {
                         self.temp_sim_name = String::new();
@@ -263,7 +276,25 @@ impl UISystem {
                     }
                     //let response = txt.text_edit_singleline(&mut sim_name);
                 });
-                ui.horizontal(|mid| {
+                ui.spacing();
+                ui.vertical_centered(|row| {
+                    row.label("WORLD SIZE [X | Y]");
+                });
+                ui.vertical_centered(|row| {
+                    row.style_mut().spacing.slider_width = 140.0;
+                    let mut w = settings.world_w;
+                    let mut h = settings.world_h;
+                    row.columns(2, |columns| {
+                        if columns[0].add(Slider::new(&mut w, 400..=4800)).changed() {
+                            settings.world_w = w;
+                        }
+                        if columns[1].add(Slider::new(&mut h, 300..=3600)).changed() {
+                            settings.world_h = h;
+                        }
+                    });
+                });
+                ui.spacing();
+                ui.vertical_centered(|mid| {
                     mid.columns(2, |columns| {
                         if columns[0].button(RichText::new("No").color(Color32::WHITE)).clicked() {
                             self.state.new_sim = false;
@@ -466,44 +497,40 @@ impl UISystem {
         });
     }
 
+    fn build_static_rect_win(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+        if self.state.static_rect {
+            Window::new("Static Rect").title_bar(true).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).default_size([300., 260.]).show(egui_ctx, |ui| {
+                ui.label("Rect Size");
+                ui.columns(2, |column| {
+                    let mut w: i32 = 100;
+                    let mut h: i32 = 60;
+                    if column[1].add(Slider::new(&mut w, 10..=400).text("width")).changed() {
+                    }
+                    if column[0].add(Slider::new(&mut h, 10..=400).text("height")).changed() {
+                    }
+                });
+                ui.spacing();
+                ui.label("Rect Position");
+                ui.columns(2, |column| {
+                    let mut x: i32 = 250;
+                    let mut y: i32 = 250;
+                    if column[1].add(Slider::new(&mut x, 10..=400).text("xpos")).changed() {
+                    }
+                    if column[0].add(Slider::new(&mut y, 10..=400).text("ypos")).changed() {
+                    }
+                });
+                ui.spacing();
+                ui.vertical_centered(|btn| {
+                    if btn.button(RichText::new("CREATE").color(Color32::BLUE).strong()).clicked() {
+                        self.state.static_rect = false;
+                    }
+                }); 
+            });
+        }
+    }
+
     pub fn ui_draw(&self) {
         egui_macroquad::draw();
-    }
-}
-
-pub struct UIState {
-    pub new_sim_name: String,
-    pub performance: bool,
-    pub inspect: bool,
-    pub mouse: bool,
-    pub create: bool,
-    pub quit: bool,
-    pub agents_num: i32,
-    pub new_sim: bool,
-    pub credits: bool,
-    pub docs: bool,
-    pub net: bool,
-    pub about: bool,
-    pub enviroment: bool,
-}
-
-impl UIState {
-    pub fn new() -> Self {
-        Self {
-            new_sim_name: String::new(),
-            performance: false,
-            inspect: false,
-            mouse: false,
-            create: false,
-            quit: false,
-            agents_num: 0,
-            new_sim: false,
-            credits: false,
-            docs: false,
-            net: false,
-            about: true,
-            enviroment: false,
-        }
     }
 }
 
