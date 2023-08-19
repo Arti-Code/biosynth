@@ -48,8 +48,8 @@ async fn main() {
         .expect("can't load font resource!");
     let mut sim = Simulation::new(cfg, font.clone());
     sim.ui.load_textures();
-    sim.init();
-    sim.autorun_new_sim();
+    //sim.init();
+    //sim.autorun_new_sim();
 
     loop {
         sim.input();

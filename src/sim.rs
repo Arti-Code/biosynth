@@ -36,8 +36,8 @@ impl Simulation {
         Self {
             simulation_name: String::new(),
             world_size: Vec2 {
-                x: WORLD_W,
-                y: WORLD_H,
+                x: f32::NAN,
+                y: f32::NAN,
             },
             font,
             physics: PhysicsWorld::new(),
@@ -58,8 +58,9 @@ impl Simulation {
     fn reset_sim(&mut self, sim_name: Option<&str>) {
         self.simulation_name = match sim_name {
             Some(name) => name.to_string(),
-            None => String::new(),
+            None => String::from("Simulation"),
         };
+        self.world_size = Vec2::new(self.settings.world_w as f32, self.settings.world_h as f32);
         self.physics = PhysicsWorld::new();
         self.units.agents.clear();
         self.sim_time = 0.0;

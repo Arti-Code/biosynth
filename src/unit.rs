@@ -54,7 +54,7 @@ impl Unit {
         //let points = vecs.as_slice();
         Self {
             key: gen_range(u64::MIN, u64::MAX),
-            pos: random_position(WORLD_W, WORLD_H),
+            pos: random_position(settings.world_w as f32, settings.world_h as f32),
             //rot: random_rotation(),
             rot: 0.0,
             mass: 0.0,
@@ -227,15 +227,15 @@ impl Unit {
         if raw_pos.x < 0.0 {
             raw_pos.x = 0.0;
             out_of_edge = true;
-        } else if raw_pos.x > WORLD_W {
-            raw_pos.x = WORLD_W;
+        } else if raw_pos.x > self.settings.world_w as f32 {
+            raw_pos.x = self.settings.world_w as f32;
             out_of_edge = true;
         }
         if raw_pos.y < 0.0 {
             raw_pos.y = 0.0;
             out_of_edge = true;
-        } else if raw_pos.y > WORLD_H {
-            raw_pos.y = WORLD_H;
+        } else if raw_pos.y > self.settings.world_h as f32 {
+            raw_pos.y = self.settings.world_h as f32;
             out_of_edge = true;
         }
         if out_of_edge {

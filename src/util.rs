@@ -124,6 +124,7 @@ pub fn contact_mouse(mouse_pos: Vec2, target_pos: Vec2, target_rad: f32) -> bool
 
 //?         [[[SIGNALS]]]
 pub struct Signals {
+    pub world: Vec2,
     pub spawn_agent: bool,
     pub spawn_plant: bool,
     pub spawn_asteroid: bool,
@@ -138,6 +139,7 @@ impl Signals {
     
     pub fn new() -> Self {
         Self {
+            world: Vec2::NAN,
             spawn_agent: false,
             spawn_plant: false,
             spawn_asteroid: false,

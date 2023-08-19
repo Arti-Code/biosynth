@@ -86,6 +86,8 @@ impl UISystem {
             menu::bar(ui, |ui| {
                 let logo = self.logo.clone().unwrap();
                 ui.image(logo.id(), logo.size_vec2());
+                ui.separator();
+                ui.label(RichText::new(sim_name).heading().strong().color(Color32::GREEN));
                 ui.add_space(5.0);
                 ui.separator();
                 ui.add_space(5.0);
@@ -414,6 +416,7 @@ impl UISystem {
                     let mut stylus = closer.style();
                     if closer.button(RichText::new("CLOSE").color(Color32::RED).strong()).clicked() {
                         self.state.about = false;
+                        self.state.new_sim = true;
                     }
                 });
             });
