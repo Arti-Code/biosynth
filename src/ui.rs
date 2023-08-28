@@ -65,7 +65,6 @@ impl UISystem {
             self.build_quit_window(egui_ctx);
             self.build_monit_window(egui_ctx, &sim_state);
             self.build_debug_window(egui_ctx, camera2d);
-            //self.build_create_window(egui_ctx, signals);
             self.build_new_sim_window(egui_ctx, signals, settings);
             match agent {
                 Some(agent) => self.build_inspect_window(egui_ctx, agent),
@@ -129,7 +128,7 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
 
-                menu::menu_button(ui, RichText::new("TOOLS").strong(), |ui| {
+                menu::menu_button(ui, RichText::new("VIEW").strong(), |ui| {
                     if ui
                         .button(RichText::new("Monitor").strong().color(Color32::WHITE))
                         .clicked()
@@ -148,19 +147,13 @@ impl UISystem {
                     {
                         self.state.mouse = !self.state.mouse;
                     }
-                    if ui
-                        .button(RichText::new("Create").strong().color(Color32::WHITE))
-                        .clicked()
-                    {
-                        self.state.create = !self.state.create;
-                    }
                 });
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
-                menu::menu_button(ui, RichText::new("BUILD").strong(), |ui| {
+                menu::menu_button(ui, RichText::new("TOOLS").strong(), |ui| {
                     if ui
-                        .button(RichText::new("Static Rect").strong().color(Color32::WHITE))
+                        .button(RichText::new("Static Object").strong().color(Color32::WHITE))
                         .clicked()
                     {
                         self.state.static_rect = !self.state.static_rect;
@@ -263,7 +256,7 @@ impl UISystem {
                 ui.vertical_centered(|txt| {
                     let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
                     if response.gained_focus() {
-                        self.temp_sim_name = String::new();
+                        self.temp_sim_name = String::from("SIMULATION");
                     }
                     if response.changed() {
                         //self.temp_sim_name = String::from(&sim_name);
@@ -309,21 +302,6 @@ impl UISystem {
                             self.temp_sim_name = String::new();
                         }
                     });
-                });
-            });
-        }
-    }
-
-    fn build_create_window(&self, egui_ctx: &Context, signals: &mut Signals) {
-        if self.state.create {
-            Window::new("CREATE").default_pos((600.0, 5.0)).default_width(275.0).min_height(250.0).show(egui_ctx, |ui| {
-                ui.horizontal(|mid| {
-                    mid.heading("CREATE PARTICLES");
-                    mid.columns(1, |columns| {
-                        if columns[0].button(RichText::new("PARTICLE").strong().color(Color32::WHITE)).clicked() {
-                            signals.spawn_particles = true;
-                        }
-                    })
                 });
             });
         }
@@ -475,11 +453,11 @@ impl UISystem {
                     let mut agent_size_min: i32 = settings.agent_size_min as i32;
                     let mut agent_size_max: i32 = (settings.agent_size_max as i32).max(agent_size_min);
                     column[0].label(RichText::new("SIZE [MIN|MAX]").color(Color32::WHITE).strong());
-                    if column[1].add(Slider::new(&mut agent_size_min, 1..=20)).changed() {
+                    if column[1].add(Slider::new(&mut agent_size_min, 1..=40)).changed() {
                         settings.agent_size_min = agent_size_min as i32;
                         signals.new_settings = true;
                     }
-                    if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=20)).changed() {
+                    if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=40)).changed() {
                         settings.agent_size_max = agent_size_max as i32;
                         signals.new_settings = true;
                     }
@@ -502,7 +480,7 @@ impl UISystem {
 
     fn build_static_rect_win(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if self.state.static_rect {
-            Window::new("Static Rect").title_bar(true).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).default_size([300., 260.]).show(egui_ctx, |ui| {
+            Window::new("Build Static Rect").title_bar(true).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).default_size([300., 260.]).show(egui_ctx, |ui| {
                 ui.label("Rect Size");
                 ui.columns(2, |column| {
                     let mut w: i32 = 100;

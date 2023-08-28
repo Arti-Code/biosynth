@@ -1,15 +1,13 @@
-//#![allow(unused)]
+#![allow(unused)]
 
 
-use std::collections::hash_map::{Iter, IterMut};
-use std::collections::HashMap;
 use std::f32::consts::PI;
-use crate::consts::{WORLD_H, WORLD_W};
 use crate::neuro::*;
 //use crate::sim::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
+//use crate::collector::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
@@ -24,7 +22,7 @@ pub struct Unit {
     pub vel: f32,
     pub ang_vel: f32,
     pub size: f32,
-    pub vision_range: f32,
+    //pub vision_range: f32,
     pub max_eng: f32,
     pub eng: f32,
     pub color: color::Color,
@@ -39,7 +37,7 @@ pub struct Unit {
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub physics_handle: Option<RigidBodyHandle>,
-    settings: Settings
+    pub settings: Settings
 }
 
 impl Unit {
@@ -61,7 +59,7 @@ impl Unit {
             vel: 0.0,
             ang_vel: 0.0,
             size: s,
-            vision_range: (rand::gen_range(0.5, 1.5) * settings.agent_vision_range).round(),
+            //vision_range: (rand::gen_range(0.5, 1.5) * settings.agent_vision_range).round(),
             max_eng: s.powi(2) * 10.0,
             eng: s.powi(2) * 10.0,
             color: random_color(),
@@ -80,26 +78,77 @@ impl Unit {
         }
     }
 
+    pub fn new_regular(settings: &Settings) -> Self {
+        let s = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
+        //let (vertices, mut indices) = make_regular_poly_indices(6, s);
+        let n = rand::gen_range(3, 9);
+        let vertices = make_regular_poly(n, s, Some(0.1));
+        Self {
+            key: gen_range(u64::MIN, u64::MAX),
+            pos: random_position(settings.world_w as f32, settings.world_h as f32),
+            //rot: random_rotation(),
+            rot: 0.0,
+            mass: 0.0,
+            vel: 0.0,
+            ang_vel: 0.0,
+            size: s,
+            //vision_range: (rand::gen_range(0.5, 1.5) * settings.agent_vision_range).round(),
+            max_eng: s.powi(2) * 10.0,
+            eng: s.powi(2) * 10.0,
+            color: random_color(),
+            vertices: vertices.clone(),
+            shape: SharedShape::convex_polyline(vec2_to_point2_collection(&vertices)).unwrap(),
+            //shape: SharedShape::convex_decomposition(&vec2_to_point2_collection(&vertices), &indices.as_mut_slice()),
+            analize_timer: Timer::new(0.3, true, true, true),
+            analizer: DummyNetwork::new(2),
+            alife: true,
+            detected: None,
+            enemy: None,
+            enemy_position: None,
+            enemy_dir: None,
+            contacts: Vec::new(),
+            physics_handle: None,
+            settings: settings.clone()
+        }
+    }
+
     pub fn draw(&self, selected: bool, font: &Font) {
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
+        //let x0 = self.pos.x;
+        //let y0 = self.pos.y;
         //self.draw_tri();
         if self.settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
             self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
         }
-        self.draw_circle();
+        self.draw_poly();
+        self.draw_front();
         if selected {
             self.draw_target();
-            draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
+            //draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
             self.draw_info(&font);
         }
     }    
 
+    pub fn draw_poly(&self) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        let points = self.shape.as_convex_polygon().unwrap().points().to_vec();
+        let pre_point = points[points.len()-1];
+        let mut v0 = Vec2::new(pre_point.x, pre_point.y);
+        v0 = Vec2::from_angle(self.rot).rotate(v0);
+        for p in points {
+            let mut v1 = Vec2::new(p.x, p.y);
+            v1 = Vec2::from_angle(self.rot).rotate(v1);
+            draw_line(x0+v0.x, y0+v0.y, x0+v1.x, y0+v1.y, 2.0, self.color);
+            v0 = v1.clone();
+        }
+        draw_circle(x0, y0, 6.0, RED);
+    }    
+
     pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         if self.analize_timer.update(dt) {
-            self.watch(physics);
-            self.update_contacts(physics);
+            //self.watch(physics);
+            //self.update_contacts(physics);
             self.analize();
         }
         for (_contact, ang) in self.contacts.iter() {
@@ -117,40 +166,45 @@ impl Unit {
         return self.alife;
     }
 
+    fn analize(&mut self) {
+        let outputs = self.analizer.analize();
+        if outputs[0] >= 0.0 {
+            self.vel = outputs[0];
+        } else {
+            self.vel = 0.0;
+        }
+        self.ang_vel = outputs[1];
+    }
+
     fn draw_front(&self) {
         let dir = Vec2::from_angle(self.rot);
-        let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
-        let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size;
+        let v0 = dir * self.size;
+        let x0 = self.pos.x + v0.x;
+        let y0 = self.pos.y + v0.y;
+        let x1 = self.pos.x + dir.x * self.size * 1.6;
+        let y1 = self.pos.y + dir.y * self.size * 1.6;
+        draw_line(x0, y0, x1, y1, 3.0, self.color);
+    }
+
+/*     fn _draw_front(&self) {
+        let dir = Vec2::from_angle(self.rot);
+        let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size*0.8;
+        let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size*0.8;
         let x0l = self.pos.x + v0l.x;
         let y0l = self.pos.y + v0l.y;
         let x0r = self.pos.x + v0r.x;
         let y0r = self.pos.y + v0r.y;
-        let x2 = self.pos.x + dir.x * self.size * 2.0;
-        let y2 = self.pos.y + dir.y * self.size * 2.0;
+        let x2 = self.pos.x + dir.x * self.size * 1.6;
+        let y2 = self.pos.y + dir.y * self.size * 1.6;
         draw_line(x0l, y0l, x2, y2, 2.0, self.color);
         draw_line(x0r, y0r, x2, y2, 2.0, self.color);
-    }
-
-    fn _draw_tri(&self) {
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
-        let dir = Vec2::from_angle(self.rot);
-        let mut v0 = self.vertices[0];
-        v0 = dir.rotate(v0);
-        let mut v1 = self.vertices[1];
-        v1 = dir.rotate(v1);
-        let mut v2 = self.vertices[2];
-        v2 = dir.rotate(v2);
-        draw_triangle_lines(self.pos+v0, self.pos+v1, self.pos+v2, 2.0, self.color);
-        draw_line(x0, y0, x0+dir.x*self.size, y0+dir.y*self.size, 3.0, GREEN)
-        //draw_poly_lines(x0, y0, 3, self.size, 0.0, 2.0, RED);
-    }
+    } */
 
     fn draw_circle(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         draw_circle_lines(x0, y0, self.size, 4.0, self.color);
-        self.draw_front();
+        //self.draw_front();
     }
 
     fn draw_target(&self) {
@@ -282,31 +336,31 @@ impl Unit {
         }
     }
 
-    fn watch(&mut self, physics: &PhysicsWorld) {
-        match self.physics_handle {
-            Some(handle) => {
-                if let Some(tg) = physics.get_closesd_agent(handle, self.vision_range) {
-                    self.enemy = Some(tg);
-                    self.update_enemy_position(physics);
-                } else {
-                    self.enemy = None;
-                    self.enemy_position = None;
-                    self.enemy_dir = None;
-                }
-            }
-            None => {}
-        }
-    }
+//    fn watch(&mut self, physics: &PhysicsWorld) {
+//        match self.physics_handle {
+//            Some(handle) => {
+//                if let Some(tg) = physics.get_closesd_agent(handle, self.vision_range) {
+//                    self.enemy = Some(tg);
+//                    self.update_enemy_position(physics);
+//                } else {
+//                    self.enemy = None;
+//                    self.enemy_position = None;
+//                    self.enemy_dir = None;
+//                }
+//            }
+//            None => {}
+//        }
+//    }
 
-    fn analize(&mut self) {
-        let outputs = self.analizer.analize();
-        if outputs[0] >= 0.0 {
-            self.vel = outputs[0];
-        } else {
-            self.vel = 0.0;
-        }
-        self.ang_vel = outputs[1];
-    }
+//    fn analize(&mut self) {
+//        let outputs = self.analizer.analize();
+//        if outputs[0] >= 0.0 {
+//            self.vel = outputs[0];
+//        } else {
+//            self.vel = 0.0;
+//        }
+//        self.ang_vel = outputs[1];
+//    }
 
     fn calc_timers(&mut self, _dt: f32) {
 
@@ -329,59 +383,6 @@ impl Unit {
         if self.eng > self.max_eng {
             self.eng = self.max_eng;
         }
-    }
-}
-
-pub struct UnitsBox {
-    pub agents: HashMap<u64, Unit>,
-}
-
-impl UnitsBox {
-    pub fn new() -> Self {
-        Self {
-            agents: HashMap::new(),
-        }
-    }
-
-    pub fn reload_settings(&mut self, settings: &Settings) {
-        for (_, agent) in self.get_iter_mut() {
-            agent.settings = settings.clone();
-        }
-    }
-
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld, settings: &Settings) {
-        for _ in 0..agents_num {
-            let agent = Unit::new(settings);
-            _ = self.add_agent(agent, physics_world);
-        }
-    }
-
-    pub fn add_agent(&mut self, mut agent: Unit, physics_world: &mut PhysicsWorld) -> u64 {
-        let key = agent.key;
-        let handle = physics_world.add_dynamic(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
-        agent.physics_handle = Some(handle);
-        self.agents.insert(key, agent);
-        return key;
-    }
-
-    pub fn get(&self, id: u64) -> Option<&Unit> {
-        return self.agents.get(&id);
-    }
-
-    pub fn _remove(&mut self, id: u64) {
-        self.agents.remove(&id);
-    }
-
-    pub fn get_iter(&self) -> Iter<u64, Unit> {
-        return self.agents.iter();
-    }
-
-    pub fn get_iter_mut(&mut self) -> IterMut<u64, Unit> {
-        return self.agents.iter_mut();
-    }
-
-    pub fn _count(&self) -> usize {
-        return self.agents.len();
     }
 }
 

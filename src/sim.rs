@@ -6,6 +6,7 @@ use crate::consts::*;
 use crate::ui::*;
 use crate::util::*;
 use crate::physics::*;
+use crate::collector::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use std::f32::consts::PI;

@@ -5,7 +5,7 @@ use crate::consts::*;
 use macroquad::{color, prelude::*};
 use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
-use rapier2d::na::{Isometry2, Vector2, Translation, Point2};
+use rapier2d::na::{Isometry2, Vector2, Translation, Point2, Const};
 
 pub fn random_unit() -> f32 {
     return rand::gen_range(-1.0, 1.0);
@@ -81,7 +81,9 @@ pub fn map_polygon(n: usize, r: f32, dev: f32) -> Vec<Vec2> {
         a = s * i as f32;
         let x = a.sin();
         let y = a.cos();
-        let v = Vec2::new(x, y)*r;
+        let deviation = rand::gen_range(-dev, dev);
+        let radius = r + r * deviation;
+        let v = Vec2::new(x, y)*radius;
         points.push(v);
     }
     return points;
@@ -122,6 +124,42 @@ pub fn contact_mouse(mouse_pos: Vec2, target_pos: Vec2, target_rad: f32) -> bool
     }
 }
 
+pub fn make_regular_poly(n: usize, r: f32, dev: Option<f32>) -> Vec<Vec2> {
+    let s = 2.0*PI/n as f32;
+    let mut verts: Vec<Vec2> = vec![];
+    for i in 0..n {
+        let d = match dev {
+            Some(deviation) => rand::gen_range(-deviation, deviation),
+            None => 0.0,
+        };
+
+        let a = s * i as f32;
+        let x = a.cos();
+        let y = a.sin();
+        let v = Vec2::new(x, y)*r + r*d;
+        verts.push(v);
+    }
+    return verts;
+}
+
+pub fn make_regular_poly_indices(n: usize, r: f32) -> (Vec<Vec2>, Vec<[u32; DIM]>) {
+    let s = 2.0*PI/n as f32;
+    let mut verts: Vec<Vec2> = vec![];
+    let mut indices: Vec<[u32; DIM]> = vec![];
+    for i in 0..n {
+        let a = s * i as f32;
+        let x = a.cos()*r;
+        let y = a.sin()*r;
+        let v = Vec2::new(x, y);
+        if i == 0 {
+            indices.push([(n-1) as u32, i as u32]);
+        } else {
+            indices.push([(i-1) as u32, i as u32]);
+        }
+        verts.push(v);
+    }
+    return (verts, indices);
+}
 //?         [[[SIGNALS]]]
 pub struct Signals {
     pub world: Vec2,
@@ -158,7 +196,6 @@ pub struct UIState {
     pub performance: bool,
     pub inspect: bool,
     pub mouse: bool,
-    pub create: bool,
     pub quit: bool,
     pub agents_num: i32,
     pub new_sim: bool,
@@ -177,7 +214,6 @@ impl UIState {
             performance: false,
             inspect: false,
             mouse: false,
-            create: false,
             quit: false,
             agents_num: 0,
             new_sim: false,

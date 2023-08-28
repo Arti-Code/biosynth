@@ -152,6 +152,10 @@ impl PhysicsWorld {
                 ColliderBuilder::cuboid(hx, hy).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
                 .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
             },
+            ShapeType::ConvexPolygon => {
+                ColliderBuilder::new(shape).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
+                .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
+            },
             _ => {
                 ColliderBuilder::ball(5.0).position(iso).build()
             },
