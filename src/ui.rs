@@ -255,8 +255,8 @@ impl UISystem {
                 });
                 ui.vertical_centered(|txt| {
                     let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
+                    self.temp_sim_name = String::from("SIMULATION");
                     if response.gained_focus() {
-                        self.temp_sim_name = String::from("SIMULATION");
                     }
                     if response.changed() {
                         //self.temp_sim_name = String::from(&sim_name);
@@ -473,6 +473,14 @@ impl UISystem {
                         settings.agent_eng_bar = agent_eng_bar;
                         signals.new_settings = true;
                     }
+                }
+            });
+            ui.add_space(10.0);
+            ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(3.0, Color32::BLUE);
+            ui.vertical_centered(|closer| {
+                let mut stylus = closer.style();
+                if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_RED).strong()).clicked() {
+                    self.state.enviroment = false;
                 }
             });
         });

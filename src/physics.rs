@@ -20,7 +20,7 @@ pub struct PhysicsProperities {
 impl Default for PhysicsProperities {
     
     fn default() -> Self {
-        Self { friction: 0.5, restitution: 0.5, density: 0.5, linear_damping: 0.5, angular_damping: 0.5 }
+        Self { friction: 0.5, restitution: 0.5, density: 0.5, linear_damping: 0.1, angular_damping: 0.9 }
     }
 }
 
@@ -28,6 +28,14 @@ impl PhysicsProperities {
     
     pub fn new(friction: f32, restitution: f32, density: f32, linear_damping: f32, angular_damping: f32) -> Self {
         Self { friction, restitution, density, linear_damping, angular_damping }
+    }
+
+    pub fn bounce() -> Self {
+        Self { friction: 0.0, restitution: 1.0, density: 1.0, linear_damping: 0.1, angular_damping: 0.1 }
+    }
+
+    pub fn free() -> Self {
+        Self { friction: 0.0, restitution: 1.0, density: 0.1, linear_damping: 0.01, angular_damping: 0.01 }
     }
 }
 
@@ -134,23 +142,13 @@ impl PhysicsWorld {
         return self.rigid_bodies.insert(dynamic_body);
     }
 
-    pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) {
+    pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> ColliderHandle {
         let iso = make_isometry(rel_position.x, rel_position.y, rotation);
         let collider = match shape.shape_type() {
             ShapeType::Ball => {
                 let radius = shape.0.as_ball().unwrap().radius;
-                ColliderBuilder::ball(radius).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
+                ColliderBuilder::new(shape).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
                     .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
-            },
-            ShapeType::Triangle => {
-                let verts = shape.0.as_triangle().unwrap().vertices().to_vec();
-                ColliderBuilder::triangle(verts[0], verts[1], verts[2]).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
-                .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
-            },
-            ShapeType::Cuboid => {
-                let hx = shape.0.as_cuboid().unwrap().half_extents.x; let hy = shape.0.as_cuboid().unwrap().half_extents.y;
-                ColliderBuilder::cuboid(hx, hy).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
-                .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
             },
             ShapeType::ConvexPolygon => {
                 ColliderBuilder::new(shape).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
@@ -160,7 +158,7 @@ impl PhysicsWorld {
                 ColliderBuilder::ball(5.0).position(iso).build()
             },
         };
-        self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
+        return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
     }
 
     pub fn add_dynamic(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> RigidBodyHandle {

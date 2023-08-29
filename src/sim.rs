@@ -90,13 +90,8 @@ impl Simulation {
         for (_, agent) in self.units.get_iter_mut() {
             //let uid = *id;
             if !agent.update(dt, &mut self.physics) {
-                match agent.physics_handle {
-                    Some(handle) => {
-                        self.physics.remove_physics_object(handle);
-                    }
-                    None => {}
-                }
-            };
+                self.physics.remove_physics_object(agent.physics_handle);
+            }
         }
         self.units.agents.retain(|_, agent| agent.alife == true);
     }

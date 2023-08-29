@@ -37,15 +37,15 @@ impl UnitsBox {
 
     pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld, settings: &Settings) {
         for _ in 0..agents_num {
-            let agent = Unit::new_regular(settings);
+            let agent = Unit::new(settings, physics_world);
             _ = self.add_agent(agent, physics_world);
         }
     }
 
     pub fn add_agent(&mut self, mut agent: Unit, physics_world: &mut PhysicsWorld) -> u64 {
         let key = agent.key;
-        let handle = physics_world.add_dynamic(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
-        agent.physics_handle = Some(handle);
+        //let handle = physics_world.add_dynamic(key, &agent.pos, agent.rot, agent.shape.clone(), PhysicsProperities::default());
+        //agent.physics_handle = handle;
         self.agents.insert(key, agent);
         return key;
     }
