@@ -1,34 +1,48 @@
 #![allow(unused)]
-use std::collections::hash_map::{Iter, IterMut};
-use std::collections::HashMap;
-use std::f32::consts::PI;
-use crate::consts::*;
-use crate::neuro::*;
-use crate::timer::*;
-use crate::util::*;
-use crate::world::*;
-use crate::being::*;
-use macroquad::{color, prelude::*};
-use macroquad::rand::*;
-use rapier2d::geometry::*;
-use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 
-pub struct Plant {
+use std::collections::HashMap;
+use std::collections::hash_map::{Iter, IterMut};
+
+use macroquad::prelude::*;
+use macroquad::color::*;
+use rapier2d::prelude::*;
+use macroquad::rand::*;
+use crate::physics::*;
+use crate::util::*;
+use crate::consts::*;
+
+pub trait Being {
+    //fn new() -> Self;
+    fn draw(&self, selected: bool, font: &Font);
+    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool;
+}
+
+trait Collector<T> {
+    fn new() -> Self;
+    fn add_many(&mut self, number: usize, physics: &mut PhysicsWorld);
+    fn add(&mut self, being: T, physics: &mut PhysicsWorld);
+    fn get(&self, id: u64) -> Option<T>;
+    fn remove(&mut self, id: u64);
+    fn get_iter(&self) -> Iter<u64, T>;
+    fn get_iter_mut(&mut self) -> IterMut<u64, T>;
+    fn count(&self) -> usize;
+}
+
+pub struct Life {
     pub key: u64,
     pub pos: Vec2,
     pub rot: f32,
     pub mass: f32,
     pub size: i32,
-    pub max_size: i32,
     pub max_eng: f32,
     pub eng: f32,
-    pub color: color::Color,
+    pub color: Color,
     pub shape: Vec<Vec2>,
     pub alife: bool,
     pub physics_handle: Option<RigidBodyHandle>,
 }
 
-impl Being for Plant {
+impl Being for Life {
 
     fn draw(&self, selected: bool, font: &Font) {
         let x0 = self.pos.x;
@@ -41,18 +55,18 @@ impl Being for Plant {
         }
     }    
 
-    fn update(&mut self, dt: f32, physics: &mut World) -> bool {
+    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         self.update_physics(physics);
-        self.calc_energy(dt);
+        //self.calc_energy(dt);
         return self.alife;
     }
 
 }
 
-impl Plant {
+impl Life {
     
     pub fn new() -> Self {
-        let s = 2;
+        let s = gen_range(AGENT_SIZE_MIN, AGENT_SIZE_MAX);
 
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -60,10 +74,9 @@ impl Plant {
             rot: random_rotation(),
             mass: 0.0,
             size: s,
-            max_size: PLANT_MAX_SIZE,
             max_eng: s as f32 * 20.0,
             eng: s as f32 * 10.0,
-            color: LIME,
+            color: random_color5(),
             shape: map_polygon(6, 16., 0.0),
             alife: true,
             physics_handle: None,
@@ -114,38 +127,19 @@ impl Plant {
         draw_text_ex(&info3, x0 - txt_center.x, y0 - txt_center.y + self.size as f32 * 2.0 + 38.0, text_cfg.clone());
     }
 
-    fn update_physics(&mut self, physics: &mut World) {
+    fn update_physics(&mut self, physics: &mut PhysicsWorld) {
         match self.physics_handle {
             Some(handle) => {
                 let physics_data = physics.get_physics_data(handle);
                 self.pos = physics_data.position;
                 self.rot = physics_data.rotation;
                 self.mass = physics_data.mass;
+                let dir = Vec2::from_angle(self.rot);
                 match physics.rigid_bodies.get_mut(handle) {
                     Some(body) => {
-                        if self.eng >= self.max_eng && (self.size as i32) < PLANT_MAX_SIZE {
-                            self.size += 1;
-                            self.max_eng = self.size as f32 * 20.0;
-                            //self.shape = Ball {radius: self.size as f32};
-                            for collider_handle in body.colliders().iter() {
-                                match physics.colliders.get_mut(*collider_handle) {
-                                    Some(collider) => {
-                                        let shape = collider.shape_mut();
-                                        match shape.as_ball_mut() {
-                                            Some(ball_shape) => {
-                                                collider.set_shape(SharedShape::ball(self.size as f32));
-                                            },
-                                            None => {},
-                                        }
-                                    },
-                                    None =>  {},
-                                }
-                            }
-                        }
-                        let dir = Vec2::from_angle(self.rot);
                         self.check_edges(body);
-                    }
-                    None => {}
+                    },
+                    None => {},
                 }
             }
             None => {}
@@ -153,7 +147,7 @@ impl Plant {
     }
 
     fn check_edges(&mut self, body: &mut RigidBody) {
-        let mut raw_pos = matric_to_vec2(body.position().translation);
+        let mut raw_pos = matrix_to_vec2(body.position().translation);
         let mut out_of_edge = false;
         if raw_pos.x < -5.0 {
             raw_pos.x = 0.0;
@@ -194,52 +188,5 @@ impl Plant {
         if self.eng > self.max_eng {
             self.eng = self.max_eng;
         }
-    }
-}
-
-pub struct PlantsBox {
-    pub plants: HashMap<u64, Plant>,
-}
-
-impl PlantsBox {
-    pub fn new() -> Self {
-        Self {
-            plants: HashMap::new(),
-        }
-    }
-
-    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut World) {
-        for _ in 0..plants_num {
-            let plant = Plant::new();
-            _ = self.add_plant(plant, physics_world);
-        }
-    }
-
-    pub fn add_plant(&mut self, mut plant: Plant, physics_world: &mut World) -> u64 {
-        let key = plant.key;
-        let handle = physics_world.add_complex_agent(key, &plant.pos, plant.shape.clone(), plant.rot, None);
-        plant.physics_handle = Some(handle);
-        self.plants.insert(key, plant);
-        return key;
-    }
-
-    pub fn get(&self, id: u64) -> Option<&Plant> {
-        return self.plants.get(&id);
-    }
-
-    pub fn remove(&mut self, id: u64) {
-        self.plants.remove(&id);
-    }
-
-    pub fn get_iter(&self) -> Iter<u64, Plant> {
-        return self.plants.iter();
-    }
-
-    pub fn get_iter_mut(&mut self) -> IterMut<u64, Plant> {
-        return self.plants.iter_mut();
-    }
-
-    pub fn count(&self) -> usize {
-        return self.plants.len();
     }
 }
