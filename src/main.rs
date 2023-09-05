@@ -11,7 +11,6 @@ mod physics;
 mod part;
 mod unit;
 mod collector;
-//mod collector2;
 
 use crate::consts::*;
 use crate::sim::*;
@@ -37,12 +36,12 @@ async fn main() {
         world_w: WORLD_W as i32,
         world_h: WORLD_H as i32,
         agent_eng_bar: true,
-        agent_init_num: 30,
-        agent_min_num: 20,
+        agent_init_num: 40,
+        agent_min_num: 30,
         agent_rotate: 2.0,
         agent_speed: 100.0,
-        agent_size_min: 10,
-        agent_size_max: 26,
+        agent_size_min: 5,
+        agent_size_max: 12,
         agent_vision_range: 300.0
     };
     let font = load_ttf_font("assets/fonts/firacode.ttf")

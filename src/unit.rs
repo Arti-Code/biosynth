@@ -96,7 +96,7 @@ impl Unit {
         let shape = SharedShape::ball(size);
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
-        let mut parts: Vec<BodyPart> = Self::create_body_parts(4, size, color, rbh, physics);
+        let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
@@ -128,8 +128,9 @@ impl Unit {
     fn create_body_parts(num: usize, size: f32, color: Color, rigid_handle: RigidBodyHandle, physics: &mut PhysicsWorld) -> Vec<BodyPart> {
         let mut parts: Vec<BodyPart> = vec![];
         let step = 2.0*PI/num as f32;
+        let size2 = 3.0_f32.sqrt() * size;
         for i in 0..num {
-            let rel_pos = Vec2::from_angle(i as f32 * step) * 2.0*size;
+            let rel_pos = Vec2::from_angle(i as f32 * step) * size2;
             let mut part = BodyPart::add_new(rel_pos, size, color);
             let coll_handle = physics.add_collider(rigid_handle, &rel_pos, 0.0, part.get_shape(), PhysicsProperities::free());
             part.set_collider_handle(coll_handle);
@@ -137,40 +138,6 @@ impl Unit {
         }
         return parts;
     }
-
-/*     pub fn new_regular(settings: &Settings) -> Self {
-        let s = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
-        //let (vertices, mut indices) = make_regular_poly_indices(6, s);
-        let n = rand::gen_range(3, 9);
-        let vertices = make_regular_poly(n, s, Some(0.1));
-        Self {
-            key: gen_range(u64::MIN, u64::MAX),
-            pos: random_position(settings.world_w as f32, settings.world_h as f32),
-            //rot: random_rotation(),
-            rot: 0.0,
-            mass: 0.0,
-            vel: 0.0,
-            ang_vel: 0.0,
-            size: s,
-            //vision_range: (rand::gen_range(0.5, 1.5) * settings.agent_vision_range).round(),
-            max_eng: s.powi(2) * 10.0,
-            eng: s.powi(2) * 10.0,
-            color: random_color(),
-            vertices: vertices.clone(),
-            shape: SharedShape::convex_polyline(vec2_to_point2_collection(&vertices)).unwrap(),
-            //shape: SharedShape::convex_decomposition(&vec2_to_point2_collection(&vertices), &indices.as_mut_slice()),
-            analize_timer: Timer::new(0.3, true, true, true),
-            analizer: DummyNetwork::new(2),
-            alife: true,
-            detected: None,
-            enemy: None,
-            enemy_position: None,
-            enemy_dir: None,
-            contacts: Vec::new(),
-            physics_handle: None,
-            settings: settings.clone()
-        }
-    } */
 
     pub fn draw(&self, selected: bool, font: &Font) {
         let x0 = self.pos.x;
@@ -247,20 +214,6 @@ impl Unit {
         let y1 = self.pos.y + dir.y * self.size * 1.6;
         draw_line(x0, y0, x1, y1, 3.0, self.color);
     }
-
-/*     fn _draw_front(&self) {
-        let dir = Vec2::from_angle(self.rot);
-        let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size*0.8;
-        let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size*0.8;
-        let x0l = self.pos.x + v0l.x;
-        let y0l = self.pos.y + v0l.y;
-        let x0r = self.pos.x + v0r.x;
-        let y0r = self.pos.y + v0r.y;
-        let x2 = self.pos.x + dir.x * self.size * 1.6;
-        let y2 = self.pos.y + dir.y * self.size * 1.6;
-        draw_line(x0l, y0l, x2, y2, 2.0, self.color);
-        draw_line(x0r, y0r, x2, y2, 2.0, self.color);
-    } */
 
     fn draw_circle(&self) {
         let x0 = self.pos.x;
