@@ -1,22 +1,21 @@
 [package]
-name = "biosynth"
-version = "0.2.0"
+name = "evolve"
+version = "0.3.11"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
-keywords = ["physics", "sandbox", "simulation"]
+keywords = [
+    "physics", "sandbox", "simulation", 
+    "neuroevolution", "neural network", "genethics algorithm", 
+    "artificial inteligence", "synthetic biology"
+]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 macroquad = "0.3.26"
 rapier2d = { version = "0.17.2", features = [ "simd-stable" ] }
-nalgebra = { version = "0.32.2", features = ["convert-glam020"] }
-egui-macroquad = "0.15.0"
-egui = "0.21.0"
-egui_extras = {version = "0.21.0", features = ["image"]}
-rand = "0.8.5"
-crossbeam = "0.8.2"
-image = "0.24.6"
+egui-macroquad = {version = "0.15.0"}
+egui_extras = {version = "0.22.0", features = ["image"]}
+image = "0.24.7"
 
 [build-dependencies]
-embed-resource = "2.1.1"
+embed-resource = "2.3.0"

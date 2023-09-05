@@ -4,12 +4,13 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 use crate::consts::*;
 use crate::neuro::*;
+use crate::physics::PhysicsWorld;
 use crate::timer::*;
 use crate::util::*;
-use crate::world::*;
+use crate::physics::*;
 use crate::being::*;
-use ::rand::{thread_rng, Rng};
 use macroquad::{color, prelude::*};
+use macroquad::rand::*;
 use rapier2d::geometry::*;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 
@@ -23,7 +24,7 @@ pub struct Plant {
     pub max_eng: f32,
     pub eng: f32,
     pub color: color::Color,
-    pub shape: Ball,
+    pub shape: Vec<Vec2>,
     pub alife: bool,
     pub physics_handle: Option<RigidBodyHandle>,
 }
@@ -33,14 +34,15 @@ impl Being for Plant {
     fn draw(&self, selected: bool, font: &Font) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        draw_circle_lines(x0, y0, self.size as f32, 4.0, self.color);
+        self.draw_shape();
+        //draw_circle_lines(x0, y0, self.size as f32, 4.0, self.color);
         //self.draw_info(font);
         if selected {
             //self.draw_info(&font);
         }
     }    
 
-    fn update(&mut self, dt: f32, physics: &mut World) -> bool {
+    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         self.update_physics(physics);
         self.calc_energy(dt);
         return self.alife;
@@ -54,7 +56,7 @@ impl Plant {
         let s = 2;
 
         Self {
-            key: thread_rng().gen::<u64>(),
+            key: gen_range(u64::MIN, u64::MAX),
             pos: random_position(WORLD_W, WORLD_H),
             rot: random_rotation(),
             mass: 0.0,
@@ -63,10 +65,27 @@ impl Plant {
             max_eng: s as f32 * 20.0,
             eng: s as f32 * 10.0,
             color: LIME,
-            shape: Ball { radius: s as f32 },
+            shape: map_polygon(6, 16., 0.0),
             alife: true,
             physics_handle: None,
         }
+    }
+
+    fn draw_shape(&self) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        let pos = self.pos;
+        for i in 0..self.shape.len() {
+            if i > 0 {
+                let p0 = self.shape[i-1];
+                let p1 = self.shape[i];
+                draw_line(x0+p0.x, y0+p0.y, x0+p1.x, y0+p1.y, 2.0, self.color);
+            }
+        }
+        let last = self.shape.len();
+        let p0 = self.shape[last-1];
+        let p1 = self.shape[0];
+        draw_line(x0+p0.x, y0+p0.y, x0+p1.x, y0+p1.y, 2.0, self.color);
     }
 
     fn draw_info(&self, font: &Font) {
@@ -96,7 +115,7 @@ impl Plant {
         draw_text_ex(&info3, x0 - txt_center.x, y0 - txt_center.y + self.size as f32 * 2.0 + 38.0, text_cfg.clone());
     }
 
-    fn update_physics(&mut self, physics: &mut World) {
+    fn update_physics(&mut self, physics: &mut PhysicsWorld) {
         match self.physics_handle {
             Some(handle) => {
                 let physics_data = physics.get_physics_data(handle);
@@ -108,7 +127,7 @@ impl Plant {
                         if self.eng >= self.max_eng && (self.size as i32) < PLANT_MAX_SIZE {
                             self.size += 1;
                             self.max_eng = self.size as f32 * 20.0;
-                            self.shape = Ball {radius: self.size as f32};
+                            //self.shape = Ball {radius: self.size as f32};
                             for collider_handle in body.colliders().iter() {
                                 match physics.colliders.get_mut(*collider_handle) {
                                     Some(collider) => {
@@ -190,16 +209,17 @@ impl PlantsBox {
         }
     }
 
-    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut World) {
+    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut PhysicsWorld) {
         for _ in 0..plants_num {
             let plant = Plant::new();
             _ = self.add_plant(plant, physics_world);
         }
     }
 
-    pub fn add_plant(&mut self, mut plant: Plant, physics_world: &mut World) -> u64 {
+    pub fn add_plant(&mut self, mut plant: Plant, physics_world: &mut PhysicsWorld) -> u64 {
         let key = plant.key;
-        let handle = physics_world.add_dynamic_agent(key, &plant.pos, plant.size as f32, plant.rot, None);
+        let props = PhysicsProperities::new(0.5, 0.5, 1.0, 0.5, 0.5);
+        let handle = physics_world.add_dynamic_ball(key, plant.size as f32, &plant.pos, plant.rot, props);
         plant.physics_handle = Some(handle);
         self.plants.insert(key, plant);
         return key;

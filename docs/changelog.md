@@ -15,12 +15,12 @@
 
 ##### v0.3
 
-- [ ] source of energy on world
-- [ ] energy source agents detection
-- [ ] agents ability to consume energy source
+- [x] source of energy on world
+- [x] energy source agents detection
+- [x] agents ability to consume energy source
 - [x] large world size
 - [x] improve custom camera translation controll
-- [ ] reset camera transformations
+- [x] reset camera transformations
 - [ ] camera transformation info window
 - [x] camera translation
 - [x] camera zoom-in / zoom-out
