@@ -37,7 +37,6 @@ pub fn random_color() -> color::Color {
 
 pub fn random_color5() -> color::Color {
     let colors = [RED, BLUE, GREEN, YELLOW, WHITE];
-    //let num = colors.len();
     let c = rand::gen_range(0, 5);
     return colors[c];
 }
@@ -99,7 +98,6 @@ pub fn vec2_to_point2_collection(vec2_list: &Vec<Vec2>) -> Vec<Point2<f32>> {
         let p = Point2::new(v.x, v.y);
         points.push(p);
     }
-    //let d = points.as_chunks();
     return points;
 }
 
@@ -160,7 +158,7 @@ pub fn make_regular_poly_indices(n: usize, r: f32) -> (Vec<Vec2>, Vec<[u32; DIM]
     }
     return (verts, indices);
 }
-//?         [[[SIGNALS]]]
+
 pub struct Signals {
     pub world: Vec2,
     pub spawn_agent: bool,

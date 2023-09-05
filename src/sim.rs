@@ -88,7 +88,6 @@ impl Simulation {
     fn update_agents(&mut self) {
         let dt = self.sim_state.dt;
         for (_, agent) in self.units.get_iter_mut() {
-            //let uid = *id;
             if !agent.update(dt, &mut self.physics) {
                 self.physics.remove_physics_object(agent.physics_handle);
             }

@@ -148,7 +148,7 @@ impl PhysicsWorld {
             ShapeType::Ball => {
                 let radius = shape.0.as_ball().unwrap().radius;
                 ColliderBuilder::new(shape).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
-                    .active_collision_types(ActiveCollisionTypes::default()).active_events(ActiveEvents::COLLISION_EVENTS).build()
+                    .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS).build()
             },
             ShapeType::ConvexPolygon => {
                 ColliderBuilder::new(shape).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
@@ -215,7 +215,7 @@ impl PhysicsWorld {
         };
         for c in rb.colliders() {
             let collider = self.colliders.get(*c).unwrap();
-            if !collider.is_sensor() {
+            if collider.is_sensor() {
                 continue;
             }
             self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), &rapier2d::geometry::Ball::new(radius), filter,

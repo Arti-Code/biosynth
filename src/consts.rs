@@ -4,8 +4,6 @@ pub const SCREEN_WIDTH: f32 = 1600.0;
 pub const SCREEN_HEIGHT: f32 = 900.0;
 pub const WORLD_W: f32 = 1600.0;
 pub const WORLD_H: f32 = 900.0;
-//pub const WORLD_W: f32              = 3200.0;
-//pub const WORLD_H: f32              = 1800.0;
 
 pub const AGENTS_NUM: usize = 30;
 pub const AGENTS_NUM_MIN: usize = 18;

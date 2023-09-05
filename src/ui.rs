@@ -248,7 +248,6 @@ impl UISystem {
 
     fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals, settings: &mut Settings) {
         if self.state.new_sim {
-            //let mut sim_name: String = String::new();
             Window::new("NEW SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).fixed_size([380., 100.]).show(egui_ctx, |ui| {
                 ui.vertical_centered(|head| {
                     head.label("Start new simulation");
@@ -259,9 +258,6 @@ impl UISystem {
                     if response.gained_focus() {
                     }
                     if response.changed() {
-                        //self.temp_sim_name = String::from(&sim_name);
-                        //println!("{:?}", sim_name);
-                        //println!("{:?}", self.temp_sim_name);
                     }
                     if response.lost_focus() && txt.input(|i| i.key_pressed(Key::Enter)) {
                         self.state.new_sim = false;
@@ -269,7 +265,6 @@ impl UISystem {
                         signals.new_sim_name = String::from(&self.temp_sim_name);
                         self.temp_sim_name = String::new();
                     }
-                    //let response = txt.text_edit_singleline(&mut sim_name);
                 });
                 ui.spacing();
                 ui.vertical_centered(|row| {
@@ -371,9 +366,6 @@ impl UISystem {
             .title_bar(true).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
                 let title = self.title.clone().unwrap();
-                /* ui.vertical_centered(|title| {
-                    title.label(RichText::new("NEUROEvolution Simulator").color(Color32::GREEN).strong().heading());
-                }); */
                 ui.vertical_centered(|pic| {
                     pic.image(title.id(), title.size_vec2());
                 });

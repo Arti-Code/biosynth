@@ -3,11 +3,9 @@
 
 use std::f32::consts::PI;
 use crate::neuro::*;
-//use crate::sim::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
-//use crate::collector::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
