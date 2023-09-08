@@ -74,6 +74,7 @@ pub struct Unit {
     pub shape: SharedShape,
     analize_timer: Timer,
     analizer: DummyNetwork,
+    network: Network,
     pub alife: bool,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub detected: Option<Detected>,
@@ -94,6 +95,8 @@ impl Unit {
         let shape = SharedShape::ball(size);
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
+        let mut network = Network::new();
+        network.build(3, 0, 3, 0.25);
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -111,6 +114,7 @@ impl Unit {
             shape,
             analize_timer: Timer::new(0.3, true, true, true),
             analizer: DummyNetwork::new(2),
+            network,
             alife: true,
             detected: None,
             enemy: None,
@@ -194,6 +198,20 @@ impl Unit {
     }
 
     fn analize(&mut self) {
+        let enemy_dist = match self.enemy_position {
+            None => 0.0,
+            Some(pos2) => {
+                let dist = pos2.distance(self.pos);
+                1.0-(dist/self.vision_range)
+            },
+        };
+        let enemy_ang = match self.enemy_dir {
+            None => 0.0,
+            Some(dir) => {
+                dir
+            },
+        };
+        let (inp_keys, _, _) = self.network.get_node_keys_by_type();
         let outputs = self.analizer.analize();
         if outputs[0] >= 0.0 {
             self.vel = outputs[0];

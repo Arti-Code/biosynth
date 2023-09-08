@@ -74,6 +74,7 @@ impl UISystem {
             self.build_about_window(egui_ctx);
             self.build_enviroment_window(egui_ctx, settings, signals);
             self.build_static_rect_win(egui_ctx, signals);
+            self.build_neurolab(egui_ctx);
         });
     }
 
@@ -157,6 +158,18 @@ impl UISystem {
                         .clicked()
                     {
                         self.state.static_rect = !self.state.static_rect;
+                    }
+                });
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+                menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
+                    if ui
+                        .button(RichText::new("NeuroLab").strong().color(Color32::WHITE))
+                        .clicked()
+                    {
+                        self.state.neuro_lab = !self.state.neuro_lab;
                     }
                 });
 
@@ -356,6 +369,20 @@ impl UISystem {
                     painter.circle(end, 15., Color32::BLUE, Stroke::default());
                 }
                 painter.circle(c, 25., Color32::GREEN, Stroke::default());
+            });
+        }
+    }
+
+    fn build_neurolab(&mut self, egui_ctx: &Context) {
+        if self.state.neuro_lab {
+            Window::new("Neuro Lab").default_pos((SCREEN_WIDTH/2.-400., SCREEN_HEIGHT/2.-500.)).min_height(600.).min_width(800.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(800., 600.), Sense::hover());
+                let rect = response.rect;
+                let c = rect.center();
+                painter.circle_stroke(c, 16.0, Stroke::new(3.0, Color32::BLUE));
+                painter.arrow(Pos2::new(c.x-64.0, c.y), egui_macroquad::egui::Vec2::new(48.0, 0.0), Stroke::new(5.0, Color32::RED));
+                painter.arrow(Pos2::new(c.x+64.0, c.y), egui_macroquad::egui::Vec2::new(-48.0, 0.0), Stroke::new(5.0, Color32::RED));
             });
         }
     }
