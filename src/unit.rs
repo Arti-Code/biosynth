@@ -81,6 +81,8 @@ pub struct Unit {
     analizer: DummyNetwork,
     network: Network,
     pub alife: bool,
+    pub lifetime: f32,
+    pub generation: u32,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
@@ -92,6 +94,8 @@ pub struct Unit {
     pub neuro_table: NeuroTable,
 }
 
+
+
 impl Unit {
     
     pub fn new(settings: &Settings, physics: &mut PhysicsWorld) -> Self {
@@ -102,7 +106,7 @@ impl Unit {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
         let mut network = Network::new();
-        network.build(4, 2, 3, 0.25);
+        network.build(5, 0, 3, 0.6);
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -122,6 +126,8 @@ impl Unit {
             analizer: DummyNetwork::new(2),
             network,
             alife: true,
+            lifetime: 0.0,
+            generation: 0,
             detected: None,
             enemy: None,
             enemy_position: None,
@@ -168,6 +174,7 @@ impl Unit {
     }    
 
     pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
+        self.lifetime += dt;
         if self.analize_timer.update(dt) {
             self.watch(physics);
             self.update_contacts(physics);
@@ -189,6 +196,7 @@ impl Unit {
     }
 
     fn analize(&mut self) {
+        let mut contact = clamp(self.contacts.len(), 0, 1) as f32;
         let tg_dist = match self.enemy_position {
             None => 0.0,
             Some(pos2) => {
@@ -210,7 +218,7 @@ impl Unit {
             tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs(); 
         }
         let hp = self.eng/self.max_eng;
-        let val = vec![hp, tgl, tgr, tg_dist];
+        let val = vec![contact, hp, tgl, tgr, tg_dist];
         let keys = self.network.input_keys.clone();
         let mut input_values: Vec<(u64, f32)> = vec![];
         for i in 0..val.len() {
@@ -218,7 +226,10 @@ impl Unit {
         }
         self.network.input(input_values.clone());
         self.network.calc();
-        let outputs = self.network.get_outputs();
+        let mut outputs = self.network.get_outputs();
+        for i in 0..outputs.len() {
+            outputs[i].1 = clamp(outputs[i].1, 0.0, 1.0);
+        }
         //let outputs = self.analizer.analize();
         self.neuro_table.inputs = input_values;
         self.neuro_table.outputs = outputs.clone();
@@ -227,7 +238,7 @@ impl Unit {
         } else {
             self.vel = 0.0;
         }
-        self.ang_vel = outputs[1].1;
+        self.ang_vel = -outputs[1].1+outputs[2].1;
     }
 
     fn draw_front(&self) {
@@ -399,6 +410,26 @@ impl Unit {
             self.eng = self.max_eng;
         }
     }
+
+/*     pub fn replicate(&self) -> Self {
+        Self {
+            key: gen_range(u64::MIN, u64::MAX),
+            pos: self.pos.to_owned(),
+            rot: 0.0,
+            mass: 0.0,
+            vel: 0.0,
+            ang_vel: 0.0,
+            size: self.size,
+            vision_range: self.vision_range,
+            max_eng: self.max_eng,
+            eng: self.max_eng,
+            color: self.color,
+            shape: self.shape.to_owned(),
+            analize_timer: self.analize_timer.anato_owned(),
+            analizer: DummyNetwork::new(2),
+            
+        }
+    } */
 }
 
 pub struct Detected {

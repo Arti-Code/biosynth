@@ -351,8 +351,12 @@ impl UISystem {
             let tg_ang = agent.enemy_dir;
             let pos = agent.pos;
             let contacts_num = agent.contacts.len();
+            let lifetime = agent.lifetime.round();
+            let generation = agent.generation;
             Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
                 ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
+                ui.label(format!("lifetime: [{}]", lifetime));
+                ui.label(format!("generation: [{}]", generation));
                 ui.label(format!("direction: [{}]", ((rot * 10.0).round()) / 10.0));
                 ui.label(format!("size: [{}]", size));
                 ui.label(format!("position: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));

@@ -1,6 +1,8 @@
 #![allow(unused)]
 
 use macroquad::rand::*;
+
+//#[derive(Clone, Copy)]
 pub struct Timer {
     pub time: f32,
     pub duration: f32,

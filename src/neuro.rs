@@ -54,7 +54,7 @@ impl DummyNetwork {
 }
 
 
-
+//#[derive(Clone, Copy)]
 pub struct Node {
     pub id: u64,
     pub pos: Vec2,
@@ -66,6 +66,7 @@ pub struct Node {
     pub node_type: NeuronTypes,
 }
 
+//#[derive(Clone, Copy)]
 pub struct Link {
     pub id: u64,
     pub w: f32,
@@ -74,6 +75,7 @@ pub struct Link {
     signal: f32,
 }
 
+//#[derive(Clone, Copy)]
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
@@ -201,6 +203,7 @@ impl Link {
         self.signal = v;
     }
 }
+
 
 impl Network {
 
