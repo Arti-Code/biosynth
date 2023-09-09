@@ -59,6 +59,11 @@ impl BodyPart {
 }
 
 
+pub struct NeuroTable {
+    pub inputs: Vec<(u64, f32)>,
+    pub outputs: Vec<(u64, f32)>,
+}
+
 pub struct Unit {
     pub key: u64,
     pub pos: Vec2,
@@ -83,7 +88,8 @@ pub struct Unit {
     pub enemy_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
     pub body_parts: Vec<BodyPart>,
-    pub settings: Settings
+    pub settings: Settings,
+    pub neuro_table: NeuroTable,
 }
 
 impl Unit {
@@ -96,7 +102,7 @@ impl Unit {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
         let mut network = Network::new();
-        network.build(3, 0, 3, 0.25);
+        network.build(4, 2, 3, 0.25);
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -123,7 +129,8 @@ impl Unit {
             contacts: Vec::new(),
             physics_handle: rbh,
             body_parts: parts,
-            settings: settings.clone()
+            settings: settings.clone(),
+            neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
         }
     }
 
@@ -182,27 +189,45 @@ impl Unit {
     }
 
     fn analize(&mut self) {
-        let enemy_dist = match self.enemy_position {
+        let tg_dist = match self.enemy_position {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
                 1.0-(dist/self.vision_range)
             },
         };
-        let enemy_ang = match self.enemy_dir {
-            None => 0.0,
+        let mut tg_ang = match self.enemy_dir {
+            None => PI,
             Some(dir) => {
                 dir
             },
         };
-        let (inp_keys, _, _) = self.network.get_node_keys_by_type();
-        let outputs = self.analizer.analize();
-        if outputs[0] >= 0.0 {
-            self.vel = outputs[0];
+        tg_ang = tg_ang/PI;
+        let mut tgr: f32 = 0.0; let mut tgl: f32 = 0.0;
+        if tg_ang > 0.0 {
+            tgr = 1.0 - clamp(tg_ang, 0.0, 1.0);
+        } else if tg_ang < 0.0 {
+            tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs(); 
+        }
+        let hp = self.eng/self.max_eng;
+        let val = vec![hp, tgl, tgr, tg_dist];
+        let keys = self.network.input_keys.clone();
+        let mut input_values: Vec<(u64, f32)> = vec![];
+        for i in 0..val.len() {
+            input_values.push((keys[i], val[i]));
+        }
+        self.network.input(input_values.clone());
+        self.network.calc();
+        let outputs = self.network.get_outputs();
+        //let outputs = self.analizer.analize();
+        self.neuro_table.inputs = input_values;
+        self.neuro_table.outputs = outputs.clone();
+        if outputs[0].1 >= 0.0 {
+            self.vel = outputs[0].1;
         } else {
             self.vel = 0.0;
         }
-        self.ang_vel = outputs[1];
+        self.ang_vel = outputs[1].1;
     }
 
     fn draw_front(&self) {

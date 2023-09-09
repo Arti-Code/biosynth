@@ -204,6 +204,7 @@ pub struct UIState {
     pub enviroment: bool,
     pub static_rect: bool,
     pub neuro_lab: bool,
+    pub io: bool,
 }
 
 impl UIState {
@@ -223,6 +224,7 @@ impl UIState {
             enviroment: false,
             static_rect: false,
             neuro_lab: false,
+            io: false,
         }
     }
 }

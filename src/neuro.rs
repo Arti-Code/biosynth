@@ -79,8 +79,8 @@ pub struct Network {
     pub links: HashMap<u64, Link>,
     pub timer: f32,
     margins: Margins,
-    input_keys: Vec<u64>,
-    output_keys: Vec<u64>,
+    pub input_keys: Vec<u64>,
+    pub output_keys: Vec<u64>,
 }
 
 impl Node {
@@ -90,8 +90,8 @@ impl Node {
             id: generate_id(),
             pos: position,
             //links_to: vec![],
-            bias: rand::gen_range(-1.0, 1.0),
-            val: rand::gen_range(-1.0, 1.0),
+            bias: rand::gen_range(-0.1, 0.1),
+            val: rand::gen_range(0.0, 0.0),
             sum: 0.0,
             selected: false,
             node_type: neuron_type,
@@ -144,8 +144,8 @@ impl Node {
         let sum: f32 = self.sum + self.bias;
         let v = sum.tanh();
         self.val = v;
-        self.sum = 0.0;
         //self.sum = 0.0;
+        self.sum = 0.0;
     }
 }
 
@@ -340,6 +340,16 @@ impl Network {
             }
         }
         return output_values;
+    }
+
+    pub fn get_outputs(&self) -> Vec<(u64, f32)>{
+        let mut outputs: Vec<(u64, f32)> = vec![];
+        for key in self.output_keys.iter() {
+            let node = self.nodes.get(key).unwrap();
+            let val = node.val;
+            outputs.push((*key, val));
+        }
+        return outputs;
     }
 
     pub fn del_node(&mut self, id: u64) {

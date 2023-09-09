@@ -67,7 +67,10 @@ impl UISystem {
             self.build_debug_window(egui_ctx, camera2d);
             self.build_new_sim_window(egui_ctx, signals, settings);
             match agent {
-                Some(agent) => self.build_inspect_window(egui_ctx, agent),
+                Some(agent) => {
+                    self.build_inspect_window(egui_ctx, agent);
+                    self.build_io_window(egui_ctx, agent.neuro_table.inputs.clone(), agent.neuro_table.outputs.clone());
+                },
                 None => {}
             }
             self.build_net_graph(egui_ctx);
@@ -171,6 +174,12 @@ impl UISystem {
                     {
                         self.state.neuro_lab = !self.state.neuro_lab;
                     }
+                    if ui
+                        .button(RichText::new("I/O").strong().color(Color32::WHITE))
+                        .clicked()
+                    {
+                        self.state.io = !self.state.io;
+                    }
                 });
 
 
@@ -219,6 +228,25 @@ impl UISystem {
                 ui.label(format!("TOTAL MASS: {}", total_mass.round()));
                 ui.separator();
                 ui.label(format!("OBJECTS: {}", physics_num));
+            });
+        }
+    }
+
+    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(u64, f32)>, outputs: Vec<(u64, f32)>) {
+        if self.state.io {
+            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
+                ui.horizontal(|horizont| {
+                    horizont.columns(2, |col| {
+                        for (id, v) in inputs.iter() {
+                            let i = (v*100.0).round()/100.0;
+                            col[0].label(format!("{}", i));
+                        }
+                        for (id, v) in outputs.iter() {
+                            let o = (v*100.0).round()/100.0;
+                            col[1].label(format!("{o}"));
+                        }
+                    })
+                });
             });
         }
     }
