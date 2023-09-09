@@ -67,13 +67,17 @@ impl UISystem {
             self.build_debug_window(egui_ctx, camera2d);
             self.build_new_sim_window(egui_ctx, signals, settings);
             match agent {
-                Some(agent) => self.build_inspect_window(egui_ctx, agent),
+                Some(agent) => {
+                    self.build_inspect_window(egui_ctx, agent);
+                    self.build_io_window(egui_ctx, agent.neuro_table.inputs.clone(), agent.neuro_table.outputs.clone());
+                },
                 None => {}
             }
             self.build_net_graph(egui_ctx);
             self.build_about_window(egui_ctx);
             self.build_enviroment_window(egui_ctx, settings, signals);
             self.build_static_rect_win(egui_ctx, signals);
+            self.build_neurolab(egui_ctx);
         });
     }
 
@@ -160,6 +164,24 @@ impl UISystem {
                     }
                 });
 
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+                menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
+                    if ui
+                        .button(RichText::new("NeuroLab").strong().color(Color32::WHITE))
+                        .clicked()
+                    {
+                        self.state.neuro_lab = !self.state.neuro_lab;
+                    }
+                    if ui
+                        .button(RichText::new("I/O").strong().color(Color32::WHITE))
+                        .clicked()
+                    {
+                        self.state.io = !self.state.io;
+                    }
+                });
+
 
                 ui.add_space(10.0);
                 ui.separator();
@@ -206,6 +228,25 @@ impl UISystem {
                 ui.label(format!("TOTAL MASS: {}", total_mass.round()));
                 ui.separator();
                 ui.label(format!("OBJECTS: {}", physics_num));
+            });
+        }
+    }
+
+    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(u64, f32)>, outputs: Vec<(u64, f32)>) {
+        if self.state.io {
+            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
+                ui.horizontal(|horizont| {
+                    horizont.columns(2, |col| {
+                        for (id, v) in inputs.iter() {
+                            let i = (v*100.0).round()/100.0;
+                            col[0].label(format!("{}", i));
+                        }
+                        for (id, v) in outputs.iter() {
+                            let o = (v*100.0).round()/100.0;
+                            col[1].label(format!("{o}"));
+                        }
+                    })
+                });
             });
         }
     }
@@ -356,6 +397,20 @@ impl UISystem {
                     painter.circle(end, 15., Color32::BLUE, Stroke::default());
                 }
                 painter.circle(c, 25., Color32::GREEN, Stroke::default());
+            });
+        }
+    }
+
+    fn build_neurolab(&mut self, egui_ctx: &Context) {
+        if self.state.neuro_lab {
+            Window::new("Neuro Lab").default_pos((SCREEN_WIDTH/2.-400., SCREEN_HEIGHT/2.-500.)).min_height(600.).min_width(800.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(800., 600.), Sense::hover());
+                let rect = response.rect;
+                let c = rect.center();
+                painter.circle_stroke(c, 16.0, Stroke::new(3.0, Color32::BLUE));
+                painter.arrow(Pos2::new(c.x-64.0, c.y), egui_macroquad::egui::Vec2::new(48.0, 0.0), Stroke::new(5.0, Color32::RED));
+                painter.arrow(Pos2::new(c.x+64.0, c.y), egui_macroquad::egui::Vec2::new(-48.0, 0.0), Stroke::new(5.0, Color32::RED));
             });
         }
     }

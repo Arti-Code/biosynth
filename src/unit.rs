@@ -59,6 +59,11 @@ impl BodyPart {
 }
 
 
+pub struct NeuroTable {
+    pub inputs: Vec<(u64, f32)>,
+    pub outputs: Vec<(u64, f32)>,
+}
+
 pub struct Unit {
     pub key: u64,
     pub pos: Vec2,
@@ -74,6 +79,7 @@ pub struct Unit {
     pub shape: SharedShape,
     analize_timer: Timer,
     analizer: DummyNetwork,
+    network: Network,
     pub alife: bool,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub detected: Option<Detected>,
@@ -82,7 +88,8 @@ pub struct Unit {
     pub enemy_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
     pub body_parts: Vec<BodyPart>,
-    pub settings: Settings
+    pub settings: Settings,
+    pub neuro_table: NeuroTable,
 }
 
 impl Unit {
@@ -94,6 +101,8 @@ impl Unit {
         let shape = SharedShape::ball(size);
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
+        let mut network = Network::new();
+        network.build(4, 2, 3, 0.25);
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -111,6 +120,7 @@ impl Unit {
             shape,
             analize_timer: Timer::new(0.3, true, true, true),
             analizer: DummyNetwork::new(2),
+            network,
             alife: true,
             detected: None,
             enemy: None,
@@ -119,7 +129,8 @@ impl Unit {
             contacts: Vec::new(),
             physics_handle: rbh,
             body_parts: parts,
-            settings: settings.clone()
+            settings: settings.clone(),
+            neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
         }
     }
 
@@ -156,22 +167,6 @@ impl Unit {
         }
     }    
 
-/*     pub fn draw_poly(&self) {
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
-        let points = self.shape.as_convex_polygon().unwrap().points().to_vec();
-        let pre_point = points[points.len()-1];
-        let mut v0 = Vec2::new(pre_point.x, pre_point.y);
-        v0 = Vec2::from_angle(self.rot).rotate(v0);
-        for p in points {
-            let mut v1 = Vec2::new(p.x, p.y);
-            v1 = Vec2::from_angle(self.rot).rotate(v1);
-            draw_line(x0+v0.x, y0+v0.y, x0+v1.x, y0+v1.y, 2.0, self.color);
-            v0 = v1.clone();
-        }
-        draw_circle(x0, y0, 6.0, RED);
-    }    */ 
-
     pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         if self.analize_timer.update(dt) {
             self.watch(physics);
@@ -194,13 +189,45 @@ impl Unit {
     }
 
     fn analize(&mut self) {
-        let outputs = self.analizer.analize();
-        if outputs[0] >= 0.0 {
-            self.vel = outputs[0];
+        let tg_dist = match self.enemy_position {
+            None => 0.0,
+            Some(pos2) => {
+                let dist = pos2.distance(self.pos);
+                1.0-(dist/self.vision_range)
+            },
+        };
+        let mut tg_ang = match self.enemy_dir {
+            None => PI,
+            Some(dir) => {
+                dir
+            },
+        };
+        tg_ang = tg_ang/PI;
+        let mut tgr: f32 = 0.0; let mut tgl: f32 = 0.0;
+        if tg_ang > 0.0 {
+            tgr = 1.0 - clamp(tg_ang, 0.0, 1.0);
+        } else if tg_ang < 0.0 {
+            tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs(); 
+        }
+        let hp = self.eng/self.max_eng;
+        let val = vec![hp, tgl, tgr, tg_dist];
+        let keys = self.network.input_keys.clone();
+        let mut input_values: Vec<(u64, f32)> = vec![];
+        for i in 0..val.len() {
+            input_values.push((keys[i], val[i]));
+        }
+        self.network.input(input_values.clone());
+        self.network.calc();
+        let outputs = self.network.get_outputs();
+        //let outputs = self.analizer.analize();
+        self.neuro_table.inputs = input_values;
+        self.neuro_table.outputs = outputs.clone();
+        if outputs[0].1 >= 0.0 {
+            self.vel = outputs[0].1;
         } else {
             self.vel = 0.0;
         }
-        self.ang_vel = outputs[1];
+        self.ang_vel = outputs[1].1;
     }
 
     fn draw_front(&self) {
@@ -248,12 +275,12 @@ impl Unit {
             ..Default::default()
         };
         let rot = self.rot;
-        let mass = self.mass;
+        //let mass = self.mass;
         let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
-        let info_mass = format!("mass: {}", mass.round());
+        //let info_mass = format!("mass: {}", mass.round());
         let txt_center = get_text_center(&info, Some(*font), 13, 1.0, 0.0);
         draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 30.0, text_cfg.clone());
-        draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
+        //draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
     }
 
     fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {
