@@ -160,22 +160,6 @@ impl Unit {
         }
     }    
 
-/*     pub fn draw_poly(&self) {
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
-        let points = self.shape.as_convex_polygon().unwrap().points().to_vec();
-        let pre_point = points[points.len()-1];
-        let mut v0 = Vec2::new(pre_point.x, pre_point.y);
-        v0 = Vec2::from_angle(self.rot).rotate(v0);
-        for p in points {
-            let mut v1 = Vec2::new(p.x, p.y);
-            v1 = Vec2::from_angle(self.rot).rotate(v1);
-            draw_line(x0+v0.x, y0+v0.y, x0+v1.x, y0+v1.y, 2.0, self.color);
-            v0 = v1.clone();
-        }
-        draw_circle(x0, y0, 6.0, RED);
-    }    */ 
-
     pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
         if self.analize_timer.update(dt) {
             self.watch(physics);
@@ -266,12 +250,12 @@ impl Unit {
             ..Default::default()
         };
         let rot = self.rot;
-        let mass = self.mass;
+        //let mass = self.mass;
         let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
-        let info_mass = format!("mass: {}", mass.round());
+        //let info_mass = format!("mass: {}", mass.round());
         let txt_center = get_text_center(&info, Some(*font), 13, 1.0, 0.0);
         draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 30.0, text_cfg.clone());
-        draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
+        //draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
     }
 
     fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {

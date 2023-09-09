@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use std::collections::HashMap;
