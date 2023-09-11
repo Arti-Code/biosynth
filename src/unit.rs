@@ -79,7 +79,7 @@ pub struct Unit {
     pub shape: SharedShape,
     analize_timer: Timer,
     analizer: DummyNetwork,
-    network: Network,
+    pub network: Network,
     pub alife: bool,
     pub lifetime: f32,
     pub generation: u32,
@@ -92,6 +92,8 @@ pub struct Unit {
     pub body_parts: Vec<BodyPart>,
     pub settings: Settings,
     pub neuro_table: NeuroTable,
+    pub childs: usize,
+    pub specie: String,
 }
 
 
@@ -137,6 +139,8 @@ impl Unit {
             body_parts: parts,
             settings: settings.clone(),
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            childs: 0,
+            specie: create_name(4),
         }
     }
 
@@ -287,7 +291,8 @@ impl Unit {
         };
         let rot = self.rot;
         //let mass = self.mass;
-        let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
+        let info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
+        //let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
         //let info_mass = format!("mass: {}", mass.round());
         let txt_center = get_text_center(&info, Some(*font), 13, 1.0, 0.0);
         draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 30.0, text_cfg.clone());
@@ -411,25 +416,46 @@ impl Unit {
         }
     }
 
-/*     pub fn replicate(&self) -> Self {
+    pub fn replicate(&self, physics: &mut PhysicsWorld) -> Self {
+        let key = gen_range(u64::MIN, u64::MAX);
+        let size = self.size;
+        let color = self.color.to_owned();
+        let shape = SharedShape::ball(size);
+        let pos = random_position(self.settings.world_w as f32, self.settings.world_h as f32);
+        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
+        let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
-            key: gen_range(u64::MIN, u64::MAX),
-            pos: self.pos.to_owned(),
+            key,
+            pos,
             rot: 0.0,
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
-            size: self.size,
+            size,
             vision_range: self.vision_range,
             max_eng: self.max_eng,
             eng: self.max_eng,
-            color: self.color,
-            shape: self.shape.to_owned(),
-            analize_timer: self.analize_timer.anato_owned(),
+            color,
+            shape,
+            analize_timer: self.analize_timer.to_owned(),
             analizer: DummyNetwork::new(2),
-            
+            network: self.network.replicate(),
+            alife: true,
+            lifetime: 0.0,
+            generation: self.generation + 1,
+            detected: None,
+            enemy: None,
+            enemy_position: None,
+            enemy_dir: None,
+            contacts: Vec::new(),
+            physics_handle: rbh,
+            body_parts: parts,
+            settings: self.settings.clone(),
+            neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            childs: 0,
+            specie: self.specie.to_owned()
         }
-    } */
+    }
 }
 
 pub struct Detected {

@@ -15,6 +15,7 @@ use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::sim::{*, self};
 use crate::util::*;
 use crate::unit::*;
+use crate::neuro::*;
 
 pub struct UISystem {
     pub state: UIState,
@@ -70,10 +71,10 @@ impl UISystem {
                 Some(agent) => {
                     self.build_inspect_window(egui_ctx, agent);
                     self.build_io_window(egui_ctx, agent.neuro_table.inputs.clone(), agent.neuro_table.outputs.clone());
+                    self.build_net_graph(egui_ctx, &agent.network);
                 },
                 None => {}
             }
-            self.build_net_graph(egui_ctx);
             self.build_about_window(egui_ctx);
             self.build_enviroment_window(egui_ctx, settings, signals);
             self.build_static_rect_win(egui_ctx, signals);
@@ -353,10 +354,12 @@ impl UISystem {
             let contacts_num = agent.contacts.len();
             let lifetime = agent.lifetime.round();
             let generation = agent.generation;
+            let childs = agent.childs;
             Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
                 ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
                 ui.label(format!("lifetime: [{}]", lifetime));
                 ui.label(format!("generation: [{}]", generation));
+                ui.label(format!("childs: [{}]", childs));
                 ui.label(format!("direction: [{}]", ((rot * 10.0).round()) / 10.0));
                 ui.label(format!("size: [{}]", size));
                 ui.label(format!("position: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
@@ -383,7 +386,29 @@ impl UISystem {
         }
     }
 
-    fn build_net_graph(&mut self, egui_ctx: &Context) {
+/*     fn build_net_graph(&mut self, egui_ctx: &Context) {
+        if self.state.net {
+            Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(400., 400.), Sense::hover());
+                let rect = response.rect;
+                let c = rect.center();
+                let s = 2. * PI / 6.;
+                let l = 75.;
+                for i in 0..6 {
+                    let ang = s*i as f32;
+                    let x1 = ang.sin()*l+c.x;
+                    let y1 = ang.cos()*l+c.y;
+                    let end = Pos2::new(x1, y1);
+                    painter.line_segment([c,  end], Stroke {color: Color32::RED, width: 4.0});
+                    painter.circle(end, 15., Color32::BLUE, Stroke::default());
+                }
+                painter.circle(c, 25., Color32::GREEN, Stroke::default());
+            });
+        }
+    } */
+
+    fn build_net_graph(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.net {
             Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
             .title_bar(true).show(egui_ctx, |ui| {

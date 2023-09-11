@@ -88,9 +88,6 @@ impl Simulation {
     fn update_agents(&mut self) {
         let dt = self.sim_state.dt;
         for (_, agent) in self.units.get_iter_mut() {
-            //if agent.lifetime >= 100.0 {
-                //let new agent = agent.copy()
-            //}
             if !agent.update(dt, &mut self.physics) {
                 self.physics.remove_physics_object(agent.physics_handle);
             }
@@ -104,6 +101,7 @@ impl Simulation {
         self.check_agents_num();
         self.calc_selection_time();
         self.update_agents();
+        self.units.populate(&mut self.physics);
         self.physics.step_physics();
     }
 

@@ -16,6 +16,8 @@ fn generate_id() -> u64 {
     return rand::gen_range(u64::MIN, u64::MAX);
 }
 
+
+#[derive(Clone, Copy)]
 struct Margins {
     pub x_min: f32,
     pub x_max: f32,
@@ -23,7 +25,7 @@ struct Margins {
     pub y_max: f32,
 }
 
-
+#[derive(Clone, Copy)]
 pub enum NeuronTypes {
     INPUT,
     DEEP,
@@ -54,7 +56,7 @@ impl DummyNetwork {
 }
 
 
-//#[derive(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Node {
     pub id: u64,
     pub pos: Vec2,
@@ -66,7 +68,7 @@ pub struct Node {
     pub node_type: NeuronTypes,
 }
 
-//#[derive(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Link {
     pub id: u64,
     pub w: f32,
@@ -97,6 +99,18 @@ impl Node {
             sum: 0.0,
             selected: false,
             node_type: neuron_type,
+        }
+    }
+
+    pub fn replicate(&self) -> Self {
+        Self {
+            id: self.id,
+            pos: self.pos.clone(),
+            bias: self.bias,
+            node_type: self.node_type.clone(),
+            selected: false,
+            sum: 0.0,
+            val: 0.0,
         }
     }
 
@@ -192,6 +206,36 @@ impl Link {
         
     }
 
+    pub fn draw2(&self, nodes: &HashMap<u64, Node>, timer: f32) {
+        let w = self.w;
+        let s = clamp(self.signal, -1.0, 1.0);
+        let mut color0: Color = WHITE;
+        let mut color1: Color = WHITE;
+        if w >= 0.0 {
+            color0 = color_u8!(255, 75, 75, (200.0*w) as u8);
+        }
+        if w < 0.0 {
+            color0 = color_u8!(75, 75, 255, (200.0*w.abs()) as u8);
+        }
+        if s >= 0.0 {
+            color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
+        }
+        if s < 0.0 {
+            color1 = color_u8!(0, 0, 255, (100.0+155.0*s.abs()) as u8);
+        }
+        let n0 = self.node_from;
+        let n1 = self.node_to;
+        let p0 = nodes.get(&n0).unwrap().pos;
+        let p1 = nodes.get(&n1).unwrap().pos;
+        let l = p1.distance(p0).abs();
+        let dir = (p1-p0).normalize_or_zero();
+        let flow1 = l*(timer/2.0)*dir;
+        //let flow2 = l*(timer/2.0)*dir*0.96;
+        draw_line(p0.x, p0.y, p1.x, p1.y, 2.0+3.0*w.abs(), color0);
+        draw_line(p0.x, p0.y, p0.x+flow1.x, p0.y+flow1.y, 2.0+4.0*s.abs(), color1);
+        
+    }
+
     pub fn calc(&mut self, nodes: &mut HashMap<u64, Node>) {
         let n0 = self.node_from;
         let n1 = self.node_to;
@@ -201,6 +245,16 @@ impl Link {
         let node1 = nodes.get_mut(&n1).unwrap();
         node1.add_to_sum(v);
         self.signal = v;
+    }
+
+    pub fn replicate(&self) -> Self {
+        Self {
+            id: self.id,
+            node_from: self.node_from,
+            node_to: self.node_to,
+            signal: 0.0,
+            w: self.w,
+        }
     }
 }
 
@@ -371,6 +425,21 @@ impl Network {
     pub fn unselect(&mut self) {
         for (_, node) in self.nodes.iter_mut() {
             node.selected = false;
+        }
+    }
+
+    pub fn replicate(&self) -> Self {
+        let mut nodes_map: HashMap<u64, Node> = HashMap::new();
+        nodes_map.clone_from(&self.nodes);
+        let mut links_map: HashMap<u64, Link> = HashMap::new();
+        links_map.clone_from(&self.links);
+        Self {
+            nodes: nodes_map,
+            links: links_map,
+            timer: 0.0,
+            margins: Margins { x_min: 25.0, x_max: 25.0, y_min: 375.0, y_max: 375.0 },
+            input_keys: self.input_keys.to_owned(),
+            output_keys: self.output_keys.to_owned(),
         }
     }
 }
