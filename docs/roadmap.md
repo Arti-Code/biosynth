@@ -17,10 +17,10 @@
 - [ ] mutation
 - [ ] recombination
 - [ ] species
-- [ ] generations
+- [x] generations
 - [ ] genome coding
 - [x] camera with user translation control
 - [X] collision detection
-- [ ] neural network
-- [ ] genethics algorithm
+- [x] neural network
+- [x] genethics algorithm
 - [ ] input events

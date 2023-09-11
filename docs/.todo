@@ -5,17 +5,20 @@ Live2:
         ✔ send agents data to phisics world
         ✔ get agents data from physics world
         ✔ get collision events from physics world
+        ✔ neural network @done(23-09-11 15:50)
+        ✔ genethic algorithm @done(23-09-11 15:50)
+        ✘ loading/saving simulation
+        ✘ camera control window
+        ✘ fps count control 
         ☐ timeflow window @low 
-        ☐ obstacles (rocks)
+        ☐ obstacles (rocks) @low
     0.3:
         ✔ world_size
         ✔ camera translation
         ✔ camera zoom in/zoom out
         ✔ new simulation naming
         ✔ options window
-        ✘ camera control window
         ✔ restart simulation
-        ✘ fps count control 
         ✔ init rewrite code
         ✔ simulation struct: rewrite [ init() ]
         ✔ simulation struct: rewrite [ update() ]
@@ -37,9 +40,6 @@ Live2:
         ✔ survability
         ✔ sense of vision 
         ✔ attack
-        ✘ neural network
-        ✘ genethic algorithm
-        ✘ loading/saving simulation
         ✔ obstacles
         ✔ resources
         ✔ ui
