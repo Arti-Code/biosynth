@@ -15,6 +15,7 @@ use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::sim::{*, self};
 use crate::util::*;
 use crate::unit::*;
+use crate::neuro::*;
 
 pub struct UISystem {
     pub state: UIState,
@@ -67,13 +68,17 @@ impl UISystem {
             self.build_debug_window(egui_ctx, camera2d);
             self.build_new_sim_window(egui_ctx, signals, settings);
             match agent {
-                Some(agent) => self.build_inspect_window(egui_ctx, agent),
+                Some(agent) => {
+                    self.build_inspect_window(egui_ctx, agent);
+                    self.build_io_window(egui_ctx, agent.neuro_table.inputs.clone(), agent.neuro_table.outputs.clone());
+                    self.build_net_graph(egui_ctx, &agent.network);
+                },
                 None => {}
             }
-            self.build_net_graph(egui_ctx);
             self.build_about_window(egui_ctx);
             self.build_enviroment_window(egui_ctx, settings, signals);
             self.build_static_rect_win(egui_ctx, signals);
+            self.build_neurolab(egui_ctx);
         });
     }
 
@@ -160,6 +165,24 @@ impl UISystem {
                     }
                 });
 
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+                menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
+                    if ui
+                        .button(RichText::new("NeuroLab").strong().color(Color32::WHITE))
+                        .clicked()
+                    {
+                        self.state.neuro_lab = !self.state.neuro_lab;
+                    }
+                    if ui
+                        .button(RichText::new("I/O").strong().color(Color32::WHITE))
+                        .clicked()
+                    {
+                        self.state.io = !self.state.io;
+                    }
+                });
+
 
                 ui.add_space(10.0);
                 ui.separator();
@@ -206,6 +229,25 @@ impl UISystem {
                 ui.label(format!("TOTAL MASS: {}", total_mass.round()));
                 ui.separator();
                 ui.label(format!("OBJECTS: {}", physics_num));
+            });
+        }
+    }
+
+    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(u64, f32)>, outputs: Vec<(u64, f32)>) {
+        if self.state.io {
+            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
+                ui.horizontal(|horizont| {
+                    horizont.columns(2, |col| {
+                        for (id, v) in inputs.iter() {
+                            let i = (v*100.0).round()/100.0;
+                            col[0].label(format!("{}", i));
+                        }
+                        for (id, v) in outputs.iter() {
+                            let o = (v*100.0).round()/100.0;
+                            col[1].label(format!("{o}"));
+                        }
+                    })
+                });
             });
         }
     }
@@ -310,8 +352,14 @@ impl UISystem {
             let tg_ang = agent.enemy_dir;
             let pos = agent.pos;
             let contacts_num = agent.contacts.len();
+            let lifetime = agent.lifetime.round();
+            let generation = agent.generation;
+            let childs = agent.childs;
             Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
                 ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
+                ui.label(format!("lifetime: [{}]", lifetime));
+                ui.label(format!("generation: [{}]", generation));
+                ui.label(format!("childs: [{}]", childs));
                 ui.label(format!("direction: [{}]", ((rot * 10.0).round()) / 10.0));
                 ui.label(format!("size: [{}]", size));
                 ui.label(format!("position: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
@@ -338,7 +386,7 @@ impl UISystem {
         }
     }
 
-    fn build_net_graph(&mut self, egui_ctx: &Context) {
+/*     fn build_net_graph(&mut self, egui_ctx: &Context) {
         if self.state.net {
             Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
             .title_bar(true).show(egui_ctx, |ui| {
@@ -356,6 +404,42 @@ impl UISystem {
                     painter.circle(end, 15., Color32::BLUE, Stroke::default());
                 }
                 painter.circle(c, 25., Color32::GREEN, Stroke::default());
+            });
+        }
+    } */
+
+    fn build_net_graph(&mut self, egui_ctx: &Context, network: &Network) {
+        if self.state.net {
+            Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(400., 400.), Sense::hover());
+                let rect = response.rect;
+                let c = rect.center();
+                let s = 2. * PI / 6.;
+                let l = 75.;
+                for i in 0..6 {
+                    let ang = s*i as f32;
+                    let x1 = ang.sin()*l+c.x;
+                    let y1 = ang.cos()*l+c.y;
+                    let end = Pos2::new(x1, y1);
+                    painter.line_segment([c,  end], Stroke {color: Color32::RED, width: 4.0});
+                    painter.circle(end, 15., Color32::BLUE, Stroke::default());
+                }
+                painter.circle(c, 25., Color32::GREEN, Stroke::default());
+            });
+        }
+    }
+
+    fn build_neurolab(&mut self, egui_ctx: &Context) {
+        if self.state.neuro_lab {
+            Window::new("Neuro Lab").default_pos((SCREEN_WIDTH/2.-400., SCREEN_HEIGHT/2.-500.)).min_height(600.).min_width(800.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(800., 600.), Sense::hover());
+                let rect = response.rect;
+                let c = rect.center();
+                painter.circle_stroke(c, 16.0, Stroke::new(3.0, Color32::BLUE));
+                painter.arrow(Pos2::new(c.x-64.0, c.y), egui_macroquad::egui::Vec2::new(48.0, 0.0), Stroke::new(5.0, Color32::RED));
+                painter.arrow(Pos2::new(c.x+64.0, c.y), egui_macroquad::egui::Vec2::new(-48.0, 0.0), Stroke::new(5.0, Color32::RED));
             });
         }
     }

@@ -101,6 +101,7 @@ impl Simulation {
         self.check_agents_num();
         self.calc_selection_time();
         self.update_agents();
+        self.units.populate(&mut self.physics);
         self.physics.step_physics();
     }
 

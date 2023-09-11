@@ -1,11 +1,83 @@
-/* #![allow(unused)]
+#![allow(unused)]
 
 use macroquad::prelude::*;
 use rapier2d::prelude::*;
 use crate::physics::*;
 
 
-pub enum PartShapeType {
+trait Ability {
+
+    fn new(offset: Vec2) -> Self;
+    fn update(&mut self, physics: &mut PhysicsWorld);
+    fn draw(&self, position: Vec2);
+    fn get_input_num(&self) -> usize;
+    fn set_input_nodes(&mut self, node_keys: Vec<u64>);
+    fn get_output_num(&self) -> usize;
+    fn set_output_nodes(&mut self, node_keys: Vec<u64>);
+    fn situation(&self) -> Vec<(u64, f32)>;
+    fn reaction(&mut self, values: Vec<(u64, f32)>);
+    fn get_eng_cost(&self) -> f32;
+}
+
+
+struct Movent {
+    offset: Vec2,
+    velocity: f32,
+    rotation: f32,
+    eng_cost: f32,
+    inputs: Vec<(u64, f32)>,
+    outputs: Vec<(u64, f32)>,
+}
+
+
+impl Ability for Movent {
+    
+    fn new(offset: Vec2) -> Self {
+        Self { offset: offset, velocity: 0.0, rotation: 0.0, eng_cost: 0.0, inputs: vec![], outputs: vec![] }
+    }
+
+    fn draw(&self, position: Vec2) {
+        todo!()
+    }
+
+    fn update(&mut self, physics: &mut PhysicsWorld) {
+        todo!()
+    }
+
+    fn get_eng_cost(&self) -> f32 {
+        todo!()
+    }
+
+    fn get_input_num(&self) -> usize {
+        todo!()
+    }
+
+    fn get_output_num(&self) -> usize {
+        todo!()
+    }
+
+    fn reaction(&mut self, values: Vec<(u64, f32)>) {
+        todo!()
+    }
+
+    fn set_input_nodes(&mut self, node_keys: Vec<u64>) {
+        todo!()
+    }
+
+    fn set_output_nodes(&mut self, node_keys: Vec<u64>) {
+        todo!()
+    }
+
+    fn situation(&self) -> Vec<(u64, f32)> {
+        todo!()
+    }
+
+    
+
+}
+
+
+/* pub enum PartShapeType {
     Circle,
     Triangle,
     Hexagon,

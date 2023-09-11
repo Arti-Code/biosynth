@@ -42,6 +42,34 @@ impl UnitsBox {
         }
     }
 
+    pub fn populate(&mut self, physics: &mut PhysicsWorld) {
+        let mut newborns: Vec<Unit> = vec![];
+        for (_, agent) in self.get_iter_mut() {
+            if agent.lifetime >= (100 + 100 * agent.childs) as f32 && (agent.eng/agent.max_eng) >= 0.75 {
+                let newone = agent.replicate(physics);
+                newborns.push(newone);
+                agent.childs += 1;
+                agent.eng -= 0.40*agent.max_eng;
+            }
+        }
+        loop {
+            match newborns.pop() {
+                Some(newone) => {
+                    self.add_agent(newone);
+                    //self.agents.insert(newone.key, newone);
+                },
+                None => {
+                    break;
+                }
+            }
+        }
+    }
+
+/*     pub fn replicate(&mut self, agent: &Unit, physics_world: &mut PhysicsWorld) {
+        let new_one = agent.replicate(physics_world);
+        _ = self.add_agent(new_one);
+    } */
+
     pub fn add_agent(&mut self, agent: Unit) -> u64 {
         let key = agent.key;
         self.agents.insert(key, agent);
