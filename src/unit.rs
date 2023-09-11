@@ -114,7 +114,7 @@ impl Unit {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
             //rot: random_rotation(),
-            rot: 0.0,
+            rot: random_rotation(),
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
@@ -421,13 +421,14 @@ impl Unit {
         let size = self.size;
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
+        let rot = random_rotation();
         let pos = random_position(self.settings.world_w as f32, self.settings.world_h as f32);
-        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
+        let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default());
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key,
             pos,
-            rot: 0.0,
+            rot,
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
