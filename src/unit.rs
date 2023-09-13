@@ -107,8 +107,8 @@ impl Unit {
         let shape = SharedShape::ball(size);
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
-        let mut network = Network::new();
-        network.build(5, 0, 3, 0.6);
+        let mut network = Network::new(1.0);
+        network.build(5, 5, 3, 0.25);
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -124,7 +124,7 @@ impl Unit {
             eng: size.powi(2) * 10.0,
             color,
             shape,
-            analize_timer: Timer::new(0.3, true, true, true),
+            analize_timer: Timer::new(1.0, true, true, true),
             analizer: DummyNetwork::new(2),
             network,
             alife: true,
@@ -195,6 +195,7 @@ impl Unit {
         }
         self.update_physics(physics);
         self.calc_timers(dt);
+        self.network.update();
         self.calc_energy(dt);
         return self.alife;
     }

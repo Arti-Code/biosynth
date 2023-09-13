@@ -551,6 +551,18 @@ impl UISystem {
                     }
                 }
             });
+            ui.columns(2, |column| {
+                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                column[1].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                unsafe {
+                    let mut show_network: bool = settings.show_network;
+                    column[0].label(RichText::new("SHOW NETWORK").color(Color32::WHITE).strong());
+                    if column[1].add(egui_macroquad::egui::Checkbox::without_text(&mut show_network)).changed() {
+                        settings.show_network = show_network;
+                        signals.new_settings = true;
+                    }
+                }
+            });
             ui.add_space(10.0);
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(3.0, Color32::BLUE);
             ui.vertical_centered(|closer| {

@@ -42,7 +42,8 @@ async fn main() {
         agent_speed: 100.0,
         agent_size_min: 5,
         agent_size_max: 12,
-        agent_vision_range: 300.0
+        agent_vision_range: 300.0,
+        show_network: true,
     };
     let font = load_ttf_font("assets/fonts/firacode.ttf")
         .await

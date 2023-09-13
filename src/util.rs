@@ -279,6 +279,7 @@ pub struct Settings {
     pub agent_vision_range: f32,
     pub agent_size_min: i32,
     pub agent_size_max: i32,
+    pub show_network: bool,
 }
 
 impl Default for Settings {
@@ -294,6 +295,7 @@ impl Default for Settings {
             agent_vision_range: AGENT_VISION_RANGE,
             agent_size_min: AGENT_SIZE_MIN,
             agent_size_max: AGENT_SIZE_MAX,
+            show_network: true,
         }
     }
 }
