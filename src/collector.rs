@@ -54,7 +54,8 @@ impl UnitsBox {
         }
         loop {
             match newborns.pop() {
-                Some(newone) => {
+                Some(mut newone) => {
+                    newone.network.mutate(0.15);
                     self.add_agent(newone);
                     //self.agents.insert(newone.key, newone);
                 },

@@ -470,4 +470,20 @@ impl Network {
             duration: self.duration,
         }
     }
+
+    pub fn mutate(&mut self, mutation_rate: f32) {
+        for (id, link) in self.links.iter_mut() {
+            let r = rand::gen_range(0.0, 1.0);
+            if r < mutation_rate {
+                link.w = rand::gen_range(-1.0, 1.0);
+            }
+        }
+
+        for (id, node) in self.nodes.iter_mut() {
+            let r = rand::gen_range(0.0, 1.0);
+            if r < mutation_rate {
+                node.bias = rand::gen_range(-0.1, 0.1);
+            }
+        }
+    }
 }
