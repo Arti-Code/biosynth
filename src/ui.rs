@@ -339,18 +339,18 @@ impl UISystem {
                 ui.add_space(4.0);
                 ui.spacing();
                 ui.vertical_centered(|mid| {
-                    //mid.columns(2, |columns| {
-                        if mid.button(RichText::new("NO").color(Color32::YELLOW).strong()).clicked() {
+                    mid.columns(2, |columns| {
+                        if columns[0].button(RichText::new("NO").color(Color32::YELLOW).strong()).clicked() {
                             self.state.new_sim = false;
                             self.temp_sim_name = String::new();
                         }
-                        if mid.button(RichText::new("YES").color(Color32::BLUE).strong()).clicked() {
+                        if columns[1].button(RichText::new("YES").color(Color32::BLUE).strong()).clicked() {
                             self.state.new_sim = false;
                             signals.new_sim = true;
                             signals.new_sim_name = String::from(&self.temp_sim_name);
                             self.temp_sim_name = String::new();
                         }
-                    //});
+                    });
                 });
                 ui.add_space(3.0);
             });
@@ -513,10 +513,10 @@ impl UISystem {
                 if column[1].add(Slider::new(&mut agent_size_min, 1..=40)).changed() {
                     settings.agent_size_min = agent_size_min as i32;
                     signals.new_settings = true;
-                    if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=40)).changed() {
-                        settings.agent_size_max = agent_size_max as i32;
-                        signals.new_settings = true;
-                    }
+                }
+                if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=40)).changed() {
+                    settings.agent_size_max = agent_size_max as i32;
+                    signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {

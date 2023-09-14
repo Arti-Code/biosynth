@@ -104,6 +104,7 @@ pub struct Node {
     sum: f32,
     pub selected: bool,
     pub node_type: NeuronTypes,
+    last: f32,
 }
 
 #[derive(Clone, Copy)]
@@ -138,6 +139,7 @@ impl Node {
             sum: 0.0,
             selected: false,
             node_type: neuron_type,
+            last: 0.0,
         }
     }
 
@@ -150,11 +152,12 @@ impl Node {
             selected: false,
             sum: 0.0,
             val: 0.0,
+            last: 0.0,
         }
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
-        let (mut color0, color1) = match self.val {
+        let (mut color0, color1) = match self.last {
             n if n>0.0 => { 
                 let v = (155.0*n) as u8;
                 let c1 = color_u8!(255, 0, 0, v);
@@ -175,23 +178,7 @@ impl Node {
     }
 
     pub fn draw(&self, t:f32) {
-        let (mut color0, color) = match self.val {
-            n if n>0.0 => { 
-                let v = (155.0*n) as u8;
-                let c = color_u8!(255, 0, 0, v);
-                let c0 = color_u8!(255, 0, 0, 255);
-                (c0, c) 
-            },
-            n if n<0.0 => { 
-                let v = (255.0*n.abs()) as u8;
-                let c = color_u8!(0, 0, 255, v);
-                let c0 = color_u8!(0, 0, 255, 255);
-                (c0, c) 
-            },
-            _ => {
-                (WHITE, WHITE)
-            }
-        };
+        let (color0, color) = self.get_colors();
         let r = 3.0;
         draw_circle(self.pos.x, self.pos.y, r, BLACK);
         draw_circle(self.pos.x, self.pos.y, r, color);
@@ -219,6 +206,7 @@ impl Node {
     pub fn calc(&mut self) {
         let sum: f32 = self.sum + self.bias;
         let v = sum.tanh();
+        self.last = self.val;
         self.val = v;
         //self.sum = 0.0;
         self.sum = 0.0;
