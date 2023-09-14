@@ -77,9 +77,7 @@ impl UISystem {
                 None => {}
             }
             self.build_about_window(egui_ctx);
-            self.build_enviroment_window(egui_ctx, settings, signals);
-            self.build_static_rect_win(egui_ctx, signals);
-            //self.build_neurolab(egui_ctx);
+            self.build_settings_window(egui_ctx, settings, signals);
         });
     }
 
@@ -158,12 +156,6 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
                 menu::menu_button(ui, RichText::new("TOOLS").strong(), |ui| {
-                    if ui
-                        .button(RichText::new("Static Object").strong().color(Color32::WHITE))
-                        .clicked()
-                    {
-                        self.state.static_rect = !self.state.static_rect;
-                    }
                 });
 
                 ui.add_space(10.0);
@@ -199,9 +191,6 @@ impl UISystem {
                 ui.add_space(10.0);
 
                 menu::menu_button(ui, RichText::new("ABOUT").strong(), |ui| {
-                    if ui.button(RichText::new("Draw Neuro").strong().color(Color32::WHITE)).clicked() {
-                        self.state.net = !self.state.net;
-                    }
                     if ui.button(RichText::new("About").strong().color(Color32::WHITE)).clicked() {
                         self.state.about = !self.state.about;
                     }
@@ -419,42 +408,6 @@ impl UISystem {
         }
     }
 
-/*     fn build_net_graph(&mut self, egui_ctx: &Context, network: &Network) {
-        if self.state.net {
-            Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
-            .title_bar(true).show(egui_ctx, |ui| {
-                let (response, painter) = ui.allocate_painter(UIVec2::new(400., 400.), Sense::hover());
-                let rect = response.rect;
-                let c = rect.center();
-                let s = 2. * PI / 6.;
-                let l = 75.;
-                for i in 0..6 {
-                    let ang = s*i as f32;
-                    let x1 = ang.sin()*l+c.x;
-                    let y1 = ang.cos()*l+c.y;
-                    let end = Pos2::new(x1, y1);
-                    painter.line_segment([c,  end], Stroke {color: Color32::RED, width: 4.0});
-                    painter.circle(end, 15., Color32::BLUE, Stroke::default());
-                }
-                painter.circle(c, 25., Color32::GREEN, Stroke::default());
-            });
-        }
-    } */
-
-/*     fn build_neurolab(&mut self, egui_ctx: &Context) {
-        if self.state.neuro_lab {
-            Window::new("Neuro Lab").default_pos((SCREEN_WIDTH/2.-400., SCREEN_HEIGHT/2.-500.)).min_height(600.).min_width(800.)
-            .title_bar(true).show(egui_ctx, |ui| {
-                let (response, painter) = ui.allocate_painter(UIVec2::new(800., 600.), Sense::hover());
-                let rect = response.rect;
-                let c = rect.center();
-                painter.circle_stroke(c, 16.0, Stroke::new(3.0, Color32::BLUE));
-                painter.arrow(Pos2::new(c.x-64.0, c.y), UIVec2::new(48.0, 0.0), Stroke::new(5.0, Color32::RED));
-                painter.arrow(Pos2::new(c.x+64.0, c.y), UIVec2::new(-48.0, 0.0), Stroke::new(5.0, Color32::RED));
-            });
-        }
-    } */
-
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {
             Window::new("ABOUT").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(380.).min_width(300.)
@@ -488,7 +441,7 @@ impl UISystem {
         }
     }
 
-    fn build_enviroment_window(&mut self, egui_ctx: &Context, settings: &mut Settings, signals: &mut Signals) {
+    fn build_settings_window(&mut self, egui_ctx: &Context, settings: &mut Settings, signals: &mut Signals) {
         if !self.state.enviroment {
             return;
         }
@@ -583,38 +536,6 @@ impl UISystem {
                 }
             });
         });
-    }
-
-    fn build_static_rect_win(&mut self, egui_ctx: &Context, signals: &mut Signals) {
-        if self.state.static_rect {
-            Window::new("Build Static Rect").title_bar(true).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).default_size([300., 260.]).show(egui_ctx, |ui| {
-                ui.label("Rect Size");
-                ui.columns(2, |column| {
-                    let mut w: i32 = 100;
-                    let mut h: i32 = 60;
-                    if column[1].add(Slider::new(&mut w, 10..=400).text("width")).changed() {
-                    }
-                    if column[0].add(Slider::new(&mut h, 10..=400).text("height")).changed() {
-                    }
-                });
-                ui.spacing();
-                ui.label("Rect Position");
-                ui.columns(2, |column| {
-                    let mut x: i32 = 250;
-                    let mut y: i32 = 250;
-                    if column[1].add(Slider::new(&mut x, 10..=400).text("xpos")).changed() {
-                    }
-                    if column[0].add(Slider::new(&mut y, 10..=400).text("ypos")).changed() {
-                    }
-                });
-                ui.spacing();
-                ui.vertical_centered(|btn| {
-                    if btn.button(RichText::new("CREATE").color(Color32::BLUE).strong()).clicked() {
-                        self.state.static_rect = false;
-                    }
-                }); 
-            });
-        }
     }
 
     pub fn ui_draw(&self) {
