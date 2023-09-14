@@ -2,6 +2,7 @@
 
 use std::f32::consts::PI;
 use crate::consts::*;
+use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
 use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
@@ -195,6 +196,18 @@ pub fn create_name(num: usize) -> String {
     }
     return name;
 
+}
+
+pub fn vec2_to_pos2(vec2: Vec2) -> Pos2 {
+    return Pos2 { x: vec2.x, y: vec2.y };
+}
+
+pub fn color_to_color32(color: Color) -> Color32 {
+    let r = (color.r*255.0) as u8;
+    let g = (color.g*255.0) as u8;
+    let b = (color.b*255.0) as u8;
+    let a = (color.a*255.0) as u8;
+    return Color32::from_rgba_unmultiplied(r, g, b, a);
 }
 
 pub struct Signals {

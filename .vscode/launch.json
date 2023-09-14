@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'biosynth'",
+            "name": "Debug executable 'evolve'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=biosynth",
-                    "--package=biosynth"
+                    "--bin=evolve",
+                    "--package=evolve"
                 ],
                 "filter": {
-                    "name": "biosynth",
+                    "name": "evolve",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'biosynth'",
+            "name": "Debug unit tests in executable 'evolve'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=biosynth",
-                    "--package=biosynth"
+                    "--bin=evolve",
+                    "--package=evolve"
                 ],
                 "filter": {
-                    "name": "biosynth",
+                    "name": "evolve",
                     "kind": "bin"
                 }
             },

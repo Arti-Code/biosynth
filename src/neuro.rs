@@ -33,57 +33,42 @@ pub enum NeuronTypes {
     ANY,
 }
 
-pub enum NeuroElementType {
-    Node,
-    Link,
+
+pub struct VisualNeuron {
+    pub loc1: Vec2,
+    pub color1: Color,
+    pub color2: Color,
 }
-pub struct  NeuroElement {
-    pub neuro_type: NeuroElementType,
+
+pub struct VisualConnection {
     pub loc1: Vec2,
     pub loc2: Vec2,
+    pub loc_t: Vec2,
     pub color1: Color,
     pub color2: Color,
 }
 
 pub struct NeuroVisual {
-    pub elements: Vec<NeuroElement>,
+    pub neurons: Vec<VisualNeuron>,
+    pub connections: Vec<VisualConnection>
 }
 
 impl NeuroVisual {
     
     pub fn new() -> Self {
-        Self { elements: vec![] }
+        Self { neurons: vec![], connections: vec![] }
     }
 
-    pub fn add_node(&mut self, location: Vec2, color: Color) {
-        let e = NeuroElement {neuro_type: NeuroElementType::Node, loc1: location, loc2: location, color1: color, color2: color };
-        self.elements.push(e);
+    pub fn add_node(&mut self, location: Vec2, color1: Color, color2: Color) {
+        let e = VisualNeuron {loc1: location, color1: color1, color2: color2 };
+        self.neurons.push(e);
     }
 
-    pub fn add_link(&mut self, location1: Vec2, location2: Vec2, color: Color) {
-        let e = NeuroElement {neuro_type: NeuroElementType::Link, loc1: location1, loc2: location2, color1: color, color2: color };
-        self.elements.push(e);
+    pub fn add_link(&mut self, location1: Vec2, location2: Vec2, location_timing: Vec2, color1: Color, color2: Color) {
+        let e = VisualConnection {loc1: location1, loc2: location2, loc_t: location_timing, color1: color1, color2: color2 };
+        self.connections.push(e);
     }
 
-    pub fn get_nodes_ref(&self) -> Vec<&NeuroElement> {
-        let nodes: Vec<&NeuroElement> = self.elements.iter().filter(|elem| {
-            match elem.neuro_type {
-                NeuroElementType::Node => true,
-                NeuroElementType::Link => false,
-            }
-        }).collect();
-        return nodes;
-    }
-
-    pub fn get_links_ref(&self) -> Vec<&NeuroElement> {
-        let links: Vec<&NeuroElement> = self.elements.iter().filter(|elem| {
-            match elem.neuro_type {
-                NeuroElementType::Node => false,
-                NeuroElementType::Link => true,
-            }
-        }).collect();
-        return links;
-    }
 }
 
 pub struct DummyNetwork {
@@ -169,24 +154,24 @@ impl Node {
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
-        let (mut color0, color) = match self.val {
+        let (mut color0, color1) = match self.val {
             n if n>0.0 => { 
                 let v = (155.0*n) as u8;
-                let c = color_u8!(255, 0, 0, v);
+                let c1 = color_u8!(255, 0, 0, v);
                 let c0 = color_u8!(255, 0, 0, 255);
-                (c0, c) 
+                (c0, c1) 
             },
             n if n<0.0 => { 
                 let v = (255.0*n.abs()) as u8;
-                let c = color_u8!(0, 0, 255, v);
+                let c1 = color_u8!(0, 0, 255, v);
                 let c0 = color_u8!(0, 0, 255, 255);
-                (c0, c) 
+                (c0, c1) 
             },
             _ => {
                 (WHITE, WHITE)
             }
         };
-        return (color0, color);
+        return (color0, color1);
     }
 
     pub fn draw(&self, t:f32) {
@@ -255,31 +240,23 @@ impl Link {
     pub fn draw(&self, nodes: &HashMap<u64, Node>, timer: f32) {
         let w = self.w;
         let s = clamp(self.signal, -1.0, 1.0);
-        let mut color0: Color = WHITE;
-        let mut color1: Color = WHITE;
-        if w >= 0.0 {
-            color0 = color_u8!(255, 75, 75, (200.0*w) as u8);
-        }
-        if w < 0.0 {
-            color0 = color_u8!(75, 75, 255, (200.0*w.abs()) as u8);
-        }
-        if s >= 0.0 {
-            color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
-        }
-        if s < 0.0 {
-            color1 = color_u8!(0, 0, 255, (100.0+155.0*s.abs()) as u8);
-        }
+        let (color0, color1) = self.get_colors();
+        let (p0, p1, pt) = self.get_coords(nodes, timer);
+        //let flow2 = l*(timer/2.0)*dir*0.96;
+        draw_line(p0.x, p0.y, p1.x, p1.y, 2.0+3.0*w.abs(), color0);
+        draw_line(p0.x, p0.y, pt.x, pt.y, 2.0+4.0*s.abs(), color1);
+        
+    }
+
+    pub fn get_coords(&self, nodes: &HashMap<u64, Node>, timer: f32) -> (Vec2, Vec2, Vec2) {
         let n0 = self.node_from;
         let n1 = self.node_to;
         let p0 = nodes.get(&n0).unwrap().pos;
         let p1 = nodes.get(&n1).unwrap().pos;
         let l = p1.distance(p0).abs();
         let dir = (p1-p0).normalize_or_zero();
-        let flow1 = l*(timer)*dir;
-        //let flow2 = l*(timer/2.0)*dir*0.96;
-        draw_line(p0.x, p0.y, p1.x, p1.y, 2.0+3.0*w.abs(), color0);
-        draw_line(p0.x, p0.y, p0.x+flow1.x, p0.y+flow1.y, 2.0+4.0*s.abs(), color1);
-        
+        let pt = p0 + (l*(timer)*dir);
+        return (p0, p1, pt);
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
@@ -288,10 +265,10 @@ impl Link {
         let mut color0: Color = WHITE;
         let mut color1: Color = WHITE;
         if w >= 0.0 {
-            color0 = color_u8!(255, 75, 75, (200.0*w) as u8);
+            color0 = color_u8!(255, 0, 0, (150.0*w) as u8);
         }
         if w < 0.0 {
-            color0 = color_u8!(75, 75, 255, (200.0*w.abs()) as u8);
+            color0 = color_u8!(0, 0, 255, (150.0*w.abs()) as u8);
         }
         if s >= 0.0 {
             color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
@@ -584,15 +561,17 @@ impl Network {
     }
 
     pub fn get_visual_sketch(&self) -> NeuroVisual {
+        let t = self.timer/self.duration;
         let mut sketch = NeuroVisual::new();
         for (id, node) in self.nodes.iter() {
-            sketch.add_node(node.pos, node.get_colors().1);
+            sketch.add_node(node.pos, node.get_colors().0, node.get_colors().1);
         }
         for (id, link) in self.links.iter() {
             let pos1 = self.nodes.get(&link.node_from).unwrap().pos;
             let pos2 = self.nodes.get(&link.node_to).unwrap().pos;
-            let color = link.get_colors().1;
-            sketch.add_link(pos1, pos2, color);
+            let (loc1, loc2, loc_t) = link.get_coords(&self.nodes, t);
+            let (color0, color1) = link.get_colors();
+            sketch.add_link(pos1, pos2, loc_t, color0, color1);
         }
         return sketch;
     }

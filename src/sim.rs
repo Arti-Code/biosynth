@@ -112,7 +112,7 @@ impl Simulation {
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_grid(50);
         self.draw_agents();
-        if self.settings.show_network { self.draw_network(); }
+        //if self.settings.show_network { self.draw_network(); }
     }
 
     fn draw_network(&self) {

@@ -393,16 +393,27 @@ impl UISystem {
                 .title_bar(true).show(egui_ctx, |ui| {
                     let (response, painter) = ui.allocate_painter(UIVec2::new(400., 400.), Sense::hover());
                     let rect = response.rect;
+                    let zero = rect.left_top().to_vec2();
+                    let center = rect.center();
                     let sketch = network.get_visual_sketch();
-                    for link in sketch.get_links_ref() {
-                        let points = [Pos2::new(link.loc1.x, link.loc1.y), Pos2::new(link.loc2.x, link.loc2.y)];
-                        let color: Color32 = Color32::from_rgb((link.color1.r * 255.0) as u8, (link.color1.g * 255.0) as u8, (link.color1.b * 255.0) as u8);
-                        painter.line_segment(points, Stroke { color: Color32::RED, width: 4.0 });
+                    for link in sketch.connections.iter() {
+                        let p1 = vec2_to_pos2(link.loc1)+zero;
+                        let p2 = vec2_to_pos2(link.loc2)+zero;
+                        let pt = vec2_to_pos2(link.loc_t)+zero;
+                        let c1 = color_to_color32(link.color1);
+                        let c2 = color_to_color32(link.color2);
+                        let points1 = [p1, p2];
+                        let points2 = [p1, pt];
+                        painter.line_segment(points1, Stroke { color: c1, width: 4.0 });
+                        painter.line_segment(points2, Stroke { color: c2, width: 5.0 });
                     }
-                    for node in sketch.get_nodes_ref() {
-                        let pos = Pos2::new(node.loc1.x, node.loc1.y);
-                        let color: Color32 = Color32::from_rgb((node.color1.r * 255.0) as u8, (node.color1.g * 255.0) as u8, (node.color1.b * 255.0) as u8);
-                        painter.circle_stroke(pos, 5.0, Stroke { color: Color32::BLUE, width: 2.0 });
+                    for node in sketch.neurons.iter() {
+                        let p1 = vec2_to_pos2(node.loc1)+zero;
+                        let c0 = color_to_color32(node.color1);
+                        let c1 = color_to_color32(node.color2);
+                        painter.circle_filled(p1, 5.0,  Color32::BLACK);
+                        painter.circle_filled(p1, 5.0,  c1);
+                        painter.circle_stroke(p1, 5.0, Stroke { color: c0, width: 2.0 });
                     } 
             });
         }
