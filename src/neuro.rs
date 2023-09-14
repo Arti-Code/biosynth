@@ -33,12 +33,65 @@ pub enum NeuronTypes {
     ANY,
 }
 
+pub enum NeuroElementType {
+    Node,
+    Link,
+}
+pub struct  NeuroElement {
+    pub neuro_type: NeuroElementType,
+    pub loc1: Vec2,
+    pub loc2: Vec2,
+    pub color1: Color,
+    pub color2: Color,
+}
+
+pub struct NeuroVisual {
+    pub elements: Vec<NeuroElement>,
+}
+
+impl NeuroVisual {
+    
+    pub fn new() -> Self {
+        Self { elements: vec![] }
+    }
+
+    pub fn add_node(&mut self, location: Vec2, color: Color) {
+        let e = NeuroElement {neuro_type: NeuroElementType::Node, loc1: location, loc2: location, color1: color, color2: color };
+        self.elements.push(e);
+    }
+
+    pub fn add_link(&mut self, location1: Vec2, location2: Vec2, color: Color) {
+        let e = NeuroElement {neuro_type: NeuroElementType::Link, loc1: location1, loc2: location2, color1: color, color2: color };
+        self.elements.push(e);
+    }
+
+    pub fn get_nodes_ref(&self) -> Vec<&NeuroElement> {
+        let nodes: Vec<&NeuroElement> = self.elements.iter().filter(|elem| {
+            match elem.neuro_type {
+                NeuroElementType::Node => true,
+                NeuroElementType::Link => false,
+            }
+        }).collect();
+        return nodes;
+    }
+
+    pub fn get_links_ref(&self) -> Vec<&NeuroElement> {
+        let links: Vec<&NeuroElement> = self.elements.iter().filter(|elem| {
+            match elem.neuro_type {
+                NeuroElementType::Node => false,
+                NeuroElementType::Link => true,
+            }
+        }).collect();
+        return links;
+    }
+}
 
 pub struct DummyNetwork {
     outputs: usize,
 }
 
 impl DummyNetwork {
+
     pub fn new(outputs_num: usize) -> Self {
         Self {
             outputs: outputs_num,
@@ -81,7 +134,7 @@ pub struct Link {
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
-    pub timer: f32,
+    timer: f32,
     margins: Margins,
     pub input_keys: Vec<u64>,
     pub output_keys: Vec<u64>,
@@ -113,6 +166,27 @@ impl Node {
             sum: 0.0,
             val: 0.0,
         }
+    }
+
+    pub fn get_colors(&self) -> (Color, Color) {
+        let (mut color0, color) = match self.val {
+            n if n>0.0 => { 
+                let v = (155.0*n) as u8;
+                let c = color_u8!(255, 0, 0, v);
+                let c0 = color_u8!(255, 0, 0, 255);
+                (c0, c) 
+            },
+            n if n<0.0 => { 
+                let v = (255.0*n.abs()) as u8;
+                let c = color_u8!(0, 0, 255, v);
+                let c0 = color_u8!(0, 0, 255, 255);
+                (c0, c) 
+            },
+            _ => {
+                (WHITE, WHITE)
+            }
+        };
+        return (color0, color);
     }
 
     pub fn draw(&self, t:f32) {
@@ -164,6 +238,7 @@ impl Node {
         //self.sum = 0.0;
         self.sum = 0.0;
     }
+
 }
 
 impl Link {
@@ -207,7 +282,27 @@ impl Link {
         
     }
 
-    pub fn draw2(&self, nodes: &HashMap<u64, Node>, timer: f32) {
+    pub fn get_colors(&self) -> (Color, Color) {
+        let w = self.w;
+        let s = clamp(self.signal, -1.0, 1.0);
+        let mut color0: Color = WHITE;
+        let mut color1: Color = WHITE;
+        if w >= 0.0 {
+            color0 = color_u8!(255, 75, 75, (200.0*w) as u8);
+        }
+        if w < 0.0 {
+            color0 = color_u8!(75, 75, 255, (200.0*w.abs()) as u8);
+        }
+        if s >= 0.0 {
+            color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
+        }
+        if s < 0.0 {
+            color1 = color_u8!(0, 0, 255, (100.0+155.0*s.abs()) as u8);
+        }
+        return (color0, color1);
+    }
+
+/*     pub fn draw2(&self, nodes: &HashMap<u64, Node>, timer: f32) {
         let w = self.w;
         let s = clamp(self.signal, -1.0, 1.0);
         let mut color0: Color = WHITE;
@@ -235,7 +330,7 @@ impl Link {
         draw_line(p0.x, p0.y, p1.x, p1.y, 2.0+3.0*w.abs(), color0);
         draw_line(p0.x, p0.y, p0.x+flow1.x, p0.y+flow1.y, 2.0+4.0*s.abs(), color1);
         
-    }
+    } */
 
     pub fn calc(&mut self, nodes: &mut HashMap<u64, Node>) {
         let n0 = self.node_from;
@@ -257,6 +352,7 @@ impl Link {
             w: self.w,
         }
     }
+
 }
 
 
@@ -267,7 +363,7 @@ impl Network {
             nodes: HashMap::new(),
             links: HashMap::new(),
             timer: 0.0,
-            margins: Margins { x_min: 10.0, x_max: 190.0, y_min: 35.0, y_max: 225.0 },
+            margins: Margins { x_min: 10.0, x_max: 390.0, y_min: 10.0, y_max: 390.0 },
             input_keys: vec![],
             output_keys: vec![],
             duration,
@@ -373,7 +469,7 @@ impl Network {
         }
     }
         
-        pub fn add_link(&mut self, node_from: u64, node_to: u64) {
+    pub fn add_link(&mut self, node_from: u64, node_to: u64) {
         let link = Link::new(node_from, node_to);
         //let node = self.nodes.get_mut(&node_to).unwrap();
         //node.add_link_to(link.id);
@@ -486,4 +582,19 @@ impl Network {
             }
         }
     }
+
+    pub fn get_visual_sketch(&self) -> NeuroVisual {
+        let mut sketch = NeuroVisual::new();
+        for (id, node) in self.nodes.iter() {
+            sketch.add_node(node.pos, node.get_colors().1);
+        }
+        for (id, link) in self.links.iter() {
+            let pos1 = self.nodes.get(&link.node_from).unwrap().pos;
+            let pos2 = self.nodes.get(&link.node_to).unwrap().pos;
+            let color = link.get_colors().1;
+            sketch.add_link(pos1, pos2, color);
+        }
+        return sketch;
+    }
+
 }

@@ -6,6 +6,7 @@ use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
 use egui_macroquad::egui::widgets::Slider;
+use egui_macroquad::egui::Vec2 as UIVec2;
 use macroquad::math::Vec2 as Vec2;
 use macroquad::prelude::*;
 use image::{io::*, *};
@@ -71,14 +72,14 @@ impl UISystem {
                 Some(agent) => {
                     self.build_inspect_window(egui_ctx, agent);
                     self.build_io_window(egui_ctx, agent.neuro_table.inputs.clone(), agent.neuro_table.outputs.clone());
-                    self.build_net_graph(egui_ctx, &agent.network);
+                    self.build_inspect_network(egui_ctx, &agent.network);
                 },
                 None => {}
             }
             self.build_about_window(egui_ctx);
             self.build_enviroment_window(egui_ctx, settings, signals);
             self.build_static_rect_win(egui_ctx, signals);
-            self.build_neurolab(egui_ctx);
+            //self.build_neurolab(egui_ctx);
         });
     }
 
@@ -170,7 +171,7 @@ impl UISystem {
                 ui.add_space(10.0);
                 menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
                     if ui
-                        .button(RichText::new("NeuroLab").strong().color(Color32::WHITE))
+                        .button(RichText::new("Network Inspector").strong().color(Color32::WHITE))
                         .clicked()
                     {
                         self.state.neuro_lab = !self.state.neuro_lab;
@@ -386,11 +387,32 @@ impl UISystem {
         }
     }
 
-/*     fn build_net_graph(&mut self, egui_ctx: &Context) {
+    fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
+        if self.state.neuro_lab {
+            Window::new("Network Inspector").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
+                .title_bar(true).show(egui_ctx, |ui| {
+                    let (response, painter) = ui.allocate_painter(UIVec2::new(400., 400.), Sense::hover());
+                    let rect = response.rect;
+                    let sketch = network.get_visual_sketch();
+                    for link in sketch.get_links_ref() {
+                        let points = [Pos2::new(link.loc1.x, link.loc1.y), Pos2::new(link.loc2.x, link.loc2.y)];
+                        let color: Color32 = Color32::from_rgb((link.color1.r * 255.0) as u8, (link.color1.g * 255.0) as u8, (link.color1.b * 255.0) as u8);
+                        painter.line_segment(points, Stroke { color: Color32::RED, width: 4.0 });
+                    }
+                    for node in sketch.get_nodes_ref() {
+                        let pos = Pos2::new(node.loc1.x, node.loc1.y);
+                        let color: Color32 = Color32::from_rgb((node.color1.r * 255.0) as u8, (node.color1.g * 255.0) as u8, (node.color1.b * 255.0) as u8);
+                        painter.circle_stroke(pos, 5.0, Stroke { color: Color32::BLUE, width: 2.0 });
+                    } 
+            });
+        }
+    }
+
+/*     fn build_net_graph(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.net {
             Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
             .title_bar(true).show(egui_ctx, |ui| {
-                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(400., 400.), Sense::hover());
+                let (response, painter) = ui.allocate_painter(UIVec2::new(400., 400.), Sense::hover());
                 let rect = response.rect;
                 let c = rect.center();
                 let s = 2. * PI / 6.;
@@ -408,41 +430,19 @@ impl UISystem {
         }
     } */
 
-    fn build_net_graph(&mut self, egui_ctx: &Context, network: &Network) {
-        if self.state.net {
-            Window::new("Neural Network").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
-            .title_bar(true).show(egui_ctx, |ui| {
-                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(400., 400.), Sense::hover());
-                let rect = response.rect;
-                let c = rect.center();
-                let s = 2. * PI / 6.;
-                let l = 75.;
-                for i in 0..6 {
-                    let ang = s*i as f32;
-                    let x1 = ang.sin()*l+c.x;
-                    let y1 = ang.cos()*l+c.y;
-                    let end = Pos2::new(x1, y1);
-                    painter.line_segment([c,  end], Stroke {color: Color32::RED, width: 4.0});
-                    painter.circle(end, 15., Color32::BLUE, Stroke::default());
-                }
-                painter.circle(c, 25., Color32::GREEN, Stroke::default());
-            });
-        }
-    }
-
-    fn build_neurolab(&mut self, egui_ctx: &Context) {
+/*     fn build_neurolab(&mut self, egui_ctx: &Context) {
         if self.state.neuro_lab {
             Window::new("Neuro Lab").default_pos((SCREEN_WIDTH/2.-400., SCREEN_HEIGHT/2.-500.)).min_height(600.).min_width(800.)
             .title_bar(true).show(egui_ctx, |ui| {
-                let (response, painter) = ui.allocate_painter(egui_macroquad::egui::Vec2::new(800., 600.), Sense::hover());
+                let (response, painter) = ui.allocate_painter(UIVec2::new(800., 600.), Sense::hover());
                 let rect = response.rect;
                 let c = rect.center();
                 painter.circle_stroke(c, 16.0, Stroke::new(3.0, Color32::BLUE));
-                painter.arrow(Pos2::new(c.x-64.0, c.y), egui_macroquad::egui::Vec2::new(48.0, 0.0), Stroke::new(5.0, Color32::RED));
-                painter.arrow(Pos2::new(c.x+64.0, c.y), egui_macroquad::egui::Vec2::new(-48.0, 0.0), Stroke::new(5.0, Color32::RED));
+                painter.arrow(Pos2::new(c.x-64.0, c.y), UIVec2::new(48.0, 0.0), Stroke::new(5.0, Color32::RED));
+                painter.arrow(Pos2::new(c.x+64.0, c.y), UIVec2::new(-48.0, 0.0), Stroke::new(5.0, Color32::RED));
             });
         }
-    }
+    } */
 
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {
@@ -485,8 +485,8 @@ impl UISystem {
         .title_bar(true).show(egui_ctx, |ui| {
             ui.heading("AGENTS");
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(280., 75.));
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 unsafe {
                     let mut agents_num: i32 = settings.agent_min_num as i32;
                     column[0].label(RichText::new("MIN NUMBER").color(Color32::WHITE).strong());
@@ -497,8 +497,8 @@ impl UISystem {
                 }
             });
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(280., 75.));
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 unsafe {
                     let mut agent_init_num: i32 = settings.agent_init_num as i32;
                     column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
@@ -509,8 +509,8 @@ impl UISystem {
                 }
             });
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(280., 75.));
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 unsafe {
                     let mut agent_vision_range: i32 = settings.agent_vision_range as i32;
                     column[0].label(RichText::new("VISION").color(Color32::WHITE).strong());
@@ -522,9 +522,9 @@ impl UISystem {
             });
             ui.style_mut().spacing.slider_width = 75.0;
             ui.columns(3, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(80., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
-                column[2].set_max_size(egui_macroquad::egui::Vec2::new(140., 75.));
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(140., 75.));
+                column[2].set_max_size(UIVec2::new(140., 75.));
                 unsafe {
                     let mut agent_size_min: i32 = settings.agent_size_min as i32;
                     let mut agent_size_max: i32 = (settings.agent_size_max as i32).max(agent_size_min);
@@ -540,8 +540,8 @@ impl UISystem {
                 }
             });
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                column[0].set_max_size(UIVec2::new(120., 75.));
+                column[1].set_max_size(UIVec2::new(120., 75.));
                 unsafe {
                     let mut agent_eng_bar: bool = settings.agent_eng_bar;
                     column[0].label(RichText::new("SHOW ENG BAR").color(Color32::WHITE).strong());
@@ -552,8 +552,8 @@ impl UISystem {
                 }
             });
             ui.columns(2, |column| {
-                column[0].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
-                column[1].set_max_size(egui_macroquad::egui::Vec2::new(120., 75.));
+                column[0].set_max_size(UIVec2::new(120., 75.));
+                column[1].set_max_size(UIVec2::new(120., 75.));
                 unsafe {
                     let mut show_network: bool = settings.show_network;
                     column[0].label(RichText::new("SHOW NETWORK").color(Color32::WHITE).strong());
@@ -609,6 +609,7 @@ impl UISystem {
     pub fn ui_draw(&self) {
         egui_macroquad::draw();
     }
+    
 }
 
 struct LogoImage {
