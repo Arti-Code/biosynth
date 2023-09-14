@@ -205,7 +205,7 @@ impl UISystem {
 
     fn build_monit_window(&self, egui_ctx: &Context, sim_state: &SimState) {
         if self.state.performance {
-            let total_mass = sim_state.total_mass;
+//            let total_mass = sim_state.total_mass;
             let fps = sim_state.fps;
             let delta = sim_state.dt;
             let time = sim_state.sim_time;
@@ -217,8 +217,8 @@ impl UISystem {
                 ui.separator();
                 ui.label(format!("TIME: {}", time.round()));
                 ui.separator();
-                ui.label(format!("TOTAL MASS: {}", total_mass.round()));
-                ui.separator();
+//                ui.label(format!("TOTAL MASS: {}", total_mass.round()));
+//                ui.separator();
                 ui.label(format!("OBJECTS: {}", physics_num));
             });
         }

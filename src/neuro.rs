@@ -546,6 +546,63 @@ impl Network {
                 node.bias = rand::gen_range(-0.1, 0.1);
             }
         }
+
+        self.delete_random_link(mutation_rate/3.0);
+        self.add_random_link(mutation_rate/1.0);
+    }
+
+    fn add_random_link(&mut self, mutation_rate: f32) {
+        let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
+        let num = node_keys.len();
+        loop {
+            if rand::gen_range(0.0, 1.0) <= mutation_rate {
+                let r0 = rand::gen_range(0, num);
+                let r1 = rand::gen_range(0, num);
+                if r0 == r1 { continue; }
+                let n0 = node_keys[r0];
+                let n1 = node_keys[r1];
+                let node0 = self.nodes.get(&n0).unwrap();
+                let node1 = self.nodes.get(&n1).unwrap();
+                match node0.node_type {
+                    NeuronTypes::INPUT => {
+                        match node1.node_type {
+                            NeuronTypes::INPUT => { continue; },
+                            _ => {
+                                self.add_link(n0, n1);
+                                info!("NEW LINK");
+                                break;
+                            },
+                        }
+                    },
+                    NeuronTypes::DEEP => {
+                        match node1.node_type {
+                            NeuronTypes::OUTPUT => {
+                                self.add_link(n0, n1);
+                                info!("NEW LINK");
+                                break;
+                            },
+                            _ => { continue; }
+                        }
+                    },
+                    NeuronTypes::OUTPUT => { continue; },
+                    NeuronTypes::ANY => { continue; },
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn delete_random_link(&mut self, mutation_rate: f32) {
+        if rand::gen_range(0.0, 1.0) <= mutation_rate {
+            let link_keys: Vec<u64> = self.links.keys().copied().collect();
+            let num = link_keys.len();
+            let r = rand::gen_range(0, num);
+            let link_key = link_keys[r];
+            self.links.remove(&link_key);
+            warn!("DEL LINK");
+        }
+
     }
 
     pub fn get_visual_sketch(&self) -> NeuroVisual {
