@@ -171,8 +171,9 @@ impl Unit {
         draw_circle(x0, y0, self.size, self.color);
         self.draw_front();
         if selected {
+            self.draw_info(&font);
             self.draw_target();
-            //draw_circle_lines(x0, y0, self.vision_range, 2.0, GRAY);
+        } else if self.settings.show_specie {
             self.draw_info(&font);
         }
     }    
@@ -286,8 +287,8 @@ impl Unit {
         let y0 = self.pos.y;
         let text_cfg = TextParams {
             font: *font,
-            font_size: 13,
-            color: WHITE,
+            font_size: 10,
+            color: LIGHTGRAY,
             ..Default::default()
         };
         let rot = self.rot;
@@ -295,8 +296,8 @@ impl Unit {
         let info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
         //let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
         //let info_mass = format!("mass: {}", mass.round());
-        let txt_center = get_text_center(&info, Some(*font), 13, 1.0, 0.0);
-        draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 30.0, text_cfg.clone());
+        let txt_center = get_text_center(&info, Some(*font), 10, 1.0, 0.0);
+        draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 8.0, text_cfg.clone());
         //draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
     }
 

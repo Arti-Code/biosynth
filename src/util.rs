@@ -266,11 +266,11 @@ impl UIState {
             mouse: false,
             quit: false,
             agents_num: 0,
-            new_sim: false,
+            new_sim: true,
             credits: false,
             docs: false,
             net: false,
-            about: true,
+            about: false,
             enviroment: false,
             neuro_lab: false,
             io: false,
@@ -291,6 +291,7 @@ pub struct Settings {
     pub agent_size_min: i32,
     pub agent_size_max: i32,
     pub show_network: bool,
+    pub show_specie: bool,
 }
 
 impl Default for Settings {
@@ -307,6 +308,7 @@ impl Default for Settings {
             agent_size_min: AGENT_SIZE_MIN,
             agent_size_max: AGENT_SIZE_MAX,
             show_network: true,
+            show_specie: false,
         }
     }
 }

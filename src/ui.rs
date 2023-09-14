@@ -6,6 +6,7 @@ use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
 use egui_macroquad::egui::widgets::Slider;
+use egui_macroquad::egui::Checkbox;
 use egui_macroquad::egui::Vec2 as UIVec2;
 use macroquad::math::Vec2 as Vec2;
 use macroquad::prelude::*;
@@ -280,10 +281,28 @@ impl UISystem {
 
     fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals, settings: &mut Settings) {
         if self.state.new_sim {
-            Window::new("NEW SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).fixed_size([380., 100.]).show(egui_ctx, |ui| {
-                ui.vertical_centered(|head| {
-                    head.label("Start new simulation");
+            let w = 400.0; let h = 160.0;
+            Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).fixed_size([w, h]).show(egui_ctx, |ui| {
+                let big_logo = self.big_logo.clone().unwrap();
+                let title = self.title.clone().unwrap();
+                ui.vertical_centered(|pic| {
+                    pic.image(title.id(), title.size_vec2()*0.7);
                 });
+                ui.add_space(1.0);
+                ui.vertical_centered(|pic| {
+                    pic.image(big_logo.id(), big_logo.size_vec2()*0.7);
+                });
+                ui.add_space(1.0);
+                ui.vertical_centered(|author| {
+                    let txt = format!("Artur Gwoździowski 2023  |  ver.{}", env!("CARGO_PKG_VERSION"));
+                    author.label(RichText::new(txt).color(Color32::BLUE).strong());
+                });
+                ui.separator();
+                ui.add_space(6.0);
+                ui.vertical_centered(|head| {
+                    head.heading(RichText::new("NEW SIMULATION").color(Color32::GREEN).strong());
+                });
+                ui.add_space(3.0);
                 ui.vertical_centered(|txt| {
                     let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
                     self.temp_sim_name = String::from("SIMULATION");
@@ -298,10 +317,12 @@ impl UISystem {
                         self.temp_sim_name = String::new();
                     }
                 });
+                ui.add_space(3.0);
                 ui.spacing();
                 ui.vertical_centered(|row| {
                     row.label("WORLD SIZE [X | Y]");
                 });
+                ui.add_space(2.0);
                 ui.vertical_centered(|row| {
                     row.style_mut().spacing.slider_width = 140.0;
                     let mut w = settings.world_w;
@@ -315,21 +336,23 @@ impl UISystem {
                         }
                     });
                 });
+                ui.add_space(4.0);
                 ui.spacing();
                 ui.vertical_centered(|mid| {
-                    mid.columns(2, |columns| {
-                        if columns[0].button(RichText::new("No").color(Color32::WHITE)).clicked() {
+                    //mid.columns(2, |columns| {
+                        if mid.button(RichText::new("NO").color(Color32::YELLOW).strong()).clicked() {
                             self.state.new_sim = false;
                             self.temp_sim_name = String::new();
                         }
-                        if columns[1].button(RichText::new("Yes").color(Color32::BLUE)).clicked() {
+                        if mid.button(RichText::new("YES").color(Color32::BLUE).strong()).clicked() {
                             self.state.new_sim = false;
                             signals.new_sim = true;
                             signals.new_sim_name = String::from(&self.temp_sim_name);
                             self.temp_sim_name = String::new();
                         }
-                    });
+                    //});
                 });
+                ui.add_space(3.0);
             });
         }
     }
@@ -378,9 +401,10 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            Window::new("Network Inspector").default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).min_height(400.).min_width(400.)
+            let w = 400.0; let h = 400.0;
+            Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w)
                 .title_bar(true).show(egui_ctx, |ui| {
-                    let (response, painter) = ui.allocate_painter(UIVec2::new(400., 400.), Sense::hover());
+                    let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
                     let rect = response.rect;
                     let zero = rect.left_top().to_vec2();
                     let center = rect.center();
@@ -432,9 +456,9 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.vertical_centered(|closer| {
                     let mut stylus = closer.style();
-                    if closer.button(RichText::new("CLOSE").color(Color32::RED).strong()).clicked() {
+                    if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_BLUE).strong()).clicked() {
                         self.state.about = false;
-                        self.state.new_sim = true;
+                        //self.state.new_sim = true;
                     }
                 });
             });
@@ -451,37 +475,31 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                unsafe {
-                    let mut agents_num: i32 = settings.agent_min_num as i32;
-                    column[0].label(RichText::new("MIN NUMBER").color(Color32::WHITE).strong());
-                    if column[1].add(Slider::new(&mut agents_num, 0..=100)).changed() {
-                        settings.agent_min_num = agents_num as usize;
-                        signals.new_settings = true;
-                    }
+                let mut agents_num: i32 = settings.agent_min_num as i32;
+                column[0].label(RichText::new("MIN NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agents_num, 0..=100)).changed() {
+                    settings.agent_min_num = agents_num as usize;
+                    signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                unsafe {
-                    let mut agent_init_num: i32 = settings.agent_init_num as i32;
-                    column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
-                    if column[1].add(Slider::new(&mut agent_init_num, 0..=100)).changed() {
-                        settings.agent_init_num = agent_init_num as usize;
-                        signals.new_settings = true;
-                    }
+                let mut agent_init_num: i32 = settings.agent_init_num as i32;
+                column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agent_init_num, 0..=100)).changed() {
+                    settings.agent_init_num = agent_init_num as usize;
+                    signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                unsafe {
-                    let mut agent_vision_range: i32 = settings.agent_vision_range as i32;
-                    column[0].label(RichText::new("VISION").color(Color32::WHITE).strong());
-                    if column[1].add(Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
-                        settings.agent_vision_range = agent_vision_range as f32;
-                        signals.new_settings = true;
-                    }
+                let mut agent_vision_range: i32 = settings.agent_vision_range as i32;
+                column[0].label(RichText::new("VISION").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
+                    settings.agent_vision_range = agent_vision_range as f32;
+                    signals.new_settings = true;
                 }
             });
             ui.style_mut().spacing.slider_width = 75.0;
@@ -489,14 +507,12 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(140., 75.));
                 column[2].set_max_size(UIVec2::new(140., 75.));
-                unsafe {
-                    let mut agent_size_min: i32 = settings.agent_size_min as i32;
-                    let mut agent_size_max: i32 = (settings.agent_size_max as i32).max(agent_size_min);
-                    column[0].label(RichText::new("SIZE [MIN|MAX]").color(Color32::WHITE).strong());
-                    if column[1].add(Slider::new(&mut agent_size_min, 1..=40)).changed() {
-                        settings.agent_size_min = agent_size_min as i32;
-                        signals.new_settings = true;
-                    }
+                let mut agent_size_min: i32 = settings.agent_size_min as i32;
+                let mut agent_size_max: i32 = (settings.agent_size_max as i32).max(agent_size_min);
+                column[0].label(RichText::new("SIZE [MIN|MAX]").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agent_size_min, 1..=40)).changed() {
+                    settings.agent_size_min = agent_size_min as i32;
+                    signals.new_settings = true;
                     if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=40)).changed() {
                         settings.agent_size_max = agent_size_max as i32;
                         signals.new_settings = true;
@@ -506,32 +522,38 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(120., 75.));
                 column[1].set_max_size(UIVec2::new(120., 75.));
-                unsafe {
-                    let mut agent_eng_bar: bool = settings.agent_eng_bar;
-                    column[0].label(RichText::new("SHOW ENG BAR").color(Color32::WHITE).strong());
-                    if column[1].add(egui_macroquad::egui::Checkbox::without_text(&mut agent_eng_bar)).changed() {
-                        settings.agent_eng_bar = agent_eng_bar;
-                        signals.new_settings = true;
-                    }
+                let mut agent_eng_bar: bool = settings.agent_eng_bar;
+                column[0].label(RichText::new("SHOW ENG BAR").color(Color32::WHITE).strong());
+                if column[1].add(Checkbox::without_text(&mut agent_eng_bar)).changed() {
+                    settings.agent_eng_bar = agent_eng_bar;
+                    signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(120., 75.));
                 column[1].set_max_size(UIVec2::new(120., 75.));
-                unsafe {
-                    let mut show_network: bool = settings.show_network;
-                    column[0].label(RichText::new("SHOW NETWORK").color(Color32::WHITE).strong());
-                    if column[1].add(egui_macroquad::egui::Checkbox::without_text(&mut show_network)).changed() {
-                        settings.show_network = show_network;
-                        signals.new_settings = true;
-                    }
+                let mut show_network: bool = settings.show_network;
+                column[0].label(RichText::new("SHOW NETWORK").color(Color32::WHITE).strong());
+                if column[1].add(Checkbox::without_text(&mut show_network)).changed() {
+                    settings.show_network = show_network;
+                    signals.new_settings = true;
                 }
             });
-            ui.add_space(10.0);
-            ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(3.0, Color32::BLUE);
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(120., 75.));
+                column[1].set_max_size(UIVec2::new(120., 75.));
+                let mut show_specie: bool = settings.show_specie;
+                column[0].label(RichText::new("SHOW SPECIE NAME").color(Color32::WHITE).strong());
+                if column[1].add(Checkbox::without_text(&mut show_specie)).changed() {
+                    settings.show_specie = show_specie;
+                    signals.new_settings = true;
+                }
+            });
+            ui.add_space(2.0);
+            ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::DARK_GREEN);
             ui.vertical_centered(|closer| {
                 let mut stylus = closer.style();
-                if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_RED).strong()).clicked() {
+                if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.enviroment = false;
                 }
             });
