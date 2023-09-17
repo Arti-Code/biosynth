@@ -3,3 +3,4 @@ Cargo.lock
 biosynth.exe
 biosynth.wasm
 evolve.exe
+neuro.json

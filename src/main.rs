@@ -11,11 +11,13 @@ mod physics;
 mod part;
 mod unit;
 mod collector;
+mod food;
 
 use crate::consts::*;
 use crate::sim::*;
 use crate::util::*;
 use macroquad::prelude::*;
+use macroquad::experimental::collections::storage;
 
 
 fn app_configuration() -> Conf {
@@ -30,8 +32,7 @@ fn app_configuration() -> Conf {
     }
 }
 
-#[macroquad::main(app_configuration)]
-async fn main() {
+fn setup() {
     let cfg = Settings {
         world_w: WORLD_W as i32,
         world_h: WORLD_H as i32,
@@ -45,11 +46,20 @@ async fn main() {
         agent_vision_range: 300.0,
         show_network: true,
         show_specie: false,
+        mutations: 0.25,
+        neurolink_rate: 0.2,
     };
+    storage::store(cfg);
+}
+
+#[macroquad::main(app_configuration)]
+async fn main() {
+    setup();
     let font = load_ttf_font("assets/fonts/firacode.ttf")
         .await
         .expect("can't load font resource!");
-    let mut sim = Simulation::new(cfg, font.clone());
+    let settings: Settings = *storage::get_mut::<Settings>();
+    let mut sim = Simulation::new(settings.to_owned(), font.clone());
     sim.ui.load_textures();
 
     loop {

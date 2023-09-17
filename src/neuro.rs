@@ -2,8 +2,13 @@
 
 use macroquad::prelude::*;
 use macroquad::rand::*;
+use serde::ser::SerializeStruct;
 use std::collections::HashMap;
 use std::f32::consts::PI;
+use std::fmt::Debug;
+use serde::{Serialize, Deserialize};
+use serde_json::{self, *};
+use std::fs;
 
 
 fn rand_position(x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Vec2 {
@@ -25,13 +30,35 @@ struct Margins {
     pub y_max: f32,
 }
 
-#[derive(Clone, Copy)]
+impl Debug for Margins {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("").field(&self.x_min).field(&self.x_max).field(&self.y_min).field(&self.y_max).finish()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum NeuronTypes {
     INPUT,
     DEEP,
     OUTPUT,
     ANY,
 }
+
+/* impl Serialize for NeuronTypes {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer {
+        let mut s = serializer.serialize_struct("NeuronTypes", 1)?;
+        let v = match self {
+            Self::ANY => "any",
+            Self::DEEP => "deep",
+            Self::INPUT => "input",
+            Self::OUTPUT => "output",
+        };
+        s.serialize_field("type", v);
+        s.end()
+    }
+} */
 
 
 pub struct VisualNeuron {
@@ -98,7 +125,6 @@ impl DummyNetwork {
 pub struct Node {
     pub id: u64,
     pub pos: Vec2,
-    //pub links_to: Vec<u64>,
     bias: f32,
     pub val: f32,
     sum: f32,
@@ -134,7 +160,7 @@ impl Node {
             id: generate_id(),
             pos: position,
             //links_to: vec![],
-            bias: rand::gen_range(-0.1, 0.1),
+            bias: rand::gen_range(-1.0, 1.0),
             val: rand::gen_range(0.0, 0.0),
             sum: 0.0,
             selected: false,
@@ -154,6 +180,10 @@ impl Node {
             val: 0.0,
             last: 0.0,
         }
+    }
+
+    pub fn get_sketch(&self) -> NodeSketch {
+        NodeSketch { id: self.id, pos: MyPos2 { x: self.pos.x, y: self.pos.y }, bias: self.bias, node_type: self.node_type.to_owned() }
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
@@ -318,6 +348,9 @@ impl Link {
         }
     }
 
+    pub fn get_sketch(&self) -> LinkSketch {
+        LinkSketch { id: self.id, w: self.w, node_from: self.node_from, node_to: self.node_to }
+    }
 }
 
 
@@ -532,6 +565,27 @@ impl Network {
         }
     }
 
+    pub fn get_sketch(&self) -> NetworkSketch {
+        let mut nodes_sketch: HashMap<u64, NodeSketch> = HashMap::new();
+        let mut links_sketch: HashMap<u64, LinkSketch> = HashMap::new();
+
+        for (id, node) in self.nodes.iter() {
+            let n = node.get_sketch();
+            nodes_sketch.insert(n.id, n);
+        }
+
+        for (id, link) in self.links.iter() {
+            let l = link.get_sketch();
+            links_sketch.insert(l.id, l);
+        }
+
+        NetworkSketch { 
+            nodes: nodes_sketch, 
+            links: links_sketch, 
+            //margins: self.margins.to_owned() 
+        }
+    }
+
     pub fn mutate(&mut self, mutation_rate: f32) {
         for (id, link) in self.links.iter_mut() {
             let r = rand::gen_range(0.0, 1.0);
@@ -543,7 +597,7 @@ impl Network {
         for (id, node) in self.nodes.iter_mut() {
             let r = rand::gen_range(0.0, 1.0);
             if r < mutation_rate {
-                node.bias = rand::gen_range(-0.1, 0.1);
+                node.bias = rand::gen_range(-1.0, 1.0);
             }
         }
 
@@ -620,5 +674,55 @@ impl Network {
         }
         return sketch;
     }
+
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct MyPos2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct NodeSketch {
+    id: u64,
+    pos: MyPos2,
+    bias: f32,
+    node_type: NeuronTypes,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct LinkSketch {
+    pub id: u64,
+    pub w: f32,
+    pub node_from: u64,
+    pub node_to: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NetworkSketch {
+    nodes: HashMap<u64, NodeSketch>,
+    links: HashMap<u64, LinkSketch>,
+    //margins: Margins,
+}
+
+#[test]
+fn test_ser_de() {
+    let mut net  = Network::new(0.5);
+    net.build(4, 10, 5, 0.1);
+    let sketch = net.get_sketch();
+    let json_net = serde_json::to_string_pretty(&sketch);
+    let s = match json_net {
+        Ok(net) => {
+            println!("{}", &net);
+            net
+        },
+        Err(_) => {
+            println!("Serialization Error");
+            String::new()
+        }
+    };
+    fs::write("neuro.json", &s);
+    println!("{}", &s);
 
 }

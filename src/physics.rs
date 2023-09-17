@@ -262,6 +262,13 @@ impl PhysicsWorld {
         }
     }
 
+    pub fn get_key_by_body_handle(&self, body_handle: RigidBodyHandle) -> Option<u64> {
+        match self.rigid_bodies.get(body_handle) {
+            Some(body) => { Some(body.user_data as u64) },
+            None => { None },
+        }
+    }
+
 }
 
 pub struct PhysicsData {

@@ -368,6 +368,7 @@ impl UISystem {
             let lifetime = agent.lifetime.round();
             let generation = agent.generation;
             let childs = agent.childs;
+            let attack = agent.attacking;
             Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
                 ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
                 ui.label(format!("lifetime: [{}]", lifetime));
@@ -377,6 +378,11 @@ impl UISystem {
                 ui.label(format!("size: [{}]", size));
                 ui.label(format!("position: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
                 ui.label(RichText::new(format!("energy: {}/{}", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::BLUE));
+                if attack {
+                    ui.label(RichText::new("[ATTACK]").strong().color(Color32::RED));
+                } else {
+                    ui.label(RichText::new("[......]").strong().color(Color32::LIGHT_GRAY));
+                }
                 ui.separator();
                 ui.label(RichText::new("ENEMY").strong().color(Color32::RED));
                 ui.label(format!("contacts: [{}]", contacts_num));
@@ -469,7 +475,7 @@ impl UISystem {
         if !self.state.enviroment {
             return;
         }
-        Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 300.])
+        Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.heading("AGENTS");
             ui.columns(2, |column| {
@@ -499,6 +505,26 @@ impl UISystem {
                 column[0].label(RichText::new("VISION").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
                     settings.agent_vision_range = agent_vision_range as f32;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut mutations: f32 = settings.mutations;
+                column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut mutations, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.mutations = mutations;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut neurolink_rate: f32 = settings.neurolink_rate;
+                column[0].label(RichText::new("NEURON LINKS RATE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.neurolink_rate = neurolink_rate;
                     signals.new_settings = true;
                 }
             });

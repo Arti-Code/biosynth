@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 
+use std::collections::HashMap;
 use std::f32::consts::PI;
 use crate::neuro::*;
 use crate::timer::*;
@@ -83,7 +84,7 @@ pub struct Unit {
     pub alife: bool,
     pub lifetime: f32,
     pub generation: u32,
-    pub contacts: Vec<(RigidBodyHandle, f32)>,
+    pub contacts: Vec<(RigidBodyHandle, u64, f32)>,
     pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_position: Option<Vec2>,
@@ -94,6 +95,8 @@ pub struct Unit {
     pub neuro_table: NeuroTable,
     pub childs: usize,
     pub specie: String,
+    pub attacking: bool,
+    //pub hit_list: HitList,
 }
 
 
@@ -108,7 +111,7 @@ impl Unit {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
         let mut network = Network::new(1.0);
-        network.build(5, 5, 3, 0.25);
+        network.build(5, 4, 4, settings.neurolink_rate);
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -141,6 +144,8 @@ impl Unit {
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             childs: 0,
             specie: create_name(4),
+            attacking: false,
+            //hit_list: HitList { targets: HashMap::<u64, f32>::new() },
         }
     }
 
@@ -185,20 +190,29 @@ impl Unit {
             self.update_contacts(physics);
             self.analize();
         }
-        for (_contact, ang) in self.contacts.iter() {
-            if *ang <= PI/4.0 && *ang >= -PI/4.0 {
-                //self.add_energy(dt);
-                self.eng += dt*10.0*self.size;
-                if self.eng > self.max_eng {
-                    self.eng = self.max_eng;
-                }
-            }
-        }
+
         self.update_physics(physics);
         self.calc_timers(dt);
         self.network.update();
         self.calc_energy(dt);
         return self.alife;
+    }
+
+    pub fn attack(&mut self) -> Vec<(u64, f32)> {
+        let dt = get_frame_time();
+        let mut hits: Vec<(u64, f32)> = vec![];
+        for (rbh, id, ang) in self.contacts.to_vec() {
+            if ang <= PI/4.0 && ang >= -PI/4.0 {
+                //self.add_energy(dt);
+                let dmg = dt*10.0*self.size;
+                self.eng += dmg;
+                hits.push((id, dmg));
+                if self.eng > self.max_eng {
+                    self.eng = self.max_eng;
+                }
+            }
+        }
+        return hits;
     }
 
     fn analize(&mut self) {
@@ -245,6 +259,11 @@ impl Unit {
             self.vel = 0.0;
         }
         self.ang_vel = -outputs[1].1+outputs[2].1;
+        if outputs[3].1 >= 0.5 {
+            self.attacking = true;
+        } else {
+            self.attacking = false;
+        }
     }
 
     fn draw_front(&self) {
@@ -255,6 +274,10 @@ impl Unit {
         let x1 = self.pos.x + dir.x * self.size * 1.6;
         let y1 = self.pos.y + dir.y * self.size * 1.6;
         draw_line(x0, y0, x1, y1, 3.0, self.color);
+        if self.attacking {
+            let va = self.pos + dir * self.size * 0.7;
+            draw_circle(va.x, va.y, self.size * 0.5,  MAGENTA);
+        }
     }
 
     fn draw_circle(&self) {
@@ -373,12 +396,17 @@ impl Unit {
     fn update_contacts(&mut self, physics: &mut PhysicsWorld) {
         self.contacts.clear();
         let contacts = physics.get_contacts_set(self.physics_handle, self.size);
-        for contact in contacts.iter() {
-            if let Some(pos2) = physics.get_object_position(*contact) {
+        for contact in contacts {
+            if let Some(pos2) = physics.get_object_position(contact) {
                 let mut rel_pos = pos2 - self.pos;
                 rel_pos = rel_pos.normalize_or_zero();
                 let target_angle = rel_pos.angle_between(Vec2::from_angle(self.rot));
-                self.contacts.push((*contact, target_angle));
+                match physics.get_key_by_body_handle(contact) {
+                    Some(key) => {
+                        self.contacts.push((contact, key, target_angle));
+                    },
+                    None => {},
+                }
             }
 
         }
@@ -456,7 +484,8 @@ impl Unit {
             settings: self.settings.clone(),
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             childs: 0,
-            specie: self.specie.to_owned()
+            specie: self.specie.to_owned(),
+            attacking: false,
         }
     }
 }

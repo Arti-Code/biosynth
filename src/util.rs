@@ -2,6 +2,7 @@
 
 use std::f32::consts::PI;
 use crate::consts::*;
+use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
 use rapier2d::prelude::*;
@@ -30,7 +31,12 @@ pub fn random_unit_vec2() -> Vec2 {
 }
 
 pub fn random_color() -> color::Color {
-    let colors = vec![RED, GREEN, BLUE, YELLOW, ORANGE, GRAY, SKYBLUE, LIME];
+    let colors = vec![
+        LIGHTGRAY, GRAY, DARKGRAY, YELLOW, GOLD, ORANGE, PINK, RED, 
+        MAROON, GREEN, LIME, DARKGREEN, SKYBLUE, BLUE, DARKBLUE, PURPLE, 
+        VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, WHITE, MAGENTA
+    ];
+    //let colors = vec![RED, GREEN, BLUE, YELLOW, ORANGE, GRAY, SKYBLUE, LIME, ];
     let num = colors.len();
     let c = rand::gen_range(0, num);
     return colors[c];
@@ -292,6 +298,8 @@ pub struct Settings {
     pub agent_size_max: i32,
     pub show_network: bool,
     pub show_specie: bool,
+    pub mutations: f32,
+    pub neurolink_rate: f32,
 }
 
 impl Default for Settings {
@@ -309,6 +317,8 @@ impl Default for Settings {
             agent_size_max: AGENT_SIZE_MAX,
             show_network: true,
             show_specie: false,
+            mutations: 0.1,
+            neurolink_rate: 0.2,
         }
     }
 }
@@ -353,4 +363,8 @@ impl SimState {
 
 pub struct MouseState {
     pub pos: Vec2,
+}
+
+pub struct HitList {
+    pub targets: HashMap<u64, f32>,
 }

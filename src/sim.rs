@@ -9,6 +9,8 @@ use crate::physics::*;
 use crate::collector::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
+use macroquad::experimental::collections::storage;
+use std::collections::HashMap;
 use std::f32::consts::PI;
 
 
@@ -45,7 +47,7 @@ impl Simulation {
             camera: create_camera(),
             running: false,
             sim_time: 0.0,
-            settings,
+            settings: *storage::get_mut::<Settings>(),
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
@@ -100,9 +102,30 @@ impl Simulation {
         self.update_sim_state();
         self.check_agents_num();
         self.calc_selection_time();
+        self.attacks();
         self.update_agents();
-        self.units.populate(&mut self.physics);
+        self.units.populate(&self.settings, &mut self.physics);
         self.physics.step_physics();
+    }
+
+    pub fn attacks(&mut self) {
+        let mut hits_list: HashMap<u64, f32> = HashMap::new();
+        for (id, agent) in self.units.get_iter_mut() {
+            if !agent.attacking { continue; }
+            let hits = agent.attack();
+            for (id, dmg) in hits {
+                if hits_list.contains_key(&id) {
+                    let mut total_dmg = *hits_list.get_mut(&id).unwrap();
+                    total_dmg += dmg;
+                    hits_list.insert(id, dmg);
+                }
+            }
+        }
+
+        for (key, hit) in hits_list.iter() {
+            let target = self.units.agents.get_mut(key).unwrap();
+            target.eng -= *hit;
+        }
     }
 
     pub fn draw(&self) {
