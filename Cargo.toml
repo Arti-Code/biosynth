@@ -1,6 +1,6 @@
 [package]
 name = "evolve"
-version = "0.4.10"
+version = "0.4.11"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
 keywords = [
@@ -8,6 +8,7 @@ keywords = [
     "neuroevolution", "neural network", "genethics algorithm", 
     "artificial inteligence", "synthetic biology"
 ]
+
 
 
 [dependencies]

@@ -18,6 +18,7 @@ use crate::sim::{*, self};
 use crate::util::*;
 use crate::unit::*;
 use crate::neuro::*;
+use crate::globals::*;
 
 pub struct UISystem {
     pub state: UIState,
@@ -61,14 +62,14 @@ impl UISystem {
         });
     }
 
-    pub fn ui_process(&mut self, settings: &mut Settings, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Unit>) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Unit>) {
         egui_macroquad::ui(|egui_ctx| {
             self.pointer_over = egui_ctx.is_pointer_over_area();
             self.build_top_menu(egui_ctx, &sim_state.sim_name);
             self.build_quit_window(egui_ctx);
             self.build_monit_window(egui_ctx, &sim_state);
             self.build_debug_window(egui_ctx, camera2d);
-            self.build_new_sim_window(egui_ctx, signals, settings);
+            self.build_new_sim_window(egui_ctx, signals);
             match agent {
                 Some(agent) => {
                     self.build_inspect_window(egui_ctx, agent);
@@ -78,7 +79,7 @@ impl UISystem {
                 None => {}
             }
             self.build_about_window(egui_ctx);
-            self.build_settings_window(egui_ctx, settings, signals);
+            self.build_settings_window(egui_ctx, signals);
         });
     }
 
@@ -279,8 +280,9 @@ impl UISystem {
         }
     }
 
-    fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals, settings: &mut Settings) {
+    fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if self.state.new_sim {
+            let mut settings = mod_settings();
             let w = 400.0; let h = 160.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).fixed_size([w, h]).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
@@ -407,7 +409,7 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            let w = 400.0; let h = 400.0;
+            let w = 250.0; let h = 250.0; let resize = 250.0;
             Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w)
                 .title_bar(true).show(egui_ctx, |ui| {
                     let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
@@ -416,23 +418,23 @@ impl UISystem {
                     let center = rect.center();
                     let sketch = network.get_visual_sketch();
                     for link in sketch.connections.iter() {
-                        let p1 = vec2_to_pos2(link.loc1)+zero;
-                        let p2 = vec2_to_pos2(link.loc2)+zero;
-                        let pt = vec2_to_pos2(link.loc_t)+zero;
+                        let p1 = vec2_to_pos2(link.loc1*resize)+zero;
+                        let p2 = vec2_to_pos2(link.loc2*resize)+zero;
+                        let pt = vec2_to_pos2(link.loc_t*resize)+zero;
                         let c1 = color_to_color32(link.color1);
                         let c2 = color_to_color32(link.color2);
                         let points1 = [p1, p2];
                         let points2 = [p1, pt];
-                        painter.line_segment(points1, Stroke { color: c1, width: 4.0 });
-                        painter.line_segment(points2, Stroke { color: c2, width: 5.0 });
+                        painter.line_segment(points1, Stroke { color: c1, width: 3.0 });
+                        painter.line_segment(points2, Stroke { color: c2, width: 4.0 });
                     }
                     for node in sketch.neurons.iter() {
-                        let p1 = vec2_to_pos2(node.loc1)+zero;
+                        let p1 = vec2_to_pos2(node.loc1*resize)+zero;
                         let c0 = color_to_color32(node.color1);
                         let c1 = color_to_color32(node.color2);
-                        painter.circle_filled(p1, 5.0,  Color32::BLACK);
-                        painter.circle_filled(p1, 5.0,  c1);
-                        painter.circle_stroke(p1, 5.0, Stroke { color: c0, width: 2.0 });
+                        painter.circle_filled(p1, 4.0,  Color32::BLACK);
+                        painter.circle_filled(p1, 4.0,  c1);
+                        painter.circle_stroke(p1, 4.0, Stroke { color: c0, width: 1.0 });
                     } 
             });
         }
@@ -471,10 +473,11 @@ impl UISystem {
         }
     }
 
-    fn build_settings_window(&mut self, egui_ctx: &Context, settings: &mut Settings, signals: &mut Signals) {
+    fn build_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if !self.state.enviroment {
             return;
         }
+        let mut settings = mod_settings();
         Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.heading("AGENTS");
@@ -581,9 +584,11 @@ impl UISystem {
                 let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.enviroment = false;
+                    init_global_settings(settings);
                 }
             });
         });
+        init_global_settings(settings);
     }
 
     pub fn ui_draw(&self) {

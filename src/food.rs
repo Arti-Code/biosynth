@@ -1,14 +1,13 @@
 #![allow(unused)]
 
 use std::collections::HashMap;
-use std::collections::hash_map::Iter;
-use std::collections::hash_map::IterMut;
-use std::f32::consts::PI;
+use std::collections::hash_map::{Iter, IterMut};
 use rapier2d::geometry::*;
 use macroquad::{prelude::*, color};
 use crate::util::*;
 use crate::consts::*;
 use crate::timer::*;
+use crate::globals::*;
 
 pub struct Food {
     pub pos: Vec2,
@@ -23,18 +22,12 @@ pub struct Food {
 
 impl Food {
     pub fn new_random() -> Self {
-        let s = rand::gen_range(5, 10) as f32;
-        let pos = random_position(x_max, y_max)
-        Self {
-            pos: random_position(WORLD_W, WORLD_H),
-            rot: random_rotation(),
-            size: s,
-            max_eng: s.powi(2)*10.0,
-            eng: s.powi(2)*10.0,
-            color: YELLOW,
-            shape: Ball { radius: s },
-            alife: true,
-        }
+        let settings = get_settings();
+        let size = rand::gen_range(5, 10) as f32;
+        let position = random_position(settings.world_w as f32, settings.world_h as f32);
+        let rotation = random_rotation();
+        let color = random_color();
+        Self::new(position, rotation, size, color)
     }
 
     pub fn new(position: Vec2, rotation: f32, size: f32, color: Color) -> Self {

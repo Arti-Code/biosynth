@@ -7,6 +7,7 @@ use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
+use crate::globals::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
@@ -91,7 +92,6 @@ pub struct Unit {
     pub enemy_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
     pub body_parts: Vec<BodyPart>,
-    pub settings: Settings,
     pub neuro_table: NeuroTable,
     pub childs: usize,
     pub specie: String,
@@ -103,7 +103,8 @@ pub struct Unit {
 
 impl Unit {
     
-    pub fn new(settings: &Settings, physics: &mut PhysicsWorld) -> Self {
+    pub fn new(physics: &mut PhysicsWorld) -> Self {
+        let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
@@ -140,7 +141,6 @@ impl Unit {
             contacts: Vec::new(),
             physics_handle: rbh,
             body_parts: parts,
-            settings: settings.clone(),
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             childs: 0,
             specie: create_name(4),
@@ -164,9 +164,10 @@ impl Unit {
     }
 
     pub fn draw(&self, selected: bool, font: &Font) {
+        let settings = get_settings();
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        if self.settings.agent_eng_bar {
+        if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
             self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
         }
@@ -178,7 +179,7 @@ impl Unit {
         if selected {
             self.draw_info(&font);
             self.draw_target();
-        } else if self.settings.show_specie {
+        } else if settings.show_specie {
             self.draw_info(&font);
         }
     }    
@@ -333,6 +334,7 @@ impl Unit {
     }
 
     fn update_physics(&mut self, physics: &mut PhysicsWorld) {
+        let settings = get_settings();
         self.update_enemy_position(physics);
         let physics_data = physics.get_physics_data(self.physics_handle);
         self.pos = physics_data.position;
@@ -341,8 +343,8 @@ impl Unit {
         match physics.rigid_bodies.get_mut(self.physics_handle) {
             Some(body) => {
                 let dir = Vec2::from_angle(self.rot);
-                let v = dir * self.vel * self.settings.agent_speed;
-                let rot = self.ang_vel * self.settings.agent_rotate;
+                let v = dir * self.vel * settings.agent_speed;
+                let rot = self.ang_vel * settings.agent_rotate;
                 body.set_linvel(Vector2::new(v.x, v.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);
@@ -352,20 +354,21 @@ impl Unit {
     }
 
     fn check_edges(&mut self, body: &mut RigidBody) {
+        let settings = get_settings();
         let mut raw_pos = matrix_to_vec2(body.position().translation);
         let mut out_of_edge = false;
         if raw_pos.x < 0.0 {
             raw_pos.x = 0.0;
             out_of_edge = true;
-        } else if raw_pos.x > self.settings.world_w as f32 {
-            raw_pos.x = self.settings.world_w as f32;
+        } else if raw_pos.x > settings.world_w as f32 {
+            raw_pos.x = settings.world_w as f32;
             out_of_edge = true;
         }
         if raw_pos.y < 0.0 {
             raw_pos.y = 0.0;
             out_of_edge = true;
-        } else if raw_pos.y > self.settings.world_h as f32 {
-            raw_pos.y = self.settings.world_h as f32;
+        } else if raw_pos.y > settings.world_h as f32 {
+            raw_pos.y = settings.world_h as f32;
             out_of_edge = true;
         }
         if out_of_edge {
@@ -447,12 +450,13 @@ impl Unit {
     }
 
     pub fn replicate(&self, physics: &mut PhysicsWorld) -> Self {
+        let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let size = self.size;
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
-        let pos = random_position(self.settings.world_w as f32, self.settings.world_h as f32);
+        let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default());
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
@@ -481,7 +485,6 @@ impl Unit {
             contacts: Vec::new(),
             physics_handle: rbh,
             body_parts: parts,
-            settings: self.settings.clone(),
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             childs: 0,
             specie: self.specie.to_owned(),

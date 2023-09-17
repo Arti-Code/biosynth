@@ -7,6 +7,7 @@ use crate::ui::*;
 use crate::util::*;
 use crate::physics::*;
 use crate::collector::*;
+use crate::globals::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use macroquad::experimental::collections::storage;
@@ -23,7 +24,6 @@ pub struct Simulation {
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
-    pub settings: Settings,
     pub ui: UISystem,
     pub sim_state: SimState,
     pub signals: Signals,
@@ -35,7 +35,7 @@ pub struct Simulation {
 
 impl Simulation {
     
-    pub fn new(settings: Settings, font: Font) -> Self {
+    pub fn new(font: Font) -> Self {
         Self {
             simulation_name: String::new(),
             world_size: Vec2 {
@@ -47,7 +47,6 @@ impl Simulation {
             camera: create_camera(),
             running: false,
             sim_time: 0.0,
-            settings: *storage::get_mut::<Settings>(),
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
@@ -63,7 +62,8 @@ impl Simulation {
             Some(name) => name.to_string(),
             None => String::from("Simulation"),
         };
-        self.world_size = Vec2::new(self.settings.world_w as f32, self.settings.world_h as f32);
+        let settings = get_settings();
+        self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = PhysicsWorld::new();
         self.units.agents.clear();
         self.sim_time = 0.0;
@@ -78,8 +78,9 @@ impl Simulation {
     }
 
     pub fn init(&mut self) {
-        let agents_num = self.settings.agent_init_num;
-        self.units.add_many_agents(agents_num as usize, &mut self.physics, &self.settings);
+        let settings = get_settings();
+        let agents_num = settings.agent_init_num;
+        self.units.add_many_agents(agents_num as usize, &mut self.physics);
     }
 
     pub fn autorun_new_sim(&mut self) {
@@ -104,7 +105,7 @@ impl Simulation {
         self.calc_selection_time();
         self.attacks();
         self.update_agents();
-        self.units.populate(&self.settings, &mut self.physics);
+        self.units.populate(&mut self.physics);
         self.physics.step_physics();
     }
 
@@ -185,7 +186,7 @@ impl Simulation {
 
     pub fn signals_check(&mut self) {
         if self.signals.spawn_agent {
-            self.units.add_many_agents(1, &mut self.physics, &self.settings);
+            self.units.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
         }
         if self.signals.new_sim {
@@ -194,7 +195,6 @@ impl Simulation {
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
-            self.units.reload_settings(&self.settings)
         }
     }
 
@@ -239,8 +239,9 @@ impl Simulation {
     }
 
     fn check_agents_num(&mut self) {
-        if self.sim_state.agents_num < (self.settings.agent_min_num as i32) {
-            self.units.add_many_agents(1, &mut self.physics, &self.settings);
+        let settings = get_settings();
+        if self.sim_state.agents_num < (settings.agent_min_num as i32) {
+            self.units.add_many_agents(1, &mut self.physics);
         }
     }
 
@@ -251,7 +252,7 @@ impl Simulation {
 
     pub fn process_ui(&mut self) {
         let marked_agent = self.units.get(self.selected);
-        self.ui.ui_process(&mut self.settings ,&self.sim_state, &mut self.signals, &self.camera, marked_agent);
+        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, marked_agent);
     }
 
     pub fn draw_ui(&self) {

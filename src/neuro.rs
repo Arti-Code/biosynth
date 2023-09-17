@@ -17,6 +17,14 @@ fn rand_position(x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Vec2 {
     return Vec2::new(x as f32, y as f32);
 }
 
+fn rand_position_rel() -> Vec2 {
+    let mut x: f32 = rand::gen_range(0.0, 1.0);
+    let mut y: f32 = rand::gen_range(0.0, 1.0);
+    x = (x*100.0).round()/100.0;
+    y = (y*100.0).round()/100.0;
+    return Vec2::new(x, y);
+}
+
 fn generate_id() -> u64 {
     return rand::gen_range(u64::MIN, u64::MAX);
 }
@@ -87,12 +95,12 @@ impl NeuroVisual {
     }
 
     pub fn add_node(&mut self, location: Vec2, color1: Color, color2: Color) {
-        let e = VisualNeuron {loc1: location, color1: color1, color2: color2 };
+        let e = VisualNeuron {loc1: location, color1, color2 };
         self.neurons.push(e);
     }
 
     pub fn add_link(&mut self, location1: Vec2, location2: Vec2, location_timing: Vec2, color1: Color, color2: Color) {
-        let e = VisualConnection {loc1: location1, loc2: location2, loc_t: location_timing, color1: color1, color2: color2 };
+        let e = VisualConnection {loc1: location1, loc2: location2, loc_t: location_timing, color1, color2 };
         self.connections.push(e);
     }
 
@@ -158,7 +166,7 @@ impl Node {
     pub fn new(position: Vec2, neuron_type: NeuronTypes) -> Self {
         Self {
             id: generate_id(),
-            pos: position,
+            pos: (position*100.0).round()/100.0,
             //links_to: vec![],
             bias: rand::gen_range(-1.0, 1.0),
             val: rand::gen_range(0.0, 0.0),
@@ -296,37 +304,7 @@ impl Link {
         }
         return (color0, color1);
     }
-
-/*     pub fn draw2(&self, nodes: &HashMap<u64, Node>, timer: f32) {
-        let w = self.w;
-        let s = clamp(self.signal, -1.0, 1.0);
-        let mut color0: Color = WHITE;
-        let mut color1: Color = WHITE;
-        if w >= 0.0 {
-            color0 = color_u8!(255, 75, 75, (200.0*w) as u8);
-        }
-        if w < 0.0 {
-            color0 = color_u8!(75, 75, 255, (200.0*w.abs()) as u8);
-        }
-        if s >= 0.0 {
-            color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
-        }
-        if s < 0.0 {
-            color1 = color_u8!(0, 0, 255, (100.0+155.0*s.abs()) as u8);
-        }
-        let n0 = self.node_from;
-        let n1 = self.node_to;
-        let p0 = nodes.get(&n0).unwrap().pos;
-        let p1 = nodes.get(&n1).unwrap().pos;
-        let l = p1.distance(p0).abs();
-        let dir = (p1-p0).normalize_or_zero();
-        let flow1 = l*(timer/2.0)*dir;
-        //let flow2 = l*(timer/2.0)*dir*0.96;
-        draw_line(p0.x, p0.y, p1.x, p1.y, 2.0+3.0*w.abs(), color0);
-        draw_line(p0.x, p0.y, p0.x+flow1.x, p0.y+flow1.y, 2.0+4.0*s.abs(), color1);
-        
-    } */
-
+    
     pub fn calc(&mut self, nodes: &mut HashMap<u64, Node>) {
         let n0 = self.node_from;
         let n1 = self.node_to;
@@ -361,7 +339,7 @@ impl Network {
             nodes: HashMap::new(),
             links: HashMap::new(),
             timer: 0.0,
-            margins: Margins { x_min: 10.0, x_max: 390.0, y_min: 10.0, y_max: 390.0 },
+            margins: Margins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 },
             input_keys: vec![],
             output_keys: vec![],
             duration,
@@ -409,7 +387,7 @@ impl Network {
         let wd = (self.margins.x_max)/2.0 + self.margins.x_min;
         let h0 = self.margins.y_min;
         for i in 0..input {
-            let node = Node::new(Vec2::new(25.0, (hi/2.0+hi*i as f32)+h0), NeuronTypes::INPUT);
+            let node = Node::new(Vec2::new(self.margins.x_min, (hi/2.0+hi*i as f32)+h0), NeuronTypes::INPUT);
             let id = node.id;
             self.nodes.insert(id, node);
         }

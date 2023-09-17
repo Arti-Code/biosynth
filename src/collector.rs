@@ -6,16 +6,16 @@ use std::collections::HashMap;
 use crate::util::*;
 use crate::physics::*;
 use crate::unit::*;
+use crate::globals::*;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
 
 pub trait PhysicsObject {
-    fn new(settings: &Settings) -> Self;
+    fn new() -> Self;
     fn draw(&self, selected: bool, font: &Font);
     fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool;
     fn update_physics(&mut self, physics: &mut PhysicsWorld);
     fn link_physics_handle(&mut self, handle: RigidBodyHandle);
-    fn update_settings(&mut self, settings: &Settings);
 }
 
 pub struct UnitsBox {
@@ -29,20 +29,15 @@ impl UnitsBox {
         }
     }
 
-    pub fn reload_settings(&mut self, settings: &Settings) {
-        for (_, agent) in self.get_iter_mut() {
-            agent.settings = settings.clone();
-        }
-    }
-
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld, settings: &Settings) {
+    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld) {
         for _ in 0..agents_num {
-            let agent = Unit::new(settings, physics_world);
+            let agent = Unit::new(physics_world);
             _ = self.add_agent(agent);
         }
     }
 
-    pub fn populate(&mut self, settings: &Settings, physics: &mut PhysicsWorld) {
+    pub fn populate(&mut self, physics: &mut PhysicsWorld) {
+        let settings = get_settings();
         let mut newborns: Vec<Unit> = vec![];
         for (_, agent) in self.get_iter_mut() {
             if agent.lifetime >= (100 + 100 * agent.childs) as f32 && (agent.eng/agent.max_eng) >= 0.75 {
@@ -95,5 +90,5 @@ impl UnitsBox {
 }
 
 pub struct ElementsBox {
-    
+
 }
