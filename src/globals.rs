@@ -31,6 +31,9 @@ pub struct Settings {
     pub show_specie: bool,
     pub mutations: f32,
     pub neurolink_rate: f32,
+    pub damage: f32,
+    pub base_energy_cost: f32,
+    pub move_energy_cost: f32
 }
 
 impl Default for Settings {
@@ -50,6 +53,10 @@ impl Default for Settings {
             show_specie: true,
             mutations: 0.2,
             neurolink_rate: 0.2,
-        }
+            damage: 50.0,
+            base_energy_cost: 0.3,
+            move_energy_cost: 0.6,
+
+       }
     }
 }

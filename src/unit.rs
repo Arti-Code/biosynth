@@ -199,13 +199,13 @@ impl Unit {
         return self.alife;
     }
 
-    pub fn attack(&self) -> Vec<u64> {
+    pub fn attack(&self) -> Vec<RigidBodyHandle> {
         let dt = get_frame_time();
-        let mut hits: Vec<u64> = vec![];
+        let mut hits: Vec<RigidBodyHandle> = vec![];
         if !self.attacking { return hits; }
         for (rbh, id, ang) in self.contacts.to_vec() {
             if ang <= PI/4.0 && ang >= -PI/4.0 {
-                hits.push(id);
+                hits.push(rbh);
             }
         }
         return hits;
@@ -428,9 +428,12 @@ impl Unit {
     } */
 
     fn calc_energy(&mut self, dt: f32) {
-        let basic_loss = self.size * dt * 0.5;
-        let move_loss = self.vel * self.size * dt * 2.0;
-        let loss = basic_loss + move_loss;
+        let settings = get_settings();
+        let base_cost = settings.base_energy_cost;
+        let move_cost = settings.move_energy_cost;
+        let basic_loss = self.size * base_cost;
+        let move_loss = self.vel * self.size * move_cost;
+        let loss = (basic_loss + move_loss) * dt;
         if self.eng > 0.0 {
             self.eng -= loss;
         } else {

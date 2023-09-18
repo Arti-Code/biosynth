@@ -11,6 +11,7 @@ use crate::globals::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use macroquad::experimental::collections::storage;
+use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 
@@ -28,7 +29,7 @@ pub struct Simulation {
     pub sim_state: SimState,
     pub signals: Signals,
     select_phase: f32,
-    pub selected: u64,
+    pub selected: Option<RigidBodyHandle>,
     pub mouse_state: MouseState,
     pub units: UnitsBox,
 }
@@ -50,7 +51,7 @@ impl Simulation {
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
-            selected: 0,
+            selected: None,
             select_phase: 0.0,
             mouse_state: MouseState { pos: Vec2::NAN },
             units: UnitsBox::new(),
@@ -70,7 +71,7 @@ impl Simulation {
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
-        self.selected = 0;
+        self.selected = None;
         self.select_phase = 0.0;
         self.mouse_state = MouseState { pos: Vec2::NAN };
         self.running = true;
@@ -103,16 +104,16 @@ impl Simulation {
         self.update_sim_state();
         self.check_agents_num();
         self.calc_selection_time();
-        self.attacks2();
+        self.attacks();
         self.update_agents();
         self.units.populate(&mut self.physics);
         self.physics.step_physics();
     }
 
-    fn attacks2(&mut self) {
+    fn attacks(&mut self) {
         let dt = get_frame_time();
         //let temp_units = self.units.agents.
-        let mut hits: HashMap<u64, f32> = HashMap::new();
+        let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.units.get_iter() {
             if !agent.attacking { continue; }
             let attacks = agent.attack();
@@ -121,7 +122,7 @@ impl Simulation {
                     let power1 = agent.size + agent.size*random_unit()/2.0;
                     let power2 = target.size + target.size*random_unit()/2.0;
                     if power1 > power2 {
-                        let dmg = agent.size * (power1/(power1+power2))*dt*1000.0;
+                        let dmg = agent.size * (power1/(power1+power2))*dt*20.0;
                         if hits.contains_key(id) {
                             let new_dmg = hits.get_mut(id).unwrap();
                             *new_dmg += dmg;
@@ -140,29 +141,9 @@ impl Simulation {
         }
         for (id, dmg) in hits.iter() {
             let mut agent = self.units.agents.get_mut(id).unwrap();
-            agent.eng += *dmg;
+            agent.add_energy(*dmg);
         }
     }
-
-/*     pub fn attacks(&mut self) {
-        let mut hits_list: HashMap<u64, f32> = HashMap::new();
-        for (id, agent) in self.units.get_iter_mut() {
-            if !agent.attacking { continue; }
-            let hits = agent.attack();
-            for (id, dmg) in hits {
-                if hits_list.contains_key(&id) {
-                    let mut total_dmg = *hits_list.get_mut(&id).unwrap();
-                    total_dmg += dmg;
-                    hits_list.insert(id, dmg);
-                }
-            }
-        }
-
-        for (key, hit) in hits_list.iter() {
-            let target = self.units.agents.get_mut(key).unwrap();
-            target.eng -= *hit;
-        }
-    } */
 
     pub fn draw(&self) {
         //set_default_camera();
@@ -171,40 +152,38 @@ impl Simulation {
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_grid(50);
         self.draw_agents();
-        //if self.settings.show_network { self.draw_network(); }
-    }
-
-    fn draw_network(&self) {
-        match self.units.get(self.selected) {
-            None => {},
-            Some(agent) => {
-                agent.network.draw();
-            },
-        }
     }
 
     fn draw_agents(&self) {
         for (id, agent) in self.units.get_iter() {
             let mut draw_field_of_view: bool = false;
-            if *id == self.selected {
-                draw_field_of_view = true;
-            };
+            if self.selected.is_some() {
+                if *id == self.selected.unwrap() {
+                    draw_field_of_view = true;
+                };
+            }
             agent.draw(draw_field_of_view, &self.font);
         }
-        match self.units.get(self.selected) {
-            Some(selected_agent) => {
-                let pos = Vec2::new(selected_agent.pos.x, selected_agent.pos.y);
-                let s = selected_agent.size;
-                draw_circle_lines(
-                    pos.x,
-                    pos.y,
-                    2.0 * s + (self.select_phase.sin() * s * 0.5),
-                    1.0,
-                    ORANGE,
-                );
-            }
-            None => {}
-        };
+
+        match self.selected {
+            Some(selected) => {
+                match self.units.get(selected) {
+                    Some(selected_agent) => {
+                        let pos = Vec2::new(selected_agent.pos.x, selected_agent.pos.y);
+                        let s = selected_agent.size;
+                        draw_circle_lines(
+                            pos.x,
+                            pos.y,
+                            2.0 * s + (self.select_phase.sin() * s * 0.5),
+                            1.0,
+                            ORANGE,
+                        );
+                    },
+                    None => {},
+                }
+            },
+            None => {},
+        }
     }
 
     fn draw_grid(&self, cell_size: u32) {
@@ -241,13 +220,13 @@ impl Simulation {
     fn mouse_input(&mut self) {
         if is_mouse_button_released(MouseButton::Left) {
             if !self.ui.pointer_over {
-                self.selected = 0;
+                self.selected = None;
                 let (mouse_posx, mouse_posy) = mouse_position();
                 let mouse_pos = Vec2::new(mouse_posx, mouse_posy);
                 let rel_coords = self.camera.screen_to_world(mouse_pos);
                 for (id, agent) in self.units.get_iter() {
                     if contact_mouse(rel_coords, agent.pos, agent.size) {
-                        self.selected = *id;
+                        self.selected = Some(*id);
                         break;
                     }
                 }
@@ -286,8 +265,13 @@ impl Simulation {
     }
 
     pub fn process_ui(&mut self) {
-        let marked_agent = self.units.get(self.selected);
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, marked_agent);
+        let selected = match self.selected {
+            Some(selected) => {
+                self.units.get(selected)
+            },
+            None => None,
+        };
+        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected);
     }
 
     pub fn draw_ui(&self) {

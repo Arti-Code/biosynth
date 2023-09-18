@@ -19,7 +19,7 @@ pub trait PhysicsObject {
 }
 
 pub struct UnitsBox {
-    pub agents: HashMap<u64, Unit>,
+    pub agents: HashMap<RigidBodyHandle, Unit>,
 }
 
 impl UnitsBox {
@@ -61,25 +61,25 @@ impl UnitsBox {
         }
     }
 
-    pub fn add_agent(&mut self, agent: Unit) -> u64 {
-        let key = agent.key;
-        self.agents.insert(key, agent);
-        return key;
+    pub fn add_agent(&mut self, agent: Unit) {
+        //let key = agent.key;
+        self.agents.insert(agent.physics_handle, agent);
+        //return key;
     }
 
-    pub fn get(&self, id: u64) -> Option<&Unit> {
+    pub fn get(&self, id: RigidBodyHandle) -> Option<&Unit> {
         return self.agents.get(&id);
     }
 
-    pub fn _remove(&mut self, id: u64) {
+    pub fn _remove(&mut self, id: RigidBodyHandle) {
         self.agents.remove(&id);
     }
 
-    pub fn get_iter(&self) -> Iter<u64, Unit> {
+    pub fn get_iter(&self) -> Iter<RigidBodyHandle, Unit> {
         return self.agents.iter();
     }
 
-    pub fn get_iter_mut(&mut self) -> IterMut<u64, Unit> {
+    pub fn get_iter_mut(&mut self) -> IterMut<RigidBodyHandle, Unit> {
         return self.agents.iter_mut();
     }
 

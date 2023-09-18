@@ -504,6 +504,36 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut base_energy_cost: f32 = settings.base_energy_cost;
+                column[0].label(RichText::new("BASE ENG COST").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut base_energy_cost, 0.0..=10.0).step_by(0.1)).changed() {
+                    settings.base_energy_cost = base_energy_cost;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut move_energy_cost: f32 = settings.move_energy_cost;
+                column[0].label(RichText::new("MOVE ENG COST").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut move_energy_cost, 0.0..=10.0).step_by(0.1)).changed() {
+                    settings.move_energy_cost = move_energy_cost;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut damage: i32 = settings.damage as i32;
+                column[0].label(RichText::new("DAMAGE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut damage, 0..=100).step_by(1.0)).changed() {
+                    settings.damage = damage as f32;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut agent_vision_range: i32 = settings.agent_vision_range as i32;
                 column[0].label(RichText::new("VISION").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut agent_vision_range, 10..=1000)).changed() {
