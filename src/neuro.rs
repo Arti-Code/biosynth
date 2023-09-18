@@ -704,3 +704,13 @@ fn test_ser_de() {
     println!("{}", &s);
 
 }
+
+#[test]
+fn u64_to_u128() {
+    let mut uint64: u64 = u64::MAX;
+    println!("u64: {}", uint64);
+    let mut uint128: u128 = uint64 as u128;
+    println!("u128: {}", uint128);
+    uint64 = uint128 as u64;
+    println!("u64: {}", uint64);
+}

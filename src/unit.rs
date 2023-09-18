@@ -193,31 +193,28 @@ impl Unit {
         }
 
         self.update_physics(physics);
-        self.calc_timers(dt);
+        //self.calc_timers(dt);
         self.network.update();
         self.calc_energy(dt);
         return self.alife;
     }
 
-    pub fn attack(&mut self) -> Vec<(u64, f32)> {
+    pub fn attack(&self) -> Vec<u64> {
         let dt = get_frame_time();
-        let mut hits: Vec<(u64, f32)> = vec![];
+        let mut hits: Vec<u64> = vec![];
+        if !self.attacking { return hits; }
         for (rbh, id, ang) in self.contacts.to_vec() {
             if ang <= PI/4.0 && ang >= -PI/4.0 {
-                //self.add_energy(dt);
-                let dmg = dt*10.0*self.size;
-                self.eng += dmg;
-                hits.push((id, dmg));
-                if self.eng > self.max_eng {
-                    self.eng = self.max_eng;
-                }
+                hits.push(id);
             }
         }
         return hits;
     }
 
     fn analize(&mut self) {
-        let mut contact = clamp(self.contacts.len(), 0, 1) as f32;
+        let mut contact: f32 = 0.0;
+        if self.contacts.len() > 0 { contact = 1.0; }
+        //let mut contact = clamp(self.contacts.len(), 0, 1) as f32;
         let tg_dist = match self.enemy_position {
             None => 0.0,
             Some(pos2) => {
@@ -357,17 +354,17 @@ impl Unit {
         let settings = get_settings();
         let mut raw_pos = matrix_to_vec2(body.position().translation);
         let mut out_of_edge = false;
-        if raw_pos.x < 0.0 {
+        if raw_pos.x < -5.0 {
             raw_pos.x = 0.0;
             out_of_edge = true;
-        } else if raw_pos.x > settings.world_w as f32 {
+        } else if raw_pos.x > settings.world_w as f32 + 5.0 {
             raw_pos.x = settings.world_w as f32;
             out_of_edge = true;
         }
-        if raw_pos.y < 0.0 {
+        if raw_pos.y < -5.0 {
             raw_pos.y = 0.0;
             out_of_edge = true;
-        } else if raw_pos.y > settings.world_h as f32 {
+        } else if raw_pos.y > settings.world_h as f32 + 5.0 {
             raw_pos.y = settings.world_h as f32;
             out_of_edge = true;
         }
@@ -404,7 +401,7 @@ impl Unit {
                 let mut rel_pos = pos2 - self.pos;
                 rel_pos = rel_pos.normalize_or_zero();
                 let target_angle = rel_pos.angle_between(Vec2::from_angle(self.rot));
-                match physics.get_key_by_body_handle(contact) {
+                match physics.get_key_for_body(&contact) {
                     Some(key) => {
                         self.contacts.push((contact, key, target_angle));
                     },
@@ -426,9 +423,9 @@ impl Unit {
         }
     }
 
-    fn calc_timers(&mut self, _dt: f32) {
+/*     fn calc_timers(&mut self, _dt: f32) {
 
-    }
+    } */
 
     fn calc_energy(&mut self, dt: f32) {
         let basic_loss = self.size * dt * 0.5;
@@ -442,7 +439,7 @@ impl Unit {
         }
     }
 
-    pub fn _add_energy(&mut self, e: f32) {
+    pub fn add_energy(&mut self, e: f32) {
         self.eng += e;
         if self.eng > self.max_eng {
             self.eng = self.max_eng;

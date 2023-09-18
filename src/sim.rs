@@ -103,13 +103,48 @@ impl Simulation {
         self.update_sim_state();
         self.check_agents_num();
         self.calc_selection_time();
-        self.attacks();
+        self.attacks2();
         self.update_agents();
         self.units.populate(&mut self.physics);
         self.physics.step_physics();
     }
 
-    pub fn attacks(&mut self) {
+    fn attacks2(&mut self) {
+        let dt = get_frame_time();
+        //let temp_units = self.units.agents.
+        let mut hits: HashMap<u64, f32> = HashMap::new();
+        for (id, agent) in self.units.get_iter() {
+            if !agent.attacking { continue; }
+            let attacks = agent.attack();
+            for tg in attacks.iter() {
+                if let Some(mut target) = self.units.agents.get(tg) {
+                    let power1 = agent.size + agent.size*random_unit()/2.0;
+                    let power2 = target.size + target.size*random_unit()/2.0;
+                    if power1 > power2 {
+                        let dmg = agent.size * (power1/(power1+power2))*dt*1000.0;
+                        if hits.contains_key(id) {
+                            let new_dmg = hits.get_mut(id).unwrap();
+                            *new_dmg += dmg;
+                        } else {
+                            hits.insert(*id, dmg);
+                        }
+                        if hits.contains_key(tg) {
+                            let new_dmg = hits.get_mut(tg).unwrap();
+                            *new_dmg -= dmg;
+                        } else {
+                            hits.insert(*tg, -dmg);
+                        }
+                    }
+                }
+            }
+        }
+        for (id, dmg) in hits.iter() {
+            let mut agent = self.units.agents.get_mut(id).unwrap();
+            agent.eng += *dmg;
+        }
+    }
+
+/*     pub fn attacks(&mut self) {
         let mut hits_list: HashMap<u64, f32> = HashMap::new();
         for (id, agent) in self.units.get_iter_mut() {
             if !agent.attacking { continue; }
@@ -127,7 +162,7 @@ impl Simulation {
             let target = self.units.agents.get_mut(key).unwrap();
             target.eng -= *hit;
         }
-    }
+    } */
 
     pub fn draw(&self) {
         //set_default_camera();

@@ -40,7 +40,7 @@ impl Default for Settings {
             world_h: WORLD_H as i32,
             agent_eng_bar: true,
             agent_init_num: 75,
-            agent_min_num: 16,
+            agent_min_num: 35,
             agent_rotate: 2.0,
             agent_speed: 100.0,
             agent_size_min: 5,

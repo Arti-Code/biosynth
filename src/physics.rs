@@ -6,6 +6,7 @@ use macroquad::prelude::*;
 use rapier2d::na::Isometry2;
 use rapier2d::na::{Point2, Vector2};
 use rapier2d::prelude::*;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::f32::consts::PI;
 
@@ -44,6 +45,7 @@ pub struct PhysicsWorld {
     pub attract_num: u32,
     pub rigid_bodies: RigidBodySet,
     pub colliders: ColliderSet,
+    bodies_keys: HashMap<RigidBodyHandle, u64>,
     gravity: Vector2<f32>,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
@@ -64,6 +66,7 @@ impl PhysicsWorld {
         Self {
             attract_num: 0,
             rigid_bodies: RigidBodySet::new(),
+            bodies_keys: HashMap::new(),
             colliders: ColliderSet::new(),
             gravity: Vector2::new(0.0, 0.0),
             integration_parameters: IntegrationParameters::default(),
@@ -101,6 +104,7 @@ impl PhysicsWorld {
     }
 
     pub fn remove_physics_object(&mut self, body_handle: RigidBodyHandle) {
+        self.remove_body_key_relation(&body_handle);
         _ = self.rigid_bodies.remove(body_handle, &mut self.island_manager, &mut self.colliders, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
     }
 
@@ -135,10 +139,10 @@ impl PhysicsWorld {
         return (pos, rot);
     }
 
-    pub fn add_dynamic_rigidbody(&mut self, key: u64, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
+    fn add_dynamic_rigidbody(&mut self, key: u64, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
         let pos = Isometry2::new(Vector2::new(position.x, position.y), rotation);
-        let dynamic_body = RigidBodyBuilder::dynamic().position(pos).linear_damping(linear_damping).angular_damping(angular_damping)
-            .user_data(key as u128).build();
+        let dynamic_body = RigidBodyBuilder::dynamic().position(pos)
+            .linear_damping(linear_damping).angular_damping(angular_damping).build();
         return self.rigid_bodies.insert(dynamic_body);
     }
 
@@ -163,7 +167,8 @@ impl PhysicsWorld {
 
     pub fn add_dynamic(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> RigidBodyHandle {
         let rbh = self.add_dynamic_rigidbody(key, position, rotation, physics_props.linear_damping, physics_props.angular_damping);
-        let _colh = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props);
+        self.assign_body_with_key(rbh, key);
+        _ = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props);
         return rbh;
     }
 
@@ -262,13 +267,27 @@ impl PhysicsWorld {
         }
     }
 
-    pub fn get_key_by_body_handle(&self, body_handle: RigidBodyHandle) -> Option<u64> {
+/*     pub fn get_key_by_body_handle(&self, body_handle: RigidBodyHandle) -> Option<u64> {
         match self.rigid_bodies.get(body_handle) {
             Some(body) => { Some(body.user_data as u64) },
             None => { None },
         }
+    } */
+
+    fn assign_body_with_key(&mut self, body_handle: RigidBodyHandle, key: u64) {
+        self.bodies_keys.insert(body_handle, key);
     }
 
+    fn remove_body_key_relation(&mut self, body_handle: &RigidBodyHandle) {
+        self.bodies_keys.remove(body_handle);
+    }
+
+    pub fn get_key_for_body(&self, body_handle: &RigidBodyHandle) -> Option<u64> {
+        match self.bodies_keys.get(body_handle) {
+            Some(key) => Some(*key),
+            None => None,
+        }
+    }
 }
 
 pub struct PhysicsData {
