@@ -53,9 +53,9 @@ impl UISystem {
     
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
-            let img =  Self::load_image(Path::new("assets/img/microbes32.png")).unwrap();
+            let img =  Self::load_image(Path::new("assets/img/synaptic32.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
-            let img2 =  Self::load_image(Path::new("assets/img/microbes.png")).unwrap();
+            let img2 =  Self::load_image(Path::new("assets/img/synaptic128.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
             let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
             self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
@@ -288,17 +288,18 @@ impl UISystem {
                 let big_logo = self.big_logo.clone().unwrap();
                 let title = self.title.clone().unwrap();
                 ui.vertical_centered(|pic| {
-                    pic.image(title.id(), title.size_vec2()*0.7);
-                });
-                ui.add_space(1.0);
-                ui.vertical_centered(|pic| {
                     pic.image(big_logo.id(), big_logo.size_vec2()*0.7);
+                });
+                ui.add_space(4.0);
+                ui.vertical_centered(|pic| {
+                    pic.image(title.id(), title.size_vec2()*0.7);
                 });
                 ui.add_space(1.0);
                 ui.vertical_centered(|author| {
                     let txt = format!("Artur Gwoździowski 2023  |  ver.{}", env!("CARGO_PKG_VERSION"));
-                    author.label(RichText::new(txt).color(Color32::BLUE).strong());
+                    author.label(RichText::new(txt).color(Color32::RED).strong());
                 });
+                ui.add_space(6.0);
                 ui.separator();
                 ui.add_space(6.0);
                 ui.vertical_centered(|head| {

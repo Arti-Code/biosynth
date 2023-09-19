@@ -112,7 +112,7 @@ impl Unit {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
         let mut network = Network::new(1.0);
-        network.build(5, 4, 4, settings.neurolink_rate);
+        network.build(5, 5, 4, settings.neurolink_rate);
         let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -496,4 +496,21 @@ impl Unit {
 pub struct Detected {
     pub target_handle: RigidBodyHandle,
     pub dist: f32,
+}
+
+
+pub struct AgentSketch {
+    key: u64,
+    pos: Vec2,
+    rot: f32,
+    size: f32,
+    vision_range: f32,
+    max_eng: f32,
+    color: color::Color,
+    shape: SharedShape,
+    network: Network,
+    physics_handle: RigidBodyHandle,
+    body_parts: Vec<BodyPart>,
+    neuro_table: NeuroTable,
+    specie: String,
 }

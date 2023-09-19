@@ -209,6 +209,32 @@ impl PhysicsWorld {
         }
     }
 
+    pub fn get_object_size(&self, handle: RigidBodyHandle) -> Option<f32> {
+        let rb = self.rigid_bodies.get(handle);
+        match rb {
+            Some(body) => {
+                match body.colliders().first() {
+                    Some(colh) => {
+                        match self.colliders.get(*colh) {
+                            Some(collider) => {
+                                return Some(collider.shape().as_ball().unwrap().radius);
+                            },
+                            None => {
+                                return None;
+                            },
+                        }
+                    },
+                    None => { 
+                      return None; 
+                    },
+                }
+            },
+            None => {
+                return None;
+            },
+        }
+    }
+
     pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
         let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
