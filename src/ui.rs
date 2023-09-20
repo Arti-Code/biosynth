@@ -16,7 +16,7 @@ use macroquad::ui::widgets::Texture;
 use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::sim::{*, self};
 use crate::util::*;
-use crate::unit::*;
+use crate::agent::*;
 use crate::neuro::*;
 use crate::globals::*;
 
@@ -62,7 +62,7 @@ impl UISystem {
         });
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Unit>) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>) {
         egui_macroquad::ui(|egui_ctx| {
             self.pointer_over = egui_ctx.is_pointer_over_area();
             self.build_top_menu(egui_ctx, &sim_state.sim_name, signals);
@@ -346,7 +346,7 @@ impl UISystem {
         }
     }
 
-    fn build_inspect_window(&self, egui_ctx: &Context, agent: &Unit) {
+    fn build_inspect_window(&self, egui_ctx: &Context, agent: &Agent) {
         if self.state.inspect {
             let rot = agent.rot;
             let size = agent.size;
@@ -453,7 +453,7 @@ impl UISystem {
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|closer| {
-                    let mut stylus = closer.style();
+                    //let mut stylus = closer.style();
                     if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_BLUE).strong()).clicked() {
                         self.state.about = false;
                         //self.state.new_sim = true;

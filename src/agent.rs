@@ -70,7 +70,7 @@ pub struct NeuroTable {
     pub outputs: Vec<(u64, f32)>,
 }
 
-pub struct Unit {
+pub struct Agent {
     pub key: u64,
     pub pos: Vec2,
     pub rot: f32,
@@ -104,7 +104,7 @@ pub struct Unit {
 
 
 
-impl Unit {
+impl Agent {
     
     pub fn new(physics: &mut PhysicsWorld) -> Self {
         let settings = get_settings();

@@ -9,7 +9,7 @@ mod ui;
 mod util;
 mod physics;
 mod part;
-mod unit;
+mod agent;
 mod collector;
 mod food;
 mod globals;
