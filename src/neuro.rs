@@ -69,7 +69,7 @@ pub enum NeuronTypes {
 } */
 
 
-pub struct VisualNeuron {
+/* pub struct VisualNeuron {
     pub loc1: Vec2,
     pub color1: Color,
     pub color2: Color,
@@ -104,9 +104,9 @@ impl NeuroVisual {
         self.connections.push(e);
     }
 
-}
+} */
 
-pub struct DummyNetwork {
+/* pub struct DummyNetwork {
     outputs: usize,
 }
 
@@ -126,7 +126,7 @@ impl DummyNetwork {
         }
         return outputs;
     }
-}
+} */
 
 
 #[derive(Clone, Copy)]
@@ -139,6 +139,7 @@ pub struct Node {
     pub selected: bool,
     pub node_type: NeuronTypes,
     last: f32,
+    active: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -174,6 +175,7 @@ impl Node {
             selected: false,
             node_type: neuron_type,
             last: 0.0,
+            active: false,
         }
     }
 
@@ -187,6 +189,7 @@ impl Node {
             sum: 0.0,
             val: 0.0,
             last: 0.0,
+            active: false,
         }
     }
 
@@ -195,6 +198,9 @@ impl Node {
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
+        if !self.active {
+            return (LIGHTGRAY, GRAY);
+        }
         let (mut color0, color1) = match self.last {
             n if n>0.0 => { 
                 let v = (155.0*n) as u8;
@@ -233,12 +239,13 @@ impl Node {
         self.links_to.push(link_id);
     } */
 
-    pub fn get_val(&self) -> f32 {
+    pub fn send_impulse(&self) -> f32 {
         return self.val;
     }
 
-    pub fn add_to_sum(&mut self, v: f32) {
+    pub fn receiv_signal(&mut self, v: f32) {
         self.sum += v;
+        self.active = true;
     }
 
     pub fn calc(&mut self) {
@@ -277,26 +284,31 @@ impl Link {
     pub fn get_coords(&self, nodes: &HashMap<u64, Node>, timer: f32) -> (Vec2, Vec2, Vec2) {
         let n0 = self.node_from;
         let n1 = self.node_to;
-        let p0 = nodes.get(&n0).unwrap().pos;
+        let node0 = nodes.get(&n0).unwrap();
+        let p0 = node0.pos;
         let p1 = nodes.get(&n1).unwrap().pos;
         let l = p1.distance(p0).abs();
         let dir = (p1-p0).normalize_or_zero();
-        let pt = p0 + (l*(timer)*dir);
+        let mut pt = p0 + (l*(timer)*dir);
+        if !node0.active { pt = p0 }
         return (p0, p1, pt);
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
-        let w = self.w;
+        //let w = self.w;
         let s = clamp(self.signal, -1.0, 1.0);
-        let mut color0: Color = WHITE;
-        let mut color1: Color = WHITE;
-        if w >= 0.0 {
-            color0 = color_u8!(255, 0, 0, (150.0*w) as u8);
+        let mut color0: Color = LIGHTGRAY;
+        let mut color1: Color = GRAY;
+        if s == 0.0 {
+            return (color0, color1);
         }
-        if w < 0.0 {
-            color0 = color_u8!(0, 0, 255, (150.0*w.abs()) as u8);
-        }
-        if s >= 0.0 {
+        //if w >= 0.0 {
+        //    color0 = color_u8!(255, 0, 0, (150.0*w) as u8);
+        //}
+        //if w < 0.0 {
+        //    color0 = color_u8!(0, 0, 255, (150.0*w.abs()) as u8);
+        //}
+        if s > 0.0 {
             color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
         }
         if s < 0.0 {
@@ -310,9 +322,13 @@ impl Link {
         let n1 = self.node_to;
         let w = self.w;
         let node0 = nodes.get(&n0).unwrap();
-        let v = node0.get_val()*w;
+        if !node0.active { 
+            self.signal = 0.0;
+            return;
+        }
+        let v = node0.send_impulse()*w;
         let node1 = nodes.get_mut(&n1).unwrap();
-        node1.add_to_sum(v);
+        node1.receiv_signal(v);
         self.signal = v;
     }
 
@@ -354,14 +370,29 @@ impl Network {
         self.output_keys = o;
     }
 
-    pub fn input(&mut self, input_values: Vec<(u64, f32)>) {
+    pub fn input(&mut self, input_values: Vec<(u64, Option<f32>)>) {
         for (key, value) in input_values.iter() {
             match self.nodes.get_mut(key) {
                 None => warn!("input node {} not found", key),
                 Some(node) => {
-                    node.sum = *value;
+                    match value {
+                        Some(v) => {
+                            node.sum = *v;
+                            node.active = true;
+                        },
+                        None => {
+                            node.sum = 0.0;
+                        }
+                    }
+
                 },
             }
+        }
+    }
+
+    pub fn deactivate_nodes(&mut self) {
+        for (_, node) in self.nodes.iter_mut() {
+            node.active = false;
         }
     }
 
@@ -637,7 +668,7 @@ impl Network {
 
     }
 
-    pub fn get_visual_sketch(&self) -> NeuroVisual {
+/*     pub fn get_visual_sketch(&self) -> NeuroVisual {
         let t = self.timer/self.duration;
         let mut sketch = NeuroVisual::new();
         for (id, node) in self.nodes.iter() {
@@ -651,7 +682,8 @@ impl Network {
             sketch.add_link(pos1, pos2, loc_t, color0, color1);
         }
         return sketch;
-    }
+    } */
+
 
 }
 

@@ -216,34 +216,6 @@ pub fn color_to_color32(color: Color) -> Color32 {
     return Color32::from_rgba_unmultiplied(r, g, b, a);
 }
 
-pub struct Signals {
-    pub world: Vec2,
-    pub spawn_agent: bool,
-    pub spawn_plant: bool,
-    pub spawn_asteroid: bool,
-    pub spawn_jet: bool,
-    pub spawn_particles: bool,
-    pub new_sim: bool,
-    pub new_sim_name: String,
-    pub new_settings: bool,
-}
-
-impl Signals {
-    
-    pub fn new() -> Self {
-        Self {
-            world: Vec2::NAN,
-            spawn_agent: false,
-            spawn_plant: false,
-            spawn_asteroid: false,
-            spawn_jet: false,
-            spawn_particles: false,
-            new_sim: false,
-            new_sim_name: String::new(),
-            new_settings: false,
-        }
-    }
-}
 
 
 pub struct UIState {

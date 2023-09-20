@@ -4,3 +4,5 @@ biosynth.exe
 biosynth.wasm
 evolve.exe
 neuro.json
+src/ui.rs
+saves/*

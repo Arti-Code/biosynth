@@ -13,6 +13,10 @@ use macroquad::rand::*;
 use rapier2d::geometry::*;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
+use std::fmt::Debug;
+use serde::{Serialize, Deserialize};
+use serde_json::{self, *};
+use std::fs;
 
 
 pub struct BodyPart {
@@ -62,7 +66,7 @@ impl BodyPart {
 
 
 pub struct NeuroTable {
-    pub inputs: Vec<(u64, f32)>,
+    pub inputs: Vec<(u64, Option<f32>)>,
     pub outputs: Vec<(u64, f32)>,
 }
 
@@ -71,16 +75,15 @@ pub struct Unit {
     pub pos: Vec2,
     pub rot: f32,
     pub mass: f32,
-    pub vel: f32,
-    pub ang_vel: f32,
+    vel: f32,
+    ang_vel: f32,
     pub size: f32,
     pub vision_range: f32,
     pub max_eng: f32,
     pub eng: f32,
-    pub color: color::Color,
+    color: color::Color,
     pub shape: SharedShape,
     analize_timer: Timer,
-    analizer: DummyNetwork,
     pub network: Network,
     pub alife: bool,
     pub lifetime: f32,
@@ -129,7 +132,6 @@ impl Unit {
             color,
             shape,
             analize_timer: Timer::new(1.0, true, true, true),
-            analizer: DummyNetwork::new(2),
             network,
             alife: true,
             lifetime: 0.0,
@@ -212,14 +214,14 @@ impl Unit {
     }
 
     fn analize(&mut self) {
-        let mut contact: f32 = 0.0;
-        if self.contacts.len() > 0 { contact = 1.0; }
+        let mut contact: Option<f32> = None;
+        if self.contacts.len() > 0 { contact = Some(1.0); }
         //let mut contact = clamp(self.contacts.len(), 0, 1) as f32;
         let tg_dist = match self.enemy_position {
-            None => 0.0,
+            None => None,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
-                1.0-(dist/self.vision_range)
+                Some(1.0-(dist/self.vision_range))
             },
         };
         let mut tg_ang = match self.enemy_dir {
@@ -229,19 +231,20 @@ impl Unit {
             },
         };
         tg_ang = tg_ang/PI;
-        let mut tgr: f32 = 0.0; let mut tgl: f32 = 0.0;
+        let mut tgr: Option<f32> = None; let mut tgl: Option<f32> = None;
         if tg_ang > 0.0 {
-            tgr = 1.0 - clamp(tg_ang, 0.0, 1.0);
+            tgr = Some(1.0 - clamp(tg_ang, 0.0, 1.0));
         } else if tg_ang < 0.0 {
-            tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs(); 
+            tgl = Some(1.0-clamp(tg_ang, -1.0, 0.0).abs()); 
         }
-        let hp = self.eng/self.max_eng;
-        let val = vec![contact, hp, tgl, tgr, tg_dist];
+        let hp = Some(self.eng/self.max_eng);
+        let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist];
         let keys = self.network.input_keys.clone();
-        let mut input_values: Vec<(u64, f32)> = vec![];
+        let mut input_values: Vec<(u64, Option<f32>)> = vec![];
         for i in 0..val.len() {
             input_values.push((keys[i], val[i]));
         }
+        self.network.deactivate_nodes();
         self.network.input(input_values.clone());
         self.network.calc();
         let mut outputs = self.network.get_outputs();
@@ -266,16 +269,18 @@ impl Unit {
 
     fn draw_front(&self) {
         let dir = Vec2::from_angle(self.rot);
-        let v0 = dir * self.size;
-        let x0 = self.pos.x + v0.x;
-        let y0 = self.pos.y + v0.y;
-        let x1 = self.pos.x + dir.x * self.size * 1.6;
-        let y1 = self.pos.y + dir.y * self.size * 1.6;
-        draw_line(x0, y0, x1, y1, 3.0, self.color);
+        let left = Vec2::from_angle(self.rot-PI/10.0);
+        let right = Vec2::from_angle(self.rot+PI/10.0);
+        let l0 = self.pos + left*self.size;
+        let r0 = self.pos + right*self.size;
+        let l1 = self.pos + left*self.size*1.7;
+        let r1 = self.pos + right*self.size*1.7;
+        let mut yaw_color = LIGHTGRAY;
         if self.attacking {
-            let va = self.pos + dir * self.size * 0.7;
-            draw_circle(va.x, va.y, self.size * 0.5,  MAGENTA);
+            yaw_color = RED;
         }
+        draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
+        draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
     }
 
     fn draw_circle(&self) {
@@ -431,9 +436,14 @@ impl Unit {
         let settings = get_settings();
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
+        let attack_cost = settings.attack_energy_cost;
         let basic_loss = self.size * base_cost;
         let move_loss = self.vel * self.size * move_cost;
-        let loss = (basic_loss + move_loss) * dt;
+        let attack_loss = match self.attacking {
+            true => attack_cost * self.size,
+            false => 0.0,
+        };
+        let loss = (basic_loss + move_loss + attack_loss) * dt;
         if self.eng > 0.0 {
             self.eng -= loss;
         } else {
@@ -452,7 +462,11 @@ impl Unit {
     pub fn replicate(&self, physics: &mut PhysicsWorld) -> Self {
         let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
-        let size = self.size;
+        let mut size = self.size;
+        if rand::gen_range(0, 9) == 0 {
+            size += rand::gen_range(-1, 1) as f32;
+        }
+        size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32);
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
@@ -473,7 +487,6 @@ impl Unit {
             color,
             shape,
             analize_timer: self.analize_timer.to_owned(),
-            analizer: DummyNetwork::new(2),
             network: self.network.replicate(),
             alife: true,
             lifetime: 0.0,
@@ -491,7 +504,23 @@ impl Unit {
             attacking: false,
         }
     }
+
+    pub fn get_sketch(&self) -> AgentSketch {
+        AgentSketch { 
+            specie: self.specie.to_owned(),
+            generation: self.generation, 
+            size: self.size, 
+            shape: match self.shape.shape_type() {
+                ShapeType::Ball => MyShapeType::Ball,
+                _ => MyShapeType::Cuboid,
+            },
+            color: self.color.to_vec().to_array(), 
+            vision_range: self.vision_range, 
+            network: self.network.get_sketch(), 
+        }
+    }
 }
+
 
 pub struct Detected {
     pub target_handle: RigidBodyHandle,
@@ -499,18 +528,24 @@ pub struct Detected {
 }
 
 
-pub struct AgentSketch {
-    key: u64,
-    pos: Vec2,
-    rot: f32,
-    size: f32,
-    vision_range: f32,
-    max_eng: f32,
-    color: color::Color,
-    shape: SharedShape,
-    network: Network,
-    physics_handle: RigidBodyHandle,
-    body_parts: Vec<BodyPart>,
-    neuro_table: NeuroTable,
-    specie: String,
+#[derive(Debug, Serialize, Deserialize)]
+enum MyShapeType {
+    Ball,
+    Cuboid,
+    Segment,
 }
+
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AgentSketch {
+    specie: String,
+    generation: u32,
+    size: f32,
+    shape: MyShapeType,
+    color: [f32; 4],
+    vision_range: f32,
+    network: NetworkSketch,
+
+}
+

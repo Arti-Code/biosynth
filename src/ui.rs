@@ -65,7 +65,7 @@ impl UISystem {
     pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Unit>) {
         egui_macroquad::ui(|egui_ctx| {
             self.pointer_over = egui_ctx.is_pointer_over_area();
-            self.build_top_menu(egui_ctx, &sim_state.sim_name);
+            self.build_top_menu(egui_ctx, &sim_state.sim_name, signals);
             self.build_quit_window(egui_ctx);
             self.build_monit_window(egui_ctx, &sim_state);
             self.build_debug_window(egui_ctx, camera2d);
@@ -83,11 +83,12 @@ impl UISystem {
         });
     }
 
-    fn build_top_menu(&mut self, egui_ctx: &Context, sim_name: &str) {
+    fn build_top_menu(&mut self, egui_ctx: &Context, sim_name: &str, signals: &mut Signals) {
         TopBottomPanel::top("top_panel").default_height(100.0).show(egui_ctx, |ui| {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
+            
             menu::bar(ui, |ui| {
                 let logo = self.logo.clone().unwrap();
                 ui.image(logo.id(), logo.size_vec2());
@@ -96,84 +97,61 @@ impl UISystem {
                 ui.add_space(5.0);
                 ui.separator();
                 ui.add_space(5.0);
+                
                 menu::menu_button(ui, RichText::new("SIMULATION").strong(), |ui| {
-                    if ui
-                        .button(
-                            RichText::new("New Simulation")
-                                .strong()
-                                .color(Color32::BLUE),
-                        )
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("New Simulation").strong().color(Color32::BLUE)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui
-                        .button(
-                            RichText::new("Load Simulation")
-                                .weak()
-                                .color(Color32::from_gray(100)),
-                        )
-                        .clicked()
-                    {}
-                    if ui
-                        .button(
-                            RichText::new("Save Simulation")
-                                .weak()
-                                .color(Color32::from_gray(100)),
-                        )
-                        .clicked()
-                    {}
-                    if ui
-                        .button(RichText::new("Quit").color(Color32::RED).strong())
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("Load Simulation").weak().color(Color32::from_gray(100))).clicked() {
+
+                    }
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::from_gray(100))).clicked() {
+
+                    }
+                    if ui.button(RichText::new("Load Agent").weak().color(Color32::from_gray(100))).clicked() {
+
+                    }
+                    if ui.button(RichText::new("Save Agent").strong().color(Color32::BLUE),).clicked() {
+                        //let mut signals = mod_signals();
+                        signals.save_selected = true;
+                    }
+                    if ui.button(RichText::new("Quit").color(Color32::RED).strong()).clicked() {
                         self.state.quit = true;
                     }
                 });
+
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
 
                 menu::menu_button(ui, RichText::new("VIEW").strong(), |ui| {
-                    if ui
-                        .button(RichText::new("Monitor").strong().color(Color32::WHITE))
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("Monitor").strong().color(Color32::WHITE)).clicked() {
                         self.state.performance = !self.state.performance;
                     }
-                    if ui
-                        .button(RichText::new("Inspector").strong().color(Color32::WHITE))
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.inspect = !self.state.inspect;
                     }
-                    if ui
-                        .button(RichText::new("Debug Info").strong().color(Color32::WHITE))
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
                         self.state.mouse = !self.state.mouse;
                     }
                 });
+
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
+                
                 menu::menu_button(ui, RichText::new("TOOLS").strong(), |ui| {
                 });
 
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
+
                 menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
-                    if ui
-                        .button(RichText::new("Network Inspector").strong().color(Color32::WHITE))
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("Network Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.neuro_lab = !self.state.neuro_lab;
                     }
-                    if ui
-                        .button(RichText::new("I/O").strong().color(Color32::WHITE))
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("I/O").strong().color(Color32::WHITE)).clicked() {
                         self.state.io = !self.state.io;
                     }
                 });
@@ -182,6 +160,7 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
+
                 menu::menu_button(ui, RichText::new("SETTINGS").strong(), |ui| {
                     if ui.button(RichText::new("Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.enviroment = !self.state.enviroment;
@@ -211,8 +190,8 @@ impl UISystem {
             let delta = sim_state.dt;
             let time = sim_state.sim_time;
             let physics_num = sim_state.physics_num;
-            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
-                ui.label(format!("DELTA: {}ms", (delta * 1000.0).round()));
+            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(160.0).show(egui_ctx, |ui| {
+                ui.label(format!("DT: {}ms", (delta * 1000.0).round()));
                 ui.separator();
                 ui.label(format!("FPS: {}", fps));
                 ui.separator();
@@ -225,14 +204,21 @@ impl UISystem {
         }
     }
 
-    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(u64, f32)>, outputs: Vec<(u64, f32)>) {
+    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(u64, Option<f32>)>, outputs: Vec<(u64, f32)>) {
         if self.state.io {
-            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
+            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(160.0).show(egui_ctx, |ui| {
                 ui.horizontal(|horizont| {
                     horizont.columns(2, |col| {
                         for (id, v) in inputs.iter() {
-                            let i = (v*100.0).round()/100.0;
-                            col[0].label(format!("{}", i));
+                            match v {
+                                Some(val) => {
+                                    let i = (val*100.0).round()/100.0;
+                                    col[0].label(format!("{}", i));
+                                },
+                                None => {
+                                    col[0].label(format!("--"));
+                                }
+                            }
                         }
                         for (id, v) in outputs.iter() {
                             let o = (v*100.0).round()/100.0;
@@ -372,15 +358,15 @@ impl UISystem {
             let generation = agent.generation;
             let childs = agent.childs;
             let attack = agent.attacking;
-            Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(200.0).show(egui_ctx, |ui| {
+            Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(170.0).show(egui_ctx, |ui| {
                 ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
-                ui.label(format!("lifetime: [{}]", lifetime));
-                ui.label(format!("generation: [{}]", generation));
+                ui.label(format!("life: [{}]", lifetime));
+                ui.label(format!("gen: [{}]", generation));
                 ui.label(format!("childs: [{}]", childs));
-                ui.label(format!("direction: [{}]", ((rot * 10.0).round()) / 10.0));
+                ui.label(format!("dir: [{}]", ((rot * 10.0).round()) / 10.0));
                 ui.label(format!("size: [{}]", size));
-                ui.label(format!("position: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
-                ui.label(RichText::new(format!("energy: {}/{}", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::BLUE));
+                ui.label(format!("pos: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
+                ui.label(RichText::new(format!("eng: {}/{}", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::BLUE));
                 if attack {
                     ui.label(RichText::new("[ATTACK]").strong().color(Color32::RED));
                 } else {
@@ -388,19 +374,19 @@ impl UISystem {
                 }
                 ui.separator();
                 ui.label(RichText::new("ENEMY").strong().color(Color32::RED));
-                ui.label(format!("contacts: [{}]", contacts_num));
+                ui.label(format!("cont: [{}]", contacts_num));
                 match (tg_pos, tg_ang) {
                     (Some(target), Some(ang)) => {
-                        ui.label(format!("position: [x: {} | y:{}]", target.x.round(), target.y.round()));
-                        ui.label(format!("angle: [{}]", (ang*10.0).round()/10.0));
+                        ui.label(format!("pos: [x: {} | y:{}]", target.x.round(), target.y.round()));
+                        ui.label(format!("ang: [{}]", (ang*10.0).round()/10.0));
                     }
                     (None, None) => {
-                        ui.label(format!("position: [---]"));
-                        ui.label(format!("angle: [---]"));
+                        ui.label(format!("pos: [---]"));
+                        ui.label(format!("ang: [---]"));
                     }
                     (_, _) => {
-                        ui.label(format!("position: [---]"));
-                        ui.label(format!("angle: [---]"));
+                        ui.label(format!("pos: [---]"));
+                        ui.label(format!("ang: [---]"));
                     }
                 }
                 ui.separator();
@@ -410,29 +396,32 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            let w = 250.0; let h = 250.0; let resize = 250.0;
+            let w = 200.0; let h = 200.0; let resize = 200.0;
             Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w)
                 .title_bar(true).show(egui_ctx, |ui| {
                     let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
                     let rect = response.rect;
                     let zero = rect.left_top().to_vec2();
                     let center = rect.center();
-                    let sketch = network.get_visual_sketch();
-                    for link in sketch.connections.iter() {
-                        let p1 = vec2_to_pos2(link.loc1*resize)+zero;
-                        let p2 = vec2_to_pos2(link.loc2*resize)+zero;
-                        let pt = vec2_to_pos2(link.loc_t*resize)+zero;
-                        let c1 = color_to_color32(link.color1);
-                        let c2 = color_to_color32(link.color2);
+                    //let sketch = network.get_visual_sketch();
+                    for (key, link) in network.links.iter() {
+                        let (coord0, coord1, coord_t) = link.get_coords(&network.nodes, 0.0);
+                        let p1 = vec2_to_pos2(coord0*resize)+zero;
+                        let p2 = vec2_to_pos2(coord1*resize)+zero;
+                        //let pt = vec2_to_pos2(link.loc_t*resize)+zero;
+                        let (color0, color1) = link.get_colors();
+                        let c1 = color_to_color32(color1);
+                        let c2 = color_to_color32(color0);
                         let points1 = [p1, p2];
-                        let points2 = [p1, pt];
+                        //let points2 = [p1, pt];
                         painter.line_segment(points1, Stroke { color: c1, width: 3.0 });
-                        painter.line_segment(points2, Stroke { color: c2, width: 4.0 });
+                        //painter.line_segment(points2, Stroke { color: c2, width: 4.0 });
                     }
-                    for node in sketch.neurons.iter() {
-                        let p1 = vec2_to_pos2(node.loc1*resize)+zero;
-                        let c0 = color_to_color32(node.color1);
-                        let c1 = color_to_color32(node.color2);
+                    for (key, node) in network.nodes.iter() {
+                        let (color0, color1) = node.get_colors();
+                        let p1 = vec2_to_pos2(node.pos*resize)+zero;
+                        let c0 = color_to_color32(color1);
+                        let c1 = color_to_color32(color0);
                         painter.circle_filled(p1, 4.0,  Color32::BLACK);
                         painter.circle_filled(p1, 4.0,  c1);
                         painter.circle_stroke(p1, 4.0, Stroke { color: c0, width: 1.0 });
@@ -507,7 +496,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut base_energy_cost: f32 = settings.base_energy_cost;
                 column[0].label(RichText::new("BASE ENG COST").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut base_energy_cost, 0.0..=10.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut base_energy_cost, 0.0..=5.0).step_by(0.1)).changed() {
                     settings.base_energy_cost = base_energy_cost;
                     signals.new_settings = true;
                 }
@@ -517,7 +506,17 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut move_energy_cost: f32 = settings.move_energy_cost;
                 column[0].label(RichText::new("MOVE ENG COST").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut move_energy_cost, 0.0..=10.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut move_energy_cost, 0.0..=5.0).step_by(0.1)).changed() {
+                    settings.move_energy_cost = move_energy_cost;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut move_energy_cost: f32 = settings.move_energy_cost;
+                column[0].label(RichText::new("ATTACK ENG COST").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut move_energy_cost, 0.0..=5.0).step_by(0.1)).changed() {
                     settings.move_energy_cost = move_energy_cost;
                     signals.new_settings = true;
                 }

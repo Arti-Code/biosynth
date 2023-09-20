@@ -34,6 +34,7 @@ fn app_configuration() -> Conf {
 
 fn setup() {
     init_global_settings(Settings::default());
+    init_global_signals(Signals::new());
 }
 
 #[macroquad::main(app_configuration)]

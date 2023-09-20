@@ -14,6 +14,10 @@ use macroquad::experimental::collections::storage;
 use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
+use serde::{Serialize, Deserialize};
+use serde_json;
+use std::fs;
+use std::path::Path;
 
 
 
@@ -199,6 +203,7 @@ impl Simulation {
     }
 
     pub fn signals_check(&mut self) {
+        let mut sign = mod_signals();
         if self.signals.spawn_agent {
             self.units.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
@@ -209,6 +214,37 @@ impl Simulation {
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
+        }
+        if self.signals.save_selected {
+            self.signals.save_selected = false;
+            match self.selected {
+                Some(handle) => {
+                    self.save_agent_sketch(handle);
+                },
+                None => {},
+            }
+        }
+    }
+
+    fn save_agent_sketch(&self, handle: RigidBodyHandle) {
+        println!("save");
+        match self.units.get(handle) {
+            Some(agent) => {
+                let agent_sketch = agent.get_sketch();
+                let s = serde_json::to_string_pretty(&agent_sketch);
+                match s {
+                    Ok(js) => {
+                        let path_str = format!("saves/agents/agent{}.json", agent.key);
+                        let path = Path::new(&path_str);
+                        match fs::write(path, js.clone()) {
+                            Ok(_) => {},
+                            Err(_) => println!("ERROR: not saved"),
+                        }
+                    },
+                    Err(_) => {},
+                }
+            },
+            None => {},
         }
     }
 
