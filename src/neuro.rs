@@ -521,7 +521,14 @@ impl Network {
         for (key, node) in self.nodes.iter() {
             match node.node_type {
                 NeuronTypes::OUTPUT => {
-                    output_values.push((*key, node.val));
+                    match node.active {
+                        true => {
+                            output_values.push((*key, node.val));
+                        },
+                        false => {
+                            output_values.push((*key, 0.0));
+                        },
+                    }
                 },
                 _ => {},
             }
