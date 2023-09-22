@@ -101,7 +101,7 @@ impl Simulation {
             if !agent.update(dt, &mut self.physics) {
                 let sketch = agent.get_sketch();
                 self.ranking.push(sketch);
-                println!("RANKING: {} | max:{} | min:{}", self.ranking.len(), self.ranking.first().unwrap().points.round(), self.ranking.last().unwrap().points.round());
+                //println!("RANKING: {} | max:{} | min:{}", self.ranking.len(), self.ranking.first().unwrap().points.round(), self.ranking.last().unwrap().points.round());
                 self.physics.remove_physics_object(agent.physics_handle);
             }
         }
@@ -114,6 +114,14 @@ impl Simulation {
             self.ranking.pop();
         }
         let min_points = 0.0;
+    }
+
+    pub fn print_rank(&self) {
+        let mut i = 0;
+        for rank in self.ranking.iter() {
+            i += 1;
+            println!("[{}].{} | gen:{} | pts: {}", i, rank.specie.to_uppercase(), rank.generation, rank.points.round());
+        }
     }
 
     pub fn update(&mut self) {
@@ -159,7 +167,11 @@ impl Simulation {
         }
         for (id, dmg) in hits.iter() {
             let mut agent = self.units.agents.get_mut(id).unwrap();
-            agent.add_energy(*dmg);
+            let damage = *dmg;
+            agent.add_energy(damage);
+            if damage > 0.0 {
+                agent.points += damage*0.01;
+            }
         }
     }
 
@@ -218,6 +230,10 @@ impl Simulation {
 
     pub fn signals_check(&mut self) {
         let mut sign = mod_signals();
+        if self.signals.ranking {
+            self.signals.ranking = false;
+            self.print_rank();
+        }
         if self.signals.spawn_agent {
             self.units.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;

@@ -134,6 +134,9 @@ impl UISystem {
                     if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
                         self.state.mouse = !self.state.mouse;
                     }
+                    if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
+                        signals.ranking = true;
+                    }
                 });
 
                 ui.add_space(10.0);
@@ -364,7 +367,7 @@ impl UISystem {
                 ui.label(format!("life: [{}]", lifetime));
                 ui.label(format!("gen: [{}]", generation));
                 ui.label(format!("size: [{}]", size));
-                ui.label(format!("points: [{}]", points));
+                ui.label(format!("points: [{}]", points.round()));
                 ui.label(format!("childs: [{}]", childs));
                 ui.label(format!("dir: [{}]", ((rot * 10.0).round()) / 10.0));
                 ui.label(format!("pos: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));

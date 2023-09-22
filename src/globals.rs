@@ -92,6 +92,7 @@ pub struct Signals {
     pub new_sim_name: String,
     pub new_settings: bool,
     pub save_selected: bool,
+    pub ranking: bool,
 }
 
 impl Signals {
@@ -108,6 +109,7 @@ impl Signals {
             new_sim_name: String::new(),
             new_settings: false,
             save_selected: false,
+            ranking: false,
         }
     }
 }

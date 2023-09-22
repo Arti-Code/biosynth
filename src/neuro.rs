@@ -125,6 +125,10 @@ impl Node {
         NodeSketch { id: self.id, pos: MyPos2 { x: self.pos.x, y: self.pos.y }, bias: self.bias, node_type: self.node_type.to_owned(), label: self.label.to_owned() }
     }
 
+    pub fn from_sketch(sketch: NodeSketch) -> Node {
+        Node { id: sketch.id, pos: sketch.pos.to_vec2(), bias: sketch.bias, val: 0.0, sum: 0.0, selected: false, node_type: sketch.node_type, last: 0.0, active: false, label: sketch.label.to_string() }
+    }
+
     pub fn get_colors(&self) -> (Color, Color) {
         if !self.active {
             return (LIGHTGRAY, GRAY);
@@ -266,6 +270,10 @@ impl Link {
 
     pub fn get_sketch(&self) -> LinkSketch {
         LinkSketch { id: self.id, w: self.w, node_from: self.node_from, node_to: self.node_to }
+    }
+
+    pub fn from_sketch(sketch: LinkSketch) -> Link {
+        Link { id: sketch.id, w: sketch.w, node_from: sketch.node_from, node_to: sketch.node_to, signal: 0.0 }
     }
 }
 
@@ -662,12 +670,12 @@ impl NetworkSketch {
         let mut links: HashMap<u64, Link> = HashMap::new();
         let margins = Margins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 };
         for (key, sketch_node) in self.nodes.iter() {
-            let node = Node::new(sketch_node.pos.to_vec2(), sketch_node.node_type, &sketch_node.label);
+            let node = Node::from_sketch(sketch_node.to_owned());
             nodes.insert(*key, node);
         }
 
         for (key, sketch_link) in self.links.iter() {
-            let link = Link::new(sketch_link.node_from, sketch_link.node_to);
+            let link = Link::from_sketch(sketch_link.to_owned());
             links.insert(*key, link);
         }
         let mut net = Network { nodes: nodes.to_owned() , links: links.to_owned(), timer: random_unit().abs(), margins: self.margins.to_owned(), input_keys: vec![], output_keys: vec![], duration: self.duration };
