@@ -9,6 +9,7 @@ use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use serde_json::{self, *};
 use std::fs;
+use crate::util::*;
 
 
 fn rand_position(x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Vec2 {
@@ -30,7 +31,7 @@ fn generate_id() -> u64 {
 }
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 struct Margins {
     pub x_min: f32,
     pub x_max: f32,
@@ -52,84 +53,8 @@ pub enum NeuronTypes {
     ANY,
 }
 
-/* impl Serialize for NeuronTypes {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
-        let mut s = serializer.serialize_struct("NeuronTypes", 1)?;
-        let v = match self {
-            Self::ANY => "any",
-            Self::DEEP => "deep",
-            Self::INPUT => "input",
-            Self::OUTPUT => "output",
-        };
-        s.serialize_field("type", v);
-        s.end()
-    }
-} */
 
-
-/* pub struct VisualNeuron {
-    pub loc1: Vec2,
-    pub color1: Color,
-    pub color2: Color,
-}
-
-pub struct VisualConnection {
-    pub loc1: Vec2,
-    pub loc2: Vec2,
-    pub loc_t: Vec2,
-    pub color1: Color,
-    pub color2: Color,
-}
-
-pub struct NeuroVisual {
-    pub neurons: Vec<VisualNeuron>,
-    pub connections: Vec<VisualConnection>
-}
-
-impl NeuroVisual {
-    
-    pub fn new() -> Self {
-        Self { neurons: vec![], connections: vec![] }
-    }
-
-    pub fn add_node(&mut self, location: Vec2, color1: Color, color2: Color) {
-        let e = VisualNeuron {loc1: location, color1, color2 };
-        self.neurons.push(e);
-    }
-
-    pub fn add_link(&mut self, location1: Vec2, location2: Vec2, location_timing: Vec2, color1: Color, color2: Color) {
-        let e = VisualConnection {loc1: location1, loc2: location2, loc_t: location_timing, color1, color2 };
-        self.connections.push(e);
-    }
-
-} */
-
-/* pub struct DummyNetwork {
-    outputs: usize,
-}
-
-impl DummyNetwork {
-
-    pub fn new(outputs_num: usize) -> Self {
-        Self {
-            outputs: outputs_num,
-        }
-    }
-
-    pub fn analize(&self) -> Vec<f32> {
-        let mut outputs: Vec<f32> = vec![];
-        for _ in 0..self.outputs {
-            let out = gen_range(-1.0, 1.0);
-            outputs.push(out);
-        }
-        return outputs;
-    }
-} */
-
-
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Node {
     pub id: u64,
     pub pos: Vec2,
@@ -140,6 +65,7 @@ pub struct Node {
     pub node_type: NeuronTypes,
     last: f32,
     active: bool,
+    label: String,
 }
 
 #[derive(Clone, Copy)]
@@ -164,7 +90,7 @@ pub struct Network {
 
 impl Node {
 
-    pub fn new(position: Vec2, neuron_type: NeuronTypes) -> Self {
+    pub fn new(position: Vec2, neuron_type: NeuronTypes, label: &str) -> Self {
         Self {
             id: generate_id(),
             pos: (position*100.0).round()/100.0,
@@ -176,6 +102,7 @@ impl Node {
             node_type: neuron_type,
             last: 0.0,
             active: false,
+            label: label.to_string(),
         }
     }
 
@@ -190,11 +117,12 @@ impl Node {
             val: 0.0,
             last: 0.0,
             active: false,
+            label: self.label.to_owned(),
         }
     }
 
     pub fn get_sketch(&self) -> NodeSketch {
-        NodeSketch { id: self.id, pos: MyPos2 { x: self.pos.x, y: self.pos.y }, bias: self.bias, node_type: self.node_type.to_owned() }
+        NodeSketch { id: self.id, pos: MyPos2 { x: self.pos.x, y: self.pos.y }, bias: self.bias, node_type: self.node_type.to_owned(), label: self.label.to_owned() }
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
@@ -221,6 +149,10 @@ impl Node {
         return (color0, color1);
     }
 
+    pub fn get_label(&self) -> String {
+        return self.label.to_owned();
+    }
+
     pub fn draw(&self, t:f32) {
         let (color0, color) = self.get_colors();
         let r = 3.0;
@@ -234,10 +166,6 @@ impl Node {
         let value = format!("{}", (self.val*100.0).round()/100.0);
         draw_text(&value, self.pos.x-8.0, self.pos.y+18.0, 18.0, WHITE);
     }
-
-/*     pub fn add_link_to(&mut self, link_id: u64) {
-        self.links_to.push(link_id);
-    } */
 
     pub fn send_impulse(&self) -> f32 {
         return self.val;
@@ -260,6 +188,7 @@ impl Node {
 }
 
 impl Link {
+
     pub fn new(node_from: u64, node_to: u64) -> Self {
         Self {
             id: generate_id(),
@@ -295,19 +224,12 @@ impl Link {
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
-        //let w = self.w;
         let s = clamp(self.signal, -1.0, 1.0);
         let mut color0: Color = LIGHTGRAY;
         let mut color1: Color = GRAY;
         if s == 0.0 {
             return (color0, color1);
         }
-        //if w >= 0.0 {
-        //    color0 = color_u8!(255, 0, 0, (150.0*w) as u8);
-        //}
-        //if w < 0.0 {
-        //    color0 = color_u8!(0, 0, 255, (150.0*w.abs()) as u8);
-        //}
         if s > 0.0 {
             color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
         }
@@ -361,9 +283,10 @@ impl Network {
             duration,
         }
     }
-    
-    pub fn build(&mut self,input_num: usize, hidden_num: usize, output_num: usize, link_rate: f32) {
-        self.create_nodes(input_num, hidden_num, output_num);
+
+
+    pub fn build(&mut self,input_num: usize, input_labels: Vec<&str>, hidden_num: usize, output_num: usize, output_labels: Vec<&str>, link_rate: f32) {
+        self.create_nodes(input_num, input_labels, hidden_num, output_num, output_labels);
         self.create_links(link_rate);
         let (i, _, o) = self.get_node_keys_by_type();
         self.input_keys = i;
@@ -411,26 +334,26 @@ impl Network {
         return (input_keys, deep_keys, output_keys);
     }
 
-    fn create_nodes(&mut self, input: usize, hidden: usize, output: usize) {
+    fn create_nodes(&mut self, input: usize, input_labels: Vec<&str>, hidden: usize, output: usize, output_labels: Vec<&str>) {
         let hi = (self.margins.y_max / input as f32);
         let ho = (self.margins.y_max / output as f32);
         let hd = (self.margins.y_max / hidden as f32);
         let wd = (self.margins.x_max)/2.0 + self.margins.x_min;
         let h0 = self.margins.y_min;
         for i in 0..input {
-            let node = Node::new(Vec2::new(self.margins.x_min, (hi/2.0+hi*i as f32)+h0), NeuronTypes::INPUT);
+            let node = Node::new(Vec2::new(self.margins.x_min, (hi/2.0+hi*i as f32)+h0), NeuronTypes::INPUT, input_labels[i]);
             let id = node.id;
             self.nodes.insert(id, node);
         }
         for d in 0..hidden {
-            let node = Node::new(Vec2::new(wd, (hd/2.0+hd*d as f32)+h0), NeuronTypes::DEEP);
+            let node = Node::new(Vec2::new(wd, (hd/2.0+hd*d as f32)+h0), NeuronTypes::DEEP, "");
             //let node = Node::new(rand_position(self.margins.x_min, self.margins.x_max, self.margins.y_min, self.margins.y_max), NeuronTypes::DEEP);
             let id = node.id;
             self.nodes.insert(id, node);
         }
 
         for o in 0..output {
-            let node = Node::new(Vec2::new(self.margins.x_max, (ho/2.0+ho*o as f32)+h0), NeuronTypes::OUTPUT);
+            let node = Node::new(Vec2::new(self.margins.x_max, (ho/2.0+ho*o as f32)+h0), NeuronTypes::OUTPUT, output_labels[o]);
             let id = node.id;
             self.nodes.insert(id, node);
         }
@@ -484,7 +407,7 @@ impl Network {
     }
 
     pub fn add_node(&mut self, position: Vec2) {
-        let node = Node::new(position, NeuronTypes::DEEP);
+        let node = Node::new(position, NeuronTypes::DEEP, "");
         let id = node.id;
         self.nodes.insert(id, node);
         println!("[NODE CREATE] id: {}", id);
@@ -597,8 +520,9 @@ impl Network {
 
         NetworkSketch { 
             nodes: nodes_sketch, 
-            links: links_sketch, 
-            //margins: self.margins.to_owned() 
+            links: links_sketch,
+            duration: self.duration, 
+            margins: self.margins.to_owned() 
         }
     }
 
@@ -700,12 +624,19 @@ pub struct MyPos2 {
     pub y: f32,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+impl MyPos2 {
+    pub fn to_vec2(&self) -> Vec2 {
+        return Vec2::new(self.x, self.y);
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeSketch {
     id: u64,
     pos: MyPos2,
     bias: f32,
     node_type: NeuronTypes,
+    label: String,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -716,40 +647,34 @@ pub struct LinkSketch {
     pub node_to: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NetworkSketch {
     nodes: HashMap<u64, NodeSketch>,
     links: HashMap<u64, LinkSketch>,
-    //margins: Margins,
+    duration: f32,
+    margins: Margins,
 }
 
-#[test]
-fn test_ser_de() {
-    let mut net  = Network::new(0.5);
-    net.build(4, 10, 5, 0.1);
-    let sketch = net.get_sketch();
-    let json_net = serde_json::to_string_pretty(&sketch);
-    let s = match json_net {
-        Ok(net) => {
-            println!("{}", &net);
-            net
-        },
-        Err(_) => {
-            println!("Serialization Error");
-            String::new()
+impl NetworkSketch {
+    
+    pub fn from_sketch(&self) -> Network {
+        let mut nodes: HashMap<u64, Node> = HashMap::new();
+        let mut links: HashMap<u64, Link> = HashMap::new();
+        let margins = Margins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 };
+        for (key, sketch_node) in self.nodes.iter() {
+            let node = Node::new(sketch_node.pos.to_vec2(), sketch_node.node_type, &sketch_node.label);
+            nodes.insert(*key, node);
         }
-    };
-    fs::write("neuro.json", &s);
-    println!("{}", &s);
 
-}
-
-#[test]
-fn u64_to_u128() {
-    let mut uint64: u64 = u64::MAX;
-    println!("u64: {}", uint64);
-    let mut uint128: u128 = uint64 as u128;
-    println!("u128: {}", uint128);
-    uint64 = uint128 as u64;
-    println!("u64: {}", uint64);
+        for (key, sketch_link) in self.links.iter() {
+            let link = Link::new(sketch_link.node_from, sketch_link.node_to);
+            links.insert(*key, link);
+        }
+        let mut net = Network { nodes: nodes.to_owned() , links: links.to_owned(), timer: random_unit().abs(), margins: self.margins.to_owned(), input_keys: vec![], output_keys: vec![], duration: self.duration };
+        let (mut i, _, mut o) = net.get_node_keys_by_type();
+        net.input_keys.append(&mut i);
+        net.output_keys.append(&mut o);
+        return net;
+        //Self { nodes: net.nodes, links: net.links, timer: net.timer, margins: net.margins, input_keys: net.input_keys, output_keys: net.output_keys, duration: net.duration }
+    }
 }

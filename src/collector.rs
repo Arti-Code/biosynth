@@ -44,6 +44,7 @@ impl UnitsBox {
                 let newone = agent.replicate(physics);
                 newborns.push(newone);
                 agent.childs += 1;
+                agent.points += 100.0;
                 agent.eng -= 0.40*agent.max_eng;
             }
         }

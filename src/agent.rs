@@ -19,52 +19,6 @@ use serde_json::{self, *};
 use std::fs;
 
 
-pub struct BodyPart {
-    pub rel_pos: Vec2,
-    pub color: Color,
-    pub shape: SharedShape,
-    handle: Option<ColliderHandle>,
-}
-
-impl BodyPart {
-    pub fn add_new(relative_position: Vec2, size: f32, color: Color) -> Self {
-        Self {
-            color,
-            rel_pos: relative_position,
-            shape: SharedShape::ball(size),
-            handle: None,
-        }
-    }
-
-    pub fn draw_circle(&self, position: &Vec2, rot: f32) {
-        let mut pos = Vec2::from_angle(rot).rotate(self.rel_pos);
-        pos += position.clone();
-        let size = self.shape.as_ball().unwrap().radius;
-        draw_circle(pos.x, pos.y, size, self.color); 
-    }
-
-    pub fn get_rel_position(&self) -> Vec2 {
-        return self.rel_pos
-    }
-
-    pub fn get_color(&self) -> Color {
-        return self.color;
-    }
-
-    pub fn get_shape(&self) -> SharedShape {
-        return self.shape.clone();
-    }
-
-    pub fn set_collider_handle(&mut self, collider_handle: ColliderHandle) {
-        self.handle = Some(collider_handle);
-    }
-
-    pub fn get_collider_handler(&self) -> Option<ColliderHandle> {
-        return self.handle;
-    }
-}
-
-
 pub struct NeuroTable {
     pub inputs: Vec<(u64, Option<f32>)>,
     pub outputs: Vec<(u64, f32)>,
@@ -94,11 +48,11 @@ pub struct Agent {
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
-    pub body_parts: Vec<BodyPart>,
     pub neuro_table: NeuroTable,
     pub childs: usize,
     pub specie: String,
     pub attacking: bool,
+    pub points: f32,
     //pub hit_list: HitList,
 }
 
@@ -115,12 +69,12 @@ impl Agent {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
         let color = random_color();
         let mut network = Network::new(1.0);
-        network.build(5, 5, 4, settings.neurolink_rate);
-        let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
+        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST"];
+        let out_labs = vec!["MOV", "LFT", "RGT", "ATK"];
+        network.build(5, inp_labs, 6, 4, out_labs, settings.neurolink_rate);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
-            //rot: random_rotation(),
             rot: random_rotation(),
             mass: 0.0,
             vel: 0.0,
@@ -142,27 +96,63 @@ impl Agent {
             enemy_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            body_parts: parts,
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             childs: 0,
             specie: create_name(4),
             attacking: false,
-            //hit_list: HitList { targets: HashMap::<u64, f32>::new() },
+            points: 0.0,
         }
     }
 
-    fn create_body_parts(num: usize, size: f32, color: Color, rigid_handle: RigidBodyHandle, physics: &mut PhysicsWorld) -> Vec<BodyPart> {
-        let mut parts: Vec<BodyPart> = vec![];
-        let step = 2.0*PI/num as f32;
-        let size2 = 3.0_f32.sqrt() * size;
-        for i in 0..num {
-            let rel_pos = Vec2::from_angle(i as f32 * step) * size2;
-            let mut part = BodyPart::add_new(rel_pos, size, color);
-            let coll_handle = physics.add_collider(rigid_handle, &rel_pos, 0.0, part.get_shape(), PhysicsProperities::free());
-            part.set_collider_handle(coll_handle);
-            parts.push(part);
+    pub fn from_sketch(sketch: AgentSketch, physics: &mut PhysicsWorld) -> Agent {
+        let key = gen_range(u64::MIN, u64::MAX);
+        let settings = get_settings();
+        let pos = random_position(settings.world_w as f32, settings.world_h as f32);
+        let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
+        let shape = match sketch.shape {
+            MyShapeType::Ball => {
+                SharedShape::ball(sketch.size)
+            },
+            MyShapeType::Cuboid => {
+                SharedShape::cuboid(sketch.size, sketch.size)
+            },
+            _ => {
+                SharedShape::ball(sketch.size)
+            },
+        };
+        let mut network = sketch.network.from_sketch();
+        network.mutate(settings.mutations);
+        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
+        Agent {
+            key,
+            pos,
+            rot: random_rotation(),
+            mass: 0.0,
+            vel: 0.0,
+            ang_vel: 0.0,
+            size: sketch.size,
+            vision_range: sketch.vision_range,
+            max_eng: sketch.size.powi(2) * 10.0,
+            eng: sketch.size.powi(2) * 10.0,
+            color,
+            shape,
+            analize_timer: Timer::new(1.0, true, true, true),
+            network,
+            alife: true,
+            lifetime: 0.0,
+            generation: 0,
+            detected: None,
+            enemy: None,
+            enemy_position: None,
+            enemy_dir: None,
+            contacts: Vec::new(),
+            physics_handle: rbh,
+            neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            childs: 0,
+            specie: create_name(4),
+            attacking: false,
+            points: 0.0,
         }
-        return parts;
     }
 
     pub fn draw(&self, selected: bool, font: &Font) {
@@ -172,9 +162,6 @@ impl Agent {
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
             self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
-        }
-        for part in self.body_parts.iter() {
-            part.draw_circle(&self.pos, self.rot);
         }
         draw_circle(x0, y0, self.size, self.color);
         self.draw_front();
@@ -472,7 +459,6 @@ impl Agent {
         let rot = random_rotation();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default());
-        let mut parts: Vec<BodyPart> = Self::create_body_parts(0, size*0.66, color, rbh, physics);
         Self {
             key,
             pos,
@@ -497,11 +483,11 @@ impl Agent {
             enemy_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            body_parts: parts,
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             childs: 0,
             specie: self.specie.to_owned(),
             attacking: false,
+            points: 0.0,
         }
     }
 
@@ -516,7 +502,8 @@ impl Agent {
             },
             color: self.color.to_vec().to_array(), 
             vision_range: self.vision_range, 
-            network: self.network.get_sketch(), 
+            network: self.network.get_sketch(),
+            points: self.points, 
         }
     }
 }
@@ -528,8 +515,8 @@ pub struct Detected {
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
-enum MyShapeType {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum MyShapeType {
     Ball,
     Cuboid,
     Segment,
@@ -537,15 +524,16 @@ enum MyShapeType {
 
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AgentSketch {
-    specie: String,
-    generation: u32,
-    size: f32,
-    shape: MyShapeType,
-    color: [f32; 4],
-    vision_range: f32,
-    network: NetworkSketch,
+    pub specie: String,
+    pub generation: u32,
+    pub size: f32,
+    pub shape: MyShapeType,
+    pub color: [f32; 4],
+    pub vision_range: f32,
+    pub network: NetworkSketch,
+    pub points: f32,
 
 }
 

@@ -36,6 +36,7 @@ pub struct Simulation {
     pub selected: Option<RigidBodyHandle>,
     pub mouse_state: MouseState,
     pub units: UnitsBox,
+    pub ranking: Vec<AgentSketch>,
 }
 
 impl Simulation {
@@ -59,6 +60,7 @@ impl Simulation {
             select_phase: 0.0,
             mouse_state: MouseState { pos: Vec2::NAN },
             units: UnitsBox::new(),
+            ranking: vec![],
         }
     }
 
@@ -97,10 +99,21 @@ impl Simulation {
         let dt = self.sim_state.dt;
         for (_, agent) in self.units.get_iter_mut() {
             if !agent.update(dt, &mut self.physics) {
+                let sketch = agent.get_sketch();
+                self.ranking.push(sketch);
+                println!("RANKING: {} | max:{} | min:{}", self.ranking.len(), self.ranking.first().unwrap().points.round(), self.ranking.last().unwrap().points.round());
                 self.physics.remove_physics_object(agent.physics_handle);
             }
         }
         self.units.agents.retain(|_, agent| agent.alife == true);
+    }
+
+    fn update_rank(&mut self) {
+        self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
+        if self.ranking.len() > 10 {
+            self.ranking.pop();
+        }
+        let min_points = 0.0;
     }
 
     pub fn update(&mut self) {
@@ -110,6 +123,7 @@ impl Simulation {
         self.calc_selection_time();
         self.attacks();
         self.update_agents();
+        self.update_rank();
         self.units.populate(&mut self.physics);
         self.physics.step_physics();
     }
@@ -292,6 +306,16 @@ impl Simulation {
         let settings = get_settings();
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
             self.units.add_many_agents(1, &mut self.physics);
+            let l = self.ranking.len();
+            let r = rand::gen_range(0, l);
+            let agent_sketch = self.ranking.get_mut(r).unwrap();
+            let s = agent_sketch.to_owned();
+            let agent = Agent::from_sketch(s, &mut self.physics);
+            println!("AGENT: {} | {} | {}", agent.generation, agent.specie, agent_sketch.points);
+            agent_sketch.points -= agent_sketch.points*0.2;
+            agent_sketch.points.round();
+            self.units.add_agent(agent);
+
         }
     }
 

@@ -358,13 +358,15 @@ impl UISystem {
             let generation = agent.generation;
             let childs = agent.childs;
             let attack = agent.attacking;
+            let points = agent.points;
             Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(170.0).show(egui_ctx, |ui| {
                 ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
                 ui.label(format!("life: [{}]", lifetime));
                 ui.label(format!("gen: [{}]", generation));
+                ui.label(format!("size: [{}]", size));
+                ui.label(format!("points: [{}]", points));
                 ui.label(format!("childs: [{}]", childs));
                 ui.label(format!("dir: [{}]", ((rot * 10.0).round()) / 10.0));
-                ui.label(format!("size: [{}]", size));
                 ui.label(format!("pos: [X: {} | Y:{}]", pos.x.round(), pos.y.round()));
                 ui.label(RichText::new(format!("eng: {}/{}", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::BLUE));
                 if attack {
@@ -396,7 +398,7 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            let w = 200.0; let h = 200.0; let resize = 200.0;
+            let w = 220.0; let h = 200.0; let resize = 200.0;
             Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w)
                 .title_bar(true).show(egui_ctx, |ui| {
                     let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
@@ -422,9 +424,19 @@ impl UISystem {
                         let p1 = vec2_to_pos2(node.pos*resize)+zero;
                         let c0 = color_to_color32(color1);
                         let c1 = color_to_color32(color0);
+                        let label = node.get_label();
                         painter.circle_filled(p1, 4.0,  Color32::BLACK);
                         painter.circle_filled(p1, 4.0,  c1);
                         painter.circle_stroke(p1, 4.0, Stroke { color: c0, width: 1.0 });
+                        match node.node_type {
+                            NeuronTypes::INPUT => {
+                                painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, label, egui_macroquad::egui::FontId::default(), Color32::WHITE);
+                            },
+                            NeuronTypes::OUTPUT => {
+                                painter.text(p1+UIVec2{x: -18.0, y: 0.0}, Align2::LEFT_CENTER, label, egui_macroquad::egui::FontId::default(), Color32::WHITE);
+                            },
+                            _ => {},
+                        }
                     } 
             });
         }
