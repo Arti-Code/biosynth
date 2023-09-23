@@ -13,6 +13,7 @@ mod agent;
 mod collector;
 mod food;
 mod globals;
+mod resource;
 
 use crate::consts::*;
 use crate::sim::*;

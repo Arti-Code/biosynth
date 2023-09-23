@@ -35,7 +35,8 @@ pub struct Simulation {
     select_phase: f32,
     pub selected: Option<RigidBodyHandle>,
     pub mouse_state: MouseState,
-    pub units: UnitsBox,
+    pub agents: AgentBox,
+    pub resources: ResBox,
     pub ranking: Vec<AgentSketch>,
 }
 
@@ -59,7 +60,8 @@ impl Simulation {
             selected: None,
             select_phase: 0.0,
             mouse_state: MouseState { pos: Vec2::NAN },
-            units: UnitsBox::new(),
+            agents: AgentBox::new(),
+            resources: ResBox::new(),
             ranking: vec![],
         }
     }
@@ -72,7 +74,8 @@ impl Simulation {
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = PhysicsWorld::new();
-        self.units.agents.clear();
+        self.agents.agents.clear();
+        self.resources.resources.clear();
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
@@ -87,7 +90,7 @@ impl Simulation {
     pub fn init(&mut self) {
         let settings = get_settings();
         let agents_num = settings.agent_init_num;
-        self.units.add_many_agents(agents_num as usize, &mut self.physics);
+        self.agents.add_many_agents(agents_num as usize, &mut self.physics);
     }
 
     pub fn autorun_new_sim(&mut self) {
@@ -97,7 +100,7 @@ impl Simulation {
 
     fn update_agents(&mut self) {
         let dt = self.sim_state.dt;
-        for (_, agent) in self.units.get_iter_mut() {
+        for (_, agent) in self.agents.get_iter_mut() {
             if !agent.update(dt, &mut self.physics) {
                 let sketch = agent.get_sketch();
                 self.ranking.push(sketch);
@@ -105,7 +108,7 @@ impl Simulation {
                 self.physics.remove_physics_object(agent.physics_handle);
             }
         }
-        self.units.agents.retain(|_, agent| agent.alife == true);
+        self.agents.agents.retain(|_, agent| agent.alife == true);
     }
 
     fn update_rank(&mut self) {
@@ -124,15 +127,28 @@ impl Simulation {
         }
     }
 
+    fn update_res(&mut self) {
+        for (_, res) in self.resources.get_iter_mut() {
+            res.update(&mut self.physics);
+        }
+        let settings = get_settings();
+        let res_num = settings.res_num;
+        let res_prob = self.resources.count() as f32/res_num as f32;
+        if rand::gen_range(0.0, 1.0) < res_prob {
+            self.resources.add_many_resources(1, &mut self.physics);
+        }
+    }
+
     pub fn update(&mut self) {
         self.signals_check();
         self.update_sim_state();
         self.check_agents_num();
+        self.update_res();
         self.calc_selection_time();
         self.attacks();
         self.update_agents();
         self.update_rank();
-        self.units.populate(&mut self.physics);
+        self.agents.populate(&mut self.physics);
         self.physics.step_physics();
     }
 
@@ -140,11 +156,11 @@ impl Simulation {
         let dt = get_frame_time();
         //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
-        for (id, agent) in self.units.get_iter() {
+        for (id, agent) in self.agents.get_iter() {
             if !agent.attacking { continue; }
             let attacks = agent.attack();
             for tg in attacks.iter() {
-                if let Some(mut target) = self.units.agents.get(tg) {
+                if let Some(mut target) = self.agents.agents.get(tg) {
                     let power1 = agent.size + agent.size*random_unit()/2.0;
                     let power2 = target.size + target.size*random_unit()/2.0;
                     if power1 > power2 {
@@ -166,7 +182,7 @@ impl Simulation {
             }
         }
         for (id, dmg) in hits.iter() {
-            let mut agent = self.units.agents.get_mut(id).unwrap();
+            let mut agent = self.agents.agents.get_mut(id).unwrap();
             let damage = *dmg;
             agent.add_energy(damage);
             if damage > 0.0 {
@@ -182,10 +198,17 @@ impl Simulation {
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_grid(50);
         self.draw_agents();
+        self.draw_res();
+    }
+
+    fn draw_res(&self) {
+        for (id, res) in self.resources.get_iter() {
+            res.draw();
+        }
     }
 
     fn draw_agents(&self) {
-        for (id, agent) in self.units.get_iter() {
+        for (id, agent) in self.agents.get_iter() {
             let mut draw_field_of_view: bool = false;
             if self.selected.is_some() {
                 if *id == self.selected.unwrap() {
@@ -197,7 +220,7 @@ impl Simulation {
 
         match self.selected {
             Some(selected) => {
-                match self.units.get(selected) {
+                match self.agents.get(selected) {
                     Some(selected_agent) => {
                         let pos = Vec2::new(selected_agent.pos.x, selected_agent.pos.y);
                         let s = selected_agent.size;
@@ -235,7 +258,7 @@ impl Simulation {
             self.print_rank();
         }
         if self.signals.spawn_agent {
-            self.units.add_many_agents(1, &mut self.physics);
+            self.agents.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
         }
         if self.signals.new_sim {
@@ -258,7 +281,7 @@ impl Simulation {
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
         println!("save");
-        match self.units.get(handle) {
+        match self.agents.get(handle) {
             Some(agent) => {
                 let agent_sketch = agent.get_sketch();
                 let s = serde_json::to_string_pretty(&agent_sketch);
@@ -290,7 +313,7 @@ impl Simulation {
                 let (mouse_posx, mouse_posy) = mouse_position();
                 let mouse_pos = Vec2::new(mouse_posx, mouse_posy);
                 let rel_coords = self.camera.screen_to_world(mouse_pos);
-                for (id, agent) in self.units.get_iter() {
+                for (id, agent) in self.agents.get_iter() {
                     if contact_mouse(rel_coords, agent.pos, agent.size) {
                         self.selected = Some(*id);
                         break;
@@ -306,7 +329,7 @@ impl Simulation {
         self.sim_state.sim_time += self.sim_state.dt as f64;
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
-        self.sim_state.agents_num = self.units.agents.len() as i32;
+        self.sim_state.agents_num = self.agents.agents.len() as i32;
         self.sim_state.physics_num = self.physics.get_physics_obj_num() as i32;
         let mut kin_eng = 0.0;
         let mut total_mass = 0.0;
@@ -321,7 +344,7 @@ impl Simulation {
     fn check_agents_num(&mut self) {
         let settings = get_settings();
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
-            self.units.add_many_agents(1, &mut self.physics);
+            self.agents.add_many_agents(1, &mut self.physics);
             let l = self.ranking.len();
             let r = rand::gen_range(0, l);
             let agent_sketch = self.ranking.get_mut(r).unwrap();
@@ -330,7 +353,7 @@ impl Simulation {
             println!("AGENT: {} | {} | {}", agent.generation, agent.specie, agent_sketch.points);
             agent_sketch.points -= agent_sketch.points*0.2;
             agent_sketch.points.round();
-            self.units.add_agent(agent);
+            self.agents.add_agent(agent);
 
         }
     }
@@ -343,7 +366,7 @@ impl Simulation {
     pub fn process_ui(&mut self) {
         let selected = match self.selected {
             Some(selected) => {
-                self.units.get(selected)
+                self.agents.get(selected)
             },
             None => None,
         };

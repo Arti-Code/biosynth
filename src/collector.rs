@@ -7,6 +7,7 @@ use crate::util::*;
 use crate::physics::*;
 use crate::agent::*;
 use crate::globals::*;
+use crate::resource::*;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
 
@@ -18,11 +19,11 @@ pub trait PhysicsObject {
     fn link_physics_handle(&mut self, handle: RigidBodyHandle);
 }
 
-pub struct UnitsBox {
+pub struct AgentBox {
     pub agents: HashMap<RigidBodyHandle, Agent>,
 }
 
-impl UnitsBox {
+impl AgentBox {
     pub fn new() -> Self {
         Self {
             agents: HashMap::new(),
@@ -90,6 +91,50 @@ impl UnitsBox {
 
 }
 
-pub struct ElementsBox {
+
+
+pub struct ResBox {
+    pub resources: HashMap<RigidBodyHandle, Resource>,
+}
+
+impl ResBox {
+    pub fn new() -> Self {
+        Self {
+            resources: HashMap::new(),
+        }
+    }
+
+    pub fn add_many_resources(&mut self, resources_num: usize, physics_world: &mut PhysicsWorld) {
+        for _ in 0..resources_num {
+            let resource = Resource::new(physics_world);
+            _ = self.add_resource(resource);
+        }
+    }
+
+    pub fn add_resource(&mut self, resource: Resource) {
+        //let key = resource.key;
+        self.resources.insert(resource.physics_handle, resource);
+        //return key;
+    }
+
+    pub fn get(&self, id: RigidBodyHandle) -> Option<&Resource> {
+        return self.resources.get(&id);
+    }
+
+    pub fn _remove(&mut self, id: RigidBodyHandle) {
+        self.resources.remove(&id);
+    }
+
+    pub fn get_iter(&self) -> Iter<RigidBodyHandle, Resource> {
+        return self.resources.iter();
+    }
+
+    pub fn get_iter_mut(&mut self) -> IterMut<RigidBodyHandle, Resource> {
+        return self.resources.iter_mut();
+    }
+
+    pub fn count(&self) -> usize {
+        return self.resources.len();
+    }
 
 }
