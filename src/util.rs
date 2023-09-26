@@ -216,34 +216,6 @@ pub fn color_to_color32(color: Color) -> Color32 {
     return Color32::from_rgba_unmultiplied(r, g, b, a);
 }
 
-pub struct Signals {
-    pub world: Vec2,
-    pub spawn_agent: bool,
-    pub spawn_plant: bool,
-    pub spawn_asteroid: bool,
-    pub spawn_jet: bool,
-    pub spawn_particles: bool,
-    pub new_sim: bool,
-    pub new_sim_name: String,
-    pub new_settings: bool,
-}
-
-impl Signals {
-    
-    pub fn new() -> Self {
-        Self {
-            world: Vec2::NAN,
-            spawn_agent: false,
-            spawn_plant: false,
-            spawn_asteroid: false,
-            spawn_jet: false,
-            spawn_particles: false,
-            new_sim: false,
-            new_sim_name: String::new(),
-            new_settings: false,
-        }
-    }
-}
 
 
 pub struct UIState {
@@ -280,45 +252,6 @@ impl UIState {
             enviroment: false,
             neuro_lab: false,
             io: false,
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct Settings {
-    pub world_w: i32,
-    pub world_h: i32,
-    pub agent_min_num: usize,
-    pub agent_init_num: usize,
-    pub agent_speed: f32,
-    pub agent_rotate: f32,
-    pub agent_eng_bar: bool,
-    pub agent_vision_range: f32,
-    pub agent_size_min: i32,
-    pub agent_size_max: i32,
-    pub show_network: bool,
-    pub show_specie: bool,
-    pub mutations: f32,
-    pub neurolink_rate: f32,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            world_w: WORLD_W as i32,
-            world_h: WORLD_H as i32,
-            agent_min_num: AGENTS_NUM_MIN,
-            agent_init_num: AGENTS_NUM,
-            agent_speed: AGENT_SPEED,
-            agent_rotate: AGENT_ROTATE,
-            agent_eng_bar: true,
-            agent_vision_range: AGENT_VISION_RANGE,
-            agent_size_min: AGENT_SIZE_MIN,
-            agent_size_max: AGENT_SIZE_MAX,
-            show_network: true,
-            show_specie: false,
-            mutations: 0.1,
-            neurolink_rate: 0.2,
         }
     }
 }
