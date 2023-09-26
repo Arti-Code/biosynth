@@ -105,8 +105,8 @@ impl UISystem {
                     if ui.button(RichText::new("Load Simulation").weak().color(Color32::from_gray(100))).clicked() {
 
                     }
-                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::from_gray(100))).clicked() {
-
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::GREEN)).clicked() {
+                        signals.save_sim = true;
                     }
                     if ui.button(RichText::new("Load Agent").weak().color(Color32::from_gray(100))).clicked() {
 
@@ -297,7 +297,7 @@ impl UISystem {
                 ui.add_space(3.0);
                 ui.vertical_centered(|txt| {
                     let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
-                    self.temp_sim_name = String::from("SIMULATION");
+                    self.temp_sim_name = format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX));
                     if response.gained_focus() {
                     }
                     if response.changed() {

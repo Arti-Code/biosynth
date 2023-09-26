@@ -651,6 +651,13 @@ impl MyPos2 {
     pub fn to_vec2(&self) -> Vec2 {
         return Vec2::new(self.x, self.y);
     }
+
+    pub fn from_vec(vec2: &Vec2) -> Self {
+        Self {
+            x: vec2.x,
+            y: vec2.y,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

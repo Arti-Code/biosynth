@@ -35,6 +35,10 @@ impl PhysicsProperities {
         Self { friction: 0.0, restitution: 1.0, density: 1.0, linear_damping: 0.1, angular_damping: 0.1 }
     }
 
+    pub fn high_inert() -> Self {
+        Self { friction: 0.85, restitution: 0.15, density: 1.0, linear_damping: 0.9, angular_damping: 0.3 }
+    }
+
     pub fn free() -> Self {
         Self { friction: 0.0, restitution: 1.0, density: 0.1, linear_damping: 0.01, angular_damping: 0.01 }
     }

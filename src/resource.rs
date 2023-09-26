@@ -34,7 +34,7 @@ impl Resource {
         let color = random_color();
         let size = rand::gen_range(2, 5) as f32;
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups::new(Group::GROUP_2, Group::GROUP_1));
+        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::high_inert(), InteractionGroups::new(Group::GROUP_2, Group::GROUP_1));
         Self {
             pos,
             rot: 0.0,

@@ -3,6 +3,7 @@
 use crate::agent::*;
 use crate::camera::*;
 use crate::consts::*;
+use crate::neuro::MyPos2;
 use crate::ui::*;
 use crate::util::*;
 use crate::physics::*;
@@ -44,7 +45,7 @@ impl Simulation {
     
     pub fn new(font: Font) -> Self {
         Self {
-            simulation_name: String::new(),
+            simulation_name: format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
             world_size: Vec2 {
                 x: f32::NAN,
                 y: f32::NAN,
@@ -69,7 +70,7 @@ impl Simulation {
     fn reset_sim(&mut self, sim_name: Option<&str>) {
         self.simulation_name = match sim_name {
             Some(name) => name.to_string(),
-            None => String::from("Simulation"),
+            None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
         };
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
@@ -281,6 +282,28 @@ impl Simulation {
                 None => {},
             }
         }
+        if self.signals.save_sim {
+            self.signals.save_sim = false;
+            self.save_sim();
+        }
+    }
+
+    fn save_sim(&self) {
+        let data = SimulationSave::from_sim(self);
+        let s = serde_json::to_string_pretty(&data);
+        match s {
+            Ok(save) => {
+                let path_str = format!("saves/simulations/{}.json", self.simulation_name);
+                let path = Path::new(&path_str);
+                match fs::write(path, save) {
+                    Ok(_) => {},
+                    Err(_) => println!("ERROR: not saved"),
+                }
+            },
+            Err(_) => {
+                warn!("error during saving sim");
+            },
+        }
     }
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
@@ -384,5 +407,40 @@ impl Simulation {
     pub fn is_running(&self) -> bool {
         return self.running;
     }
+
+    pub fn to_serialize(&self) {
+
+    }
 }
 
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SimulationSave {
+    pub simulation_name: String,
+    pub world_size: MyPos2,
+    pub sim_time: f64,
+    pub agents: Vec<AgentSketch>,
+    pub ranking: Vec<AgentSketch>,
+}
+
+impl SimulationSave {
+    pub fn from_sim(sim: &Simulation) -> Self {
+        let mut agents: Vec<AgentSketch> = vec![];
+        let mut ranking: Vec<AgentSketch> = vec![];
+        for (_, agent) in sim.agents.get_iter() {
+            let sketch = agent.get_sketch();
+            agents.push(sketch);
+        }
+        for sketch in sim.ranking.iter() {
+            let sketch2 = sketch.to_owned();
+            ranking.push(sketch2);
+        }
+        Self { 
+            simulation_name: sim.simulation_name.to_owned(), 
+            world_size: MyPos2::from_vec(&sim.world_size), 
+            sim_time: sim.sim_time, 
+            agents: agents.to_owned(), 
+            ranking: ranking.to_owned(), 
+        }
+    }
+}
