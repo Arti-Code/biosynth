@@ -23,6 +23,7 @@ pub struct Resource {
     pub shape: Ball,
     pub physics_handle: RigidBodyHandle,
     pub alife: bool,
+    pub time: f32,
 }
 
 impl Resource {
@@ -33,7 +34,7 @@ impl Resource {
         let color = random_color();
         let size = rand::gen_range(2, 5) as f32;
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
+        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups::new(Group::GROUP_2, Group::GROUP_1));
         Self {
             pos,
             rot: 0.0,
@@ -43,18 +44,21 @@ impl Resource {
             color: YELLOW,
             shape: Ball { radius: size },
             physics_handle: rbh,
+            time: 64.0,
             alife: true,
         }
     }
     pub fn draw(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        draw_circle_lines(x0, y0, self.size, 3.0, self.color);
+        draw_circle(x0, y0, self.size, self.color);
     }
     pub fn update(&mut self, physics: &mut PhysicsWorld){
+        let dt = get_frame_time();
+        self.time -= dt;
         self.update_physics(physics);
         self.pos = wrap_around(&self.pos);
-        if self.eng <= 0.0 {
+        if self.eng <= 0.0 || self.time <= 0.0 {
             self.eng = 0.0;
             self.alife = false;
         }

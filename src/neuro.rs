@@ -133,15 +133,17 @@ impl Node {
         if !self.active {
             return (LIGHTGRAY, GRAY);
         }
-        let (mut color0, color1) = match self.last {
+        let (mut color0, color1) = match self.val {
             n if n>0.0 => { 
-                let v = (155.0*n) as u8;
+                let v0 = clamp(255.0*n, 0.0, 255.0);
+                let v = v0 as u8;
                 let c1 = color_u8!(255, 0, 0, v);
                 let c0 = color_u8!(255, 0, 0, 255);
                 (c0, c1) 
             },
             n if n<0.0 => { 
-                let v = (255.0*n.abs()) as u8;
+                let v0 = clamp((255.0*n.abs()), 0.0, 255.0);
+                let v = v0 as u8;
                 let c1 = color_u8!(0, 0, 255, v);
                 let c0 = color_u8!(0, 0, 255, 255);
                 (c0, c1) 
@@ -175,12 +177,19 @@ impl Node {
         return self.val;
     }
 
-    pub fn receiv_signal(&mut self, v: f32) {
+    pub fn recv_signal(&mut self, v: f32) {
+        if v == 0.0 { return; }
         self.sum += v;
         self.active = true;
     }
 
     pub fn calc(&mut self) {
+        if !self.active { 
+            self.sum = 0.0;
+            self.val = 0.0;
+            self.last = 0.0;
+            return;
+        }
         let sum: f32 = self.sum + self.bias;
         let v = sum.tanh();
         self.last = self.val;
@@ -254,8 +263,9 @@ impl Link {
         }
         let v = node0.send_impulse()*w;
         let node1 = nodes.get_mut(&n1).unwrap();
-        node1.receiv_signal(v);
+        node1.recv_signal(v);
         self.signal = v;
+    
     }
 
     pub fn replicate(&self) -> Self {
@@ -471,8 +481,13 @@ impl Network {
         let mut outputs: Vec<(u64, f32)> = vec![];
         for key in self.output_keys.iter() {
             let node = self.nodes.get(key).unwrap();
-            let val = node.val;
-            outputs.push((*key, val));
+            if node.active {
+                let val = node.val;
+                outputs.push((*key, val));
+            } else {
+                let val = 0.0;
+                outputs.push((*key, val));
+            }
         }
         return outputs;
     }

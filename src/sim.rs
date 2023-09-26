@@ -130,10 +130,14 @@ impl Simulation {
     fn update_res(&mut self) {
         for (_, res) in self.resources.get_iter_mut() {
             res.update(&mut self.physics);
+            if !res.alife {
+                self.physics.remove_physics_object(res.physics_handle);
+            }
         }
+        self.resources.resources.retain(|_, res| res.alife == true);
         let settings = get_settings();
         let res_num = settings.res_num;
-        let res_prob = self.resources.count() as f32/res_num as f32;
+        let res_prob = res_num/(self.resources.count() as f32+1.0);
         if rand::gen_range(0.0, 1.0) < res_prob {
             self.resources.add_many_resources(1, &mut self.physics);
         }
@@ -186,7 +190,7 @@ impl Simulation {
             let damage = *dmg;
             agent.add_energy(damage);
             if damage > 0.0 {
-                agent.points += damage*0.01;
+                agent.points += damage*0.5;
             }
         }
     }

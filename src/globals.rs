@@ -52,7 +52,7 @@ pub struct Settings {
     pub base_energy_cost: f32,
     pub move_energy_cost: f32,
     pub attack_energy_cost: f32,
-    pub res_num: usize,
+    pub res_num: f32,
 }
 
 impl Default for Settings {
@@ -76,7 +76,7 @@ impl Default for Settings {
             base_energy_cost: 0.2,
             move_energy_cost: 0.1,
             attack_energy_cost: 0.1,
-            res_num: 5,
+            res_num: 0.2,
 
        }
     }

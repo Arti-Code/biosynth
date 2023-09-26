@@ -47,6 +47,9 @@ pub struct Agent {
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
+    pub resource: Option<RigidBodyHandle>,
+    pub resource_position: Option<Vec2>,
+    pub resource_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
     pub neuro_table: NeuroTable,
     pub childs: usize,
@@ -66,7 +69,7 @@ impl Agent {
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
+        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST"];
@@ -94,6 +97,9 @@ impl Agent {
             enemy: None,
             enemy_position: None,
             enemy_dir: None,
+            resource: None,
+            resource_position: None,
+            resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
@@ -122,7 +128,7 @@ impl Agent {
         };
         let mut network = sketch.network.from_sketch();
         network.mutate(settings.mutations);
-        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default());
+        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent {
             key,
             pos,
@@ -145,6 +151,9 @@ impl Agent {
             enemy: None,
             enemy_position: None,
             enemy_dir: None,
+            resource: None,
+            resource_position: None,
+            resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
@@ -293,6 +302,20 @@ impl Agent {
                 draw_line(x0r, y0r, x1, y1, 2.0, self.color);
             }
         }
+        if let Some(_rb) = self.resource {
+            if let Some(resource_position) = self.resource_position {
+                let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
+                let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size;
+                let x0l = self.pos.x + v0l.x;
+                let y0l = self.pos.y + v0l.y;
+                let x0r = self.pos.x + v0r.x;
+                let y0r = self.pos.y + v0r.y;
+                let x1 = resource_position.x;
+                let y1 = resource_position.y;
+                draw_line(x0l, y0l, x1, y1, 1.0, self.color);
+                draw_line(x0r, y0r, x1, y1, 1.0, self.color);
+            }
+        }
     }
 
     fn draw_info(&self, font: &Font) {
@@ -383,6 +406,21 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
+        if let Some(rb) = self.resource {
+            if let Some(resource_position) = physics.get_object_position(rb) {
+                self.resource_position = Some(resource_position);
+                let rel_pos = resource_position - self.pos;
+                let resource_dir = rel_pos.angle_between(Vec2::from_angle(self.rot));
+                self.resource_dir = Some(resource_dir);
+            } else {
+                self.resource = None;
+                self.resource_position = None;
+                self.resource_dir = None;
+            }
+        } else if self.resource_position.is_some() {
+            self.resource_position = None;
+            self.resource_dir = None;
+        }
     }
 
     fn update_contacts(&mut self, physics: &mut PhysicsWorld) {
@@ -407,12 +445,20 @@ impl Agent {
     fn watch(&mut self, physics: &PhysicsWorld) {
         if let Some(tg) = physics.get_closesd_agent(self.physics_handle, self.vision_range) {
             self.enemy = Some(tg);
-            self.update_enemy_position(physics);
         } else {
             self.enemy = None;
             self.enemy_position = None;
             self.enemy_dir = None;
         }
+        if let Some(tg) = physics.get_closesd_resource(self.physics_handle, self.vision_range) {
+            self.resource = Some(tg);
+            //self.update_enemy_position(physics);
+        } else {
+            self.resource = None;
+            self.resource_position = None;
+            self.resource_dir = None;
+        }
+        self.update_enemy_position(physics);
     }
 
 /*     fn calc_timers(&mut self, _dt: f32) {
@@ -458,7 +504,7 @@ impl Agent {
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
-        let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default());
+        let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default(), InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 ));
         Self {
             key,
             pos,
@@ -481,6 +527,9 @@ impl Agent {
             enemy: None,
             enemy_position: None,
             enemy_dir: None,
+            resource: None,
+            resource_position: None,
+            resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
             neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },

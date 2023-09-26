@@ -146,13 +146,14 @@ impl PhysicsWorld {
         return self.rigid_bodies.insert(dynamic_body);
     }
 
-    pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> ColliderHandle {
+    pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities, groups: InteractionGroups) -> ColliderHandle {
         let iso = make_isometry(rel_position.x, rel_position.y, rotation);
         let collider = match shape.shape_type() {
             ShapeType::Ball => {
                 let radius = shape.0.as_ball().unwrap().radius;
                 ColliderBuilder::new(shape).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
-                    .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS).build()
+                    .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS).collision_groups(groups)
+                    .build()
             },
             ShapeType::ConvexPolygon => {
                 ColliderBuilder::new(shape).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
@@ -165,10 +166,12 @@ impl PhysicsWorld {
         return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
     }
 
-    pub fn add_dynamic(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities) -> RigidBodyHandle {
+    pub fn add_dynamic(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities, groups: InteractionGroups) -> RigidBodyHandle {
         let rbh = self.add_dynamic_rigidbody(key, position, rotation, physics_props.linear_damping, physics_props.angular_damping);
         self.assign_body_with_key(rbh, key);
-        _ = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props);
+        let ch = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props, groups);
+        //let col = self.colliders.get_mut(ch).unwrap();
+        //col.set_collision_groups(groups);
         return rbh;
     }
 
@@ -268,7 +271,40 @@ impl PhysicsWorld {
         let detector = ColliderBuilder::ball(detection_range).sensor(true).density(0.0).build();
         let filter = QueryFilter {
             flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
-            groups: None,
+            groups: Some(InteractionGroups::new(Group::GROUP_1, Group::GROUP_1)),
+            exclude_collider: None,
+            exclude_rigid_body: Some(agent_body_handle),
+            ..Default::default()
+        };
+        self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), detector.shape(), filter,
+            |collided| {
+                let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
+                let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
+                let pos2 = matrix_to_vec2(rb2.position().translation);
+                let new_dist = pos1.distance(pos2);
+                if new_dist < dist {
+                    dist = new_dist;
+                    target = rb2_handle;
+                }
+                return true;
+            },
+        );
+        if dist < f32::INFINITY {
+            return Some(target);
+        } else {
+            return None;
+        }
+    }
+
+    pub fn get_closesd_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
+        let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
+        let pos1 = matrix_to_vec2(rb.position().translation);
+        let mut dist = f32::INFINITY;
+        let mut target: RigidBodyHandle = RigidBodyHandle::invalid();
+        let detector = ColliderBuilder::ball(detection_range).sensor(true).density(0.0).build();
+        let filter = QueryFilter {
+            flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
+            groups: Some(InteractionGroups::new(Group::GROUP_2, Group::GROUP_2)),
             exclude_collider: None,
             exclude_rigid_body: Some(agent_body_handle),
             ..Default::default()
