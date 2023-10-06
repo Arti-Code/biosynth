@@ -65,7 +65,7 @@ pub struct Node {
     pub node_type: NeuronTypes,
     last: f32,
     active: bool,
-    label: String,
+    pub label: String,
 }
 
 #[derive(Clone, Copy)]
@@ -81,11 +81,11 @@ pub struct Link {
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
-    timer: f32,
+    //timer: f32,
     margins: Margins,
     pub input_keys: Vec<u64>,
     pub output_keys: Vec<u64>,
-    duration: f32
+    //duration: f32
 }
 
 impl Node {
@@ -95,7 +95,7 @@ impl Node {
             id: generate_id(),
             pos: (position*100.0).round()/100.0,
             //links_to: vec![],
-            bias: rand::gen_range(-1.0, 1.0),
+            bias: rand::gen_range(0.0, 1.0)*rand::gen_range(0.0, 1.0),
             val: rand::gen_range(0.0, 0.0),
             sum: 0.0,
             selected: false,
@@ -159,7 +159,7 @@ impl Node {
         return self.label.to_owned();
     }
 
-    pub fn draw(&self, t:f32) {
+/*     pub fn draw(&self) {
         let (color0, color) = self.get_colors();
         let r = 3.0;
         draw_circle(self.pos.x, self.pos.y, r, BLACK);
@@ -171,7 +171,7 @@ impl Node {
         }
         let value = format!("{}", (self.val*100.0).round()/100.0);
         draw_text(&value, self.pos.x-8.0, self.pos.y+18.0, 18.0, WHITE);
-    }
+    } */
 
     pub fn send_impulse(&self) -> f32 {
         return self.val;
@@ -181,6 +181,15 @@ impl Node {
         if v == 0.0 { return; }
         self.sum += v;
         self.active = true;
+    }
+
+    pub fn recv_input(&mut self, v: f32) {
+        self.val = 0.0;
+        if v == 0.0 { 
+            self.active = false;
+        } else {
+            self.active = true;
+        }
     }
 
     pub fn calc(&mut self) {
@@ -194,7 +203,6 @@ impl Node {
         let v = sum.tanh();
         self.last = self.val;
         self.val = v;
-        //self.sum = 0.0;
         self.sum = 0.0;
     }
 
@@ -207,19 +215,19 @@ impl Link {
             id: generate_id(),
             node_from,
             node_to,
-            w: rand::gen_range(-1.0, 1.0),
+            w: rand::gen_range(0.0, 1.0),
             signal: 0.0,
         }
     }
 
-    pub fn draw(&self, nodes: &HashMap<u64, Node>, timer: f32) {
+    pub fn draw(&self, nodes: &HashMap<u64, Node>) {
         let w = self.w;
-        let s = clamp(self.signal, -1.0, 1.0);
+        let s = clamp(self.signal, 0.0, 1.0);
         let (color0, color1) = self.get_colors();
-        let (p0, p1, pt) = self.get_coords(nodes, timer);
+        let (p0, p1, _pt) = self.get_coords(nodes, 1.0);
         //let flow2 = l*(timer/2.0)*dir*0.96;
-        draw_line(p0.x, p0.y, p1.x, p1.y, 2.0+3.0*w.abs(), color0);
-        draw_line(p0.x, p0.y, pt.x, pt.y, 2.0+4.0*s.abs(), color1);
+        draw_line(p0.x, p0.y, p1.x, p1.y, 1.0+4.0*w.abs(), color1);
+        //draw_line(p0.x, p0.y, pt.x, pt.y, 2.0+4.0*s.abs(), color1);
         
     }
 
@@ -294,11 +302,11 @@ impl Network {
         Self {
             nodes: HashMap::new(),
             links: HashMap::new(),
-            timer: 0.0,
+            //timer: 0.0,
             margins: Margins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 },
             input_keys: vec![],
             output_keys: vec![],
-            duration,
+            //duration,
         }
     }
 
@@ -311,21 +319,12 @@ impl Network {
         self.output_keys = o;
     }
 
-    pub fn input(&mut self, input_values: Vec<(u64, Option<f32>)>) {
+    pub fn input(&mut self, input_values: Vec<(u64, f32)>) {
         for (key, value) in input_values.iter() {
             match self.nodes.get_mut(key) {
                 None => warn!("input node {} not found", key),
                 Some(node) => {
-                    match value {
-                        Some(v) => {
-                            node.sum = *v;
-                            node.active = true;
-                        },
-                        None => {
-                            node.sum = 0.0;
-                        }
-                    }
-
+                    node.recv_input(*value);
                 },
             }
         }
@@ -350,6 +349,26 @@ impl Network {
             }
         }
         return (input_keys, deep_keys, output_keys);
+    }
+
+    pub fn get_input_pairs(&self) -> Vec<(u64, String)> {
+        let mut pairs: Vec<(u64, String)> = vec![];
+        let (keys, _, _) = self.get_node_keys_by_type();
+        for k in keys.iter().cloned() {
+            let s = self.nodes.get(&k).unwrap().label.to_owned();
+            pairs.push((k, s));
+        }
+        return pairs;
+    }
+
+    pub fn get_output_pairs(&self) -> Vec<(u64, String)> {
+        let mut pairs: Vec<(u64, String)> = vec![];
+        let (_, _, keys) = self.get_node_keys_by_type();
+        for k in keys.iter().cloned() {
+            let s = self.nodes.get(&k).unwrap().label.to_owned();
+            pairs.push((k, s));
+        }
+        return pairs;
     }
 
     fn create_nodes(&mut self, input: usize, input_labels: Vec<&str>, hidden: usize, output: usize, output_labels: Vec<&str>) {
@@ -431,25 +450,25 @@ impl Network {
         println!("[NODE CREATE] id: {}", id);
     }
 
-    pub fn draw(&self) {
-        let t = self.timer/self.duration;
+/*     pub fn draw(&self) {
+        //let t = self.timer/self.duration;
         for (_, link) in self.links.iter() {
-            link.draw(&self.nodes, t);
+            link.draw(&self.nodes);
         }
         for (_, node) in self.nodes.iter() {
-            node.draw(t);
+            node.draw();
         }
-    }
+    } */
 
-    pub fn update(&mut self) {
+/*     pub fn update(&mut self) {
         self.timer += get_frame_time();
         if self.timer > self.duration {
             self.timer -= self.duration;
             self.calc();
         }
-    }
+    } */
 
-    pub fn calc(&mut self) -> Vec<(u64, f32)> {
+    pub fn calc(&mut self) {
         for (_id, link) in self.links.iter_mut() {
             link.calc(&mut self.nodes);
         }
@@ -457,39 +476,49 @@ impl Network {
         for (_, node) in self.nodes.iter_mut() {
             node.calc();
         }
-
-        let mut output_values: Vec<(u64, f32)> = vec![];
-        for (key, node) in self.nodes.iter() {
-            match node.node_type {
-                NeuronTypes::OUTPUT => {
-                    match node.active {
-                        true => {
-                            output_values.push((*key, node.val));
-                        },
-                        false => {
-                            output_values.push((*key, 0.0));
-                        },
-                    }
-                },
-                _ => {},
-            }
-        }
-        return output_values;
     }
 
-    pub fn get_outputs(&self) -> Vec<(u64, f32)>{
-        let mut outputs: Vec<(u64, f32)> = vec![];
+    pub fn get_outputs(&self) -> Vec<(u64, String, f32)>{
+        let mut outputs: Vec<(u64, String, f32)> = vec![];
         for key in self.output_keys.iter() {
             let node = self.nodes.get(key).unwrap();
             if node.active {
                 let val = node.val;
-                outputs.push((*key, val));
+                outputs.push((*key, node.label.to_owned(), val));
             } else {
                 let val = 0.0;
-                outputs.push((*key, val));
+                outputs.push((*key, node.label.to_owned(), val));
             }
         }
         return outputs;
+    }
+
+    pub fn get_outputs2(&self) -> HashMap<String, f32>{
+        let mut outputs: HashMap<String, f32> = HashMap::new();
+        for key in self.output_keys.iter() {
+            let node = self.nodes.get(key).unwrap();
+            if node.active {
+                let val = clamp(node.val, 0.0, 1.0);
+                outputs.insert(node.label.to_owned(), val);
+            } else {
+                let val = 0.0;
+                outputs.insert(node.label.to_owned(), val);
+            }
+        }
+        return outputs;
+    }
+
+    fn get_node(&self, node_key: &u64) -> Option<&Node> {
+        return self.nodes.get(node_key);
+    }
+
+    pub fn get_node_value(&self, node_key: &u64) -> Option<f32> {
+        return match self.get_node(node_key) {
+            Some(node) => {
+                Some(node.val)
+            },
+            None => None,
+        };
     }
 
     pub fn del_node(&mut self, id: u64) {
@@ -519,11 +548,11 @@ impl Network {
         Self {
             nodes: nodes_map,
             links: links_map,
-            timer: 0.0,
+            //timer: 0.0,
             margins: Margins { x_min: 25.0, x_max: 25.0, y_min: 375.0, y_max: 375.0 },
             input_keys: self.input_keys.to_owned(),
             output_keys: self.output_keys.to_owned(),
-            duration: self.duration,
+            //duration: self.duration,
         }
     }
 
@@ -544,7 +573,7 @@ impl Network {
         NetworkSketch { 
             nodes: nodes_sketch, 
             links: links_sketch,
-            duration: self.duration, 
+            //duration: self.duration, 
             margins: self.margins.to_owned() 
         }
     }
@@ -560,7 +589,7 @@ impl Network {
         for (id, node) in self.nodes.iter_mut() {
             let r = rand::gen_range(0.0, 1.0);
             if r < mutation_rate {
-                node.bias = rand::gen_range(-1.0, 1.0);
+                node.bias = rand::gen_range(-1.0, 1.0)*rand::gen_range(-1.0, 1.0);
             }
         }
 
@@ -681,7 +710,7 @@ pub struct LinkSketch {
 pub struct NetworkSketch {
     nodes: HashMap<u64, NodeSketch>,
     links: HashMap<u64, LinkSketch>,
-    duration: f32,
+    //duration: f32,
     margins: Margins,
 }
 
@@ -700,11 +729,21 @@ impl NetworkSketch {
             let link = Link::from_sketch(sketch_link.to_owned());
             links.insert(*key, link);
         }
-        let mut net = Network { nodes: nodes.to_owned() , links: links.to_owned(), timer: random_unit().abs(), margins: self.margins.to_owned(), input_keys: vec![], output_keys: vec![], duration: self.duration };
+
+        let mut net = Network { 
+            nodes: nodes.to_owned(), 
+            links: links.to_owned(), 
+            //timer: random_unit().abs(), 
+            margins: self.margins.to_owned(), 
+            input_keys: vec![], 
+            output_keys: vec![], 
+            //duration: self.duration 
+        };
+
         let (mut i, _, mut o) = net.get_node_keys_by_type();
         net.input_keys.append(&mut i);
         net.output_keys.append(&mut o);
         return net;
-        //Self { nodes: net.nodes, links: net.links, timer: net.timer, margins: net.margins, input_keys: net.input_keys, output_keys: net.output_keys, duration: net.duration }
     }
+
 }

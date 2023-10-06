@@ -73,7 +73,7 @@ impl UISystem {
             match agent {
                 Some(agent) => {
                     self.build_inspect_window(egui_ctx, agent);
-                    self.build_io_window(egui_ctx, agent.neuro_table.inputs.clone(), agent.neuro_table.outputs.clone());
+                    self.build_io_window(egui_ctx, agent.neuro_map.get_signal_list().clone(), agent.neuro_map.get_action_list().clone());
                     self.build_inspect_network(egui_ctx, &agent.network);
                 },
                 None => {}
@@ -193,39 +193,29 @@ impl UISystem {
             let delta = sim_state.dt;
             let time = sim_state.sim_time;
             let physics_num = sim_state.physics_num;
-            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(160.0).show(egui_ctx, |ui| {
-                ui.label(format!("DT: {}ms", (delta * 1000.0).round()));
-                ui.separator();
-                ui.label(format!("FPS: {}", fps));
-                ui.separator();
-                ui.label(format!("TIME: {}", time.round()));
-                ui.separator();
-//                ui.label(format!("TOTAL MASS: {}", total_mass.round()));
-//                ui.separator();
-                ui.label(format!("OBJECTS: {}", physics_num));
+            Window::new("MONITOR").default_pos((5.0, 5.0)).default_width(400.0).default_height(80.0).show(egui_ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(format!("DT: {}ms", (delta * 1000.0).round()));
+                    ui.label(format!("FPS: {}", fps));
+                    ui.label(format!("TIME: {}", time.round()));
+                    ui.label(format!("OBJECTS: {}", physics_num));
+                })
             });
         }
     }
 
-    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(u64, Option<f32>)>, outputs: Vec<(u64, f32)>) {
+    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(String, f32)>, outputs: Vec<(String, f32)>) {
         if self.state.io {
-            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(160.0).show(egui_ctx, |ui| {
+            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(120.0).show(egui_ctx, |ui| {
                 ui.horizontal(|horizont| {
                     horizont.columns(2, |col| {
-                        for (id, v) in inputs.iter() {
-                            match v {
-                                Some(val) => {
-                                    let i = (val*100.0).round()/100.0;
-                                    col[0].label(format!("{}", i));
-                                },
-                                None => {
-                                    col[0].label(format!("--"));
-                                }
-                            }
+                        for (lab, val) in inputs.iter() {
+                            let i = (val*100.0).round()/100.0;
+                            col[0].label(format!("{lab}:{}", i));
                         }
-                        for (id, v) in outputs.iter() {
-                            let o = (v*100.0).round()/100.0;
-                            col[1].label(format!("{o}"));
+                        for (lab, val) in outputs.iter() {
+                            let o = (val*100.0).round()/100.0;
+                            col[1].label(format!("{lab}:{o}"));
                         }
                     })
                 });
@@ -355,6 +345,8 @@ impl UISystem {
             let size = agent.size;
             let tg_pos = agent.enemy_position;
             let tg_ang = agent.enemy_dir;
+            let res_pos = agent.resource_position;
+            let res_ang = agent.resource_dir;
             let pos = agent.pos;
             let contacts_num = agent.contacts.len();
             let lifetime = agent.lifetime.round();
@@ -362,6 +354,7 @@ impl UISystem {
             let childs = agent.childs;
             let attack = agent.attacking;
             let points = agent.points;
+            let is_resource: bool = agent.resource.is_some();
             Window::new("INSPECT").default_pos((175.0, 5.0)).default_width(170.0).show(egui_ctx, |ui| {
                 ui.label(RichText::new("AGENT").strong().color(Color32::GREEN));
                 ui.label(format!("life: [{}]", lifetime));
@@ -376,6 +369,26 @@ impl UISystem {
                     ui.label(RichText::new("[ATTACK]").strong().color(Color32::RED));
                 } else {
                     ui.label(RichText::new("[......]").strong().color(Color32::LIGHT_GRAY));
+                }
+                ui.separator();
+                if is_resource {
+                    ui.label(RichText::new("RESOURCE").strong().color(Color32::YELLOW));
+                } else {
+                    ui.label(RichText::new("[......]").strong().color(Color32::YELLOW));
+                }
+                match (res_pos, res_ang) {
+                    (Some(target), Some(ang)) => {
+                        ui.label(format!("pos: [x: {} | y:{}]", target.x.round(), target.y.round()));
+                        ui.label(format!("ang: [{}]", (ang*10.0).round()/10.0));
+                    }
+                    (None, None) => {
+                        ui.label(format!("pos: [---]"));
+                        ui.label(format!("ang: [---]"));
+                    }
+                    (_, _) => {
+                        ui.label(format!("pos: [---]"));
+                        ui.label(format!("ang: [---]"));
+                    }
                 }
                 ui.separator();
                 ui.label(RichText::new("ENEMY").strong().color(Color32::RED));

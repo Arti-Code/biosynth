@@ -196,6 +196,41 @@ impl Simulation {
         }
     }
 
+    fn eat(&mut self) {
+        let dt = get_frame_time();
+        //let temp_units = self.units.agents.
+        let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
+        for (id, agent) in self.agents.get_iter() {
+            let attacks = agent.attack();
+            for tg in attacks.iter() {
+                if let Some(mut target) = self.resources.resources.get(tg) {
+                    let power1 = agent.size + agent.size*random_unit()/2.0;
+                        let dmg = dt*20.0;
+                        if hits.contains_key(id) {
+                            let new_dmg = hits.get_mut(id).unwrap();
+                            *new_dmg += dmg;
+                        } else {
+                            hits.insert(*id, dmg);
+                        }
+                        if hits.contains_key(tg) {
+                            let new_dmg = hits.get_mut(tg).unwrap();
+                            *new_dmg -= dmg;
+                        } else {
+                            hits.insert(*tg, -dmg);
+                        }
+                }
+            }
+        }
+        for (id, dmg) in hits.iter() {
+            let mut agent = self.agents.agents.get_mut(id).unwrap();
+            let damage = *dmg;
+            agent.add_energy(damage*2.0);
+            if damage > 0.0 {
+                agent.points += damage;
+            }
+        }
+    }
+
     pub fn draw(&self) {
         //set_default_camera();
         set_camera(&self.camera);
@@ -377,7 +412,7 @@ impl Simulation {
             let agent_sketch = self.ranking.get_mut(r).unwrap();
             let s = agent_sketch.to_owned();
             let agent = Agent::from_sketch(s, &mut self.physics);
-            println!("AGENT: {} | {} | {}", agent.generation, agent.specie, agent_sketch.points);
+            println!("RANK=>AGENT: {} | {} | {}", agent.generation, agent.specie, agent_sketch.points.round());
             agent_sketch.points -= agent_sketch.points*0.2;
             agent_sketch.points.round();
             self.agents.add_agent(agent);

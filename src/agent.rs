@@ -20,8 +20,96 @@ use std::fs;
 
 
 pub struct NeuroTable {
-    pub inputs: Vec<(u64, Option<f32>)>,
-    pub outputs: Vec<(u64, f32)>,
+    pub inputs: Vec<(u64, String, Option<f32>)>,
+    pub outputs: Vec<(u64, String, f32)>,
+}
+
+
+struct NeuroValue {
+    pub label: String,
+    pub val: f32,
+}
+pub struct NeuroMap {
+    pub sensors: HashMap<String, u64>,
+    pub effectors: HashMap<String, u64>,
+    signals: HashMap<u64, f32>,
+    actions: HashMap<String, f32>,
+}
+
+impl NeuroMap {
+
+    pub fn new() -> Self {
+        Self { 
+            sensors: HashMap::new(), 
+            effectors: HashMap::new(),
+            signals: HashMap::new(),
+            actions: HashMap::new(), 
+        }
+    }
+
+    pub fn add_sensor(&mut self, name: &str, node_key: u64) {
+        self.sensors.insert(name.to_string(), node_key);
+    }
+
+    pub fn add_sensors(&mut self, pairs: Vec<(u64, String)>) {
+        for (k, s) in pairs.iter() {
+            self.add_sensor(s, *k);
+        }
+    }
+
+    pub fn add_effector(&mut self, name: &str, node_key: u64) {
+        self.effectors.insert(name.to_string(), node_key);
+    }
+
+
+    pub fn add_effectors(&mut self, pairs: Vec<(u64, String)>) {
+        for (k, s) in pairs.iter() {
+            self.add_effector(s, *k);
+        }
+    }
+
+    pub fn send_signals(&self, network: &mut Network) {
+        //self.signals = HashMap::new();
+        let mut input_values: Vec<(u64, f32)> = vec![];
+        for (k, v) in self.signals.iter() {
+            input_values.push((*k, *v));
+        }
+        network.input(input_values);
+    }
+
+    pub fn recv_actions(&mut self, network: &Network) {
+        self.actions = HashMap::new();
+        for (k, v) in self.effectors.iter() {
+            self.actions.insert(k.to_owned(), network.get_node_value(v).unwrap());
+        }
+    }
+
+    pub fn set_signal(&mut self, name: &str, value: f32) {
+        let node_key = self.sensors.get(name).unwrap();
+        self.signals.insert(*node_key, value);
+    }
+
+    pub fn get_action(&self, name: &str) -> f32 {
+        return *self.actions.get(name).unwrap();
+    }
+
+    pub fn get_signal_list(&self) -> Vec<(String, f32)> {
+        let mut signal_list: Vec<(String, f32)> = vec![];
+        for (s, k) in self.sensors.iter() {
+            let v = self.signals.get(k).unwrap();
+            signal_list.push((s.to_owned(), *v));
+        }
+        return signal_list;
+    }
+
+    pub fn get_action_list(&self) -> Vec<(String, f32)> {
+        let mut action_list: Vec<(String, f32)> = vec![];
+        for (s, v) in self.actions.iter() {
+            action_list.push((s.to_owned(), *v));
+        }
+        return action_list;
+    }
+
 }
 
 pub struct Agent {
@@ -51,7 +139,8 @@ pub struct Agent {
     pub resource_position: Option<Vec2>,
     pub resource_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
-    pub neuro_table: NeuroTable,
+    //pub neuro_table: NeuroTable,
+    pub neuro_map: NeuroMap,
     pub childs: usize,
     pub specie: String,
     pub attacking: bool,
@@ -72,9 +161,14 @@ impl Agent {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST"];
+        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK"];
-        network.build(5, inp_labs, 6, 4, out_labs, settings.neurolink_rate);
+        network.build(inp_labs.len(), inp_labs, 5, out_labs.len(), out_labs, settings.neurolink_rate);
+        let input_pairs = network.get_input_pairs();
+        let output_pairs = network.get_output_pairs();
+        let mut neuro_map = NeuroMap::new();
+        neuro_map.add_sensors(input_pairs);
+        neuro_map.add_effectors(output_pairs);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
@@ -102,7 +196,8 @@ impl Agent {
             resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            //neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            neuro_map,
             childs: 0,
             specie: create_name(4),
             attacking: false,
@@ -126,8 +221,14 @@ impl Agent {
                 SharedShape::ball(sketch.size)
             },
         };
+        let gen = sketch.generation + 1;
         let mut network = sketch.network.from_sketch();
         network.mutate(settings.mutations);
+        let input_pairs = network.get_input_pairs();
+        let output_pairs = network.get_output_pairs();
+        let mut neuro_map = NeuroMap::new();
+        neuro_map.add_sensors(input_pairs);
+        neuro_map.add_effectors(output_pairs);
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent {
             key,
@@ -146,7 +247,7 @@ impl Agent {
             network,
             alife: true,
             lifetime: 0.0,
-            generation: 0,
+            generation: gen,
             detected: None,
             enemy: None,
             enemy_position: None,
@@ -156,7 +257,8 @@ impl Agent {
             resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            //neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            neuro_map,
             childs: 0,
             specie: create_name(4),
             attacking: false,
@@ -192,7 +294,7 @@ impl Agent {
 
         self.update_physics(physics);
         //self.calc_timers(dt);
-        self.network.update();
+        //self.network.update();
         self.calc_energy(dt);
         return self.alife;
     }
@@ -209,15 +311,20 @@ impl Agent {
         return hits;
     }
 
-    fn analize(&mut self) {
-        let mut contact: Option<f32> = None;
-        if self.contacts.len() > 0 { contact = Some(1.0); }
+    fn prep_input(&mut self) {
+        let mut contact: f32;
+        if self.contacts.len() > 0 {
+            contact = 1.0; 
+        } else {
+            contact = 0.0;
+        }
         //let mut contact = clamp(self.contacts.len(), 0, 1) as f32;
+        
         let tg_dist = match self.enemy_position {
-            None => None,
+            None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
-                Some(1.0-(dist/self.vision_range))
+                1.0-(dist/self.vision_range)
             },
         };
         let mut tg_ang = match self.enemy_dir {
@@ -227,41 +334,92 @@ impl Agent {
             },
         };
         tg_ang = tg_ang/PI;
-        let mut tgr: Option<f32> = None; let mut tgl: Option<f32> = None;
+        let mut tgr: f32=0.0; let mut tgl: f32=0.0;
         if tg_ang > 0.0 {
-            tgr = Some(1.0 - clamp(tg_ang, 0.0, 1.0));
+            tgr = 1.0 - clamp(tg_ang, 0.0, 1.0);
         } else if tg_ang < 0.0 {
-            tgl = Some(1.0-clamp(tg_ang, -1.0, 0.0).abs()); 
+            tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs();
         }
-        let hp = Some(self.eng/self.max_eng);
-        let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist];
-        let keys = self.network.input_keys.clone();
-        let mut input_values: Vec<(u64, Option<f32>)> = vec![];
-        for i in 0..val.len() {
-            input_values.push((keys[i], val[i]));
+        
+        let res_dist = match self.enemy_position {
+            None => 0.0,
+            Some(pos2) => {
+                let dist = pos2.distance(self.pos);
+                1.0-(dist/self.vision_range)
+            },
+        };
+        let mut res_ang = match self.enemy_dir {
+            None => PI,
+            Some(dir) => {
+                dir
+            },
+        };
+        res_ang = res_ang/PI;
+        let mut resr: f32=0.0; let mut resl: f32=0.0;
+        if res_ang > 0.0 {
+            resr = 1.0 - clamp(res_ang, 0.0, 1.0);
+        } else if res_ang < 0.0 {
+            resl = 1.0-clamp(res_ang, -1.0, 0.0).abs(); 
         }
+        
+        let hp = self.eng/self.max_eng;
+        //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
+        //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED"];
+        let input_values: [f32; 8] = [contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
+        self.neuro_map.set_signal("CON", contact);
+        self.neuro_map.set_signal("ENG", hp);
+        self.neuro_map.set_signal("TGL", tgl);
+        self.neuro_map.set_signal("TGR", tgr);
+        self.neuro_map.set_signal("DST", tg_dist);
+        self.neuro_map.set_signal("REL", resl);
+        self.neuro_map.set_signal("RER", resr);
+        self.neuro_map.set_signal("RED", res_dist);
+    }
+
+    fn analize(&mut self) {
+
         self.network.deactivate_nodes();
-        self.network.input(input_values.clone());
+        self.prep_input();
+        self.neuro_map.send_signals(&mut self.network);
         self.network.calc();
-        let mut outputs = self.network.get_outputs();
-        for i in 0..outputs.len() {
-            outputs[i].1 = clamp(outputs[i].1, 0.0, 1.0);
-        }
-        //let outputs = self.analizer.analize();
-        self.neuro_table.inputs = input_values;
-        self.neuro_table.outputs = outputs.clone();
-        if outputs[0].1 >= 0.0 {
-            self.vel = outputs[0].1;
+        self.neuro_map.recv_actions(&self.network);
+
+        //vec!["MOV", "LFT", "RGT", "ATK"];
+        if self.neuro_map.get_action("MOV") > 0.0 {
+            self.vel = self.neuro_map.get_action("MOV");
         } else {
             self.vel = 0.0;
         }
-        self.ang_vel = -outputs[1].1+outputs[2].1;
-        if outputs[3].1 >= 0.5 {
+        
+        self.ang_vel = -self.neuro_map.get_action("LFT")+self.neuro_map.get_action("RGT");
+        if self.neuro_map.get_action("ATK") >= 0.5 {
             self.attacking = true;
         } else {
             self.attacking = false;
         }
     }
+
+/*     fn analize2(&mut self) {
+
+        self.network.deactivate_nodes();
+        let iii = self.prep_input();
+        self.network.input(iii.clone());
+        self.network.calc();
+        let mut outputs2 = self.network.get_outputs2();
+        self.neuro_table.inputs = iii.clone();
+        //self.neuro_table.outputs = outputs2.clone();
+        if *outputs2.get("MOV").unwrap() >= 0.0 {
+            self.vel = *outputs2.get("MOV").unwrap();
+        } else {
+            self.vel = 0.0;
+        }
+        self.ang_vel = -*outputs2.get("LFT").unwrap()+*outputs2.get("RGT").unwrap();
+        if *outputs2.get("ATK").unwrap() >= 0.5 {
+            self.attacking = true;
+        } else {
+            self.attacking = false;
+        }
+    } */
 
     fn draw_front(&self) {
         let dir = Vec2::from_angle(self.rot);
@@ -505,6 +663,12 @@ impl Agent {
         let rot = random_rotation();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default(), InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 ));
+        let network = self.network.replicate();
+        let input_pairs = network.get_input_pairs();
+        let output_pairs = network.get_output_pairs();
+        let mut neuro_map = NeuroMap::new();
+        neuro_map.add_sensors(input_pairs);
+        neuro_map.add_effectors(output_pairs);
         Self {
             key,
             pos,
@@ -519,7 +683,7 @@ impl Agent {
             color,
             shape,
             analize_timer: self.analize_timer.to_owned(),
-            network: self.network.replicate(),
+            network,
             alife: true,
             lifetime: 0.0,
             generation: self.generation + 1,
@@ -532,7 +696,7 @@ impl Agent {
             resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
+            neuro_map,
             childs: 0,
             specie: self.specie.to_owned(),
             attacking: false,
