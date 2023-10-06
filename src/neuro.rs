@@ -184,7 +184,7 @@ impl Node {
     }
 
     pub fn recv_input(&mut self, v: f32) {
-        self.val = 0.0;
+        self.val = v;
         if v == 0.0 { 
             self.active = false;
         } else {

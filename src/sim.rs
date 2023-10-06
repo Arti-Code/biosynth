@@ -15,6 +15,7 @@ use macroquad::experimental::collections::storage;
 use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
+use std::fmt::format;
 use serde::{Serialize, Deserialize};
 use serde_json;
 use std::fs;
@@ -234,9 +235,9 @@ impl Simulation {
     pub fn draw(&self) {
         //set_default_camera();
         set_camera(&self.camera);
-        clear_background(BLACK);
+        clear_background(color_u8!(50,50,50,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
-        self.draw_grid(50);
+        self.draw_grid(25);
         self.draw_agents();
         self.draw_res();
     }
@@ -286,7 +287,7 @@ impl Simulation {
         let row_num = (h / cell_size as f32).floor() as u32;
         for x in 0..col_num + 1 {
             for y in 0..row_num + 1 {
-                draw_circle((x * cell_size) as f32, (y * cell_size) as f32, 1.0, GRAY);
+                draw_circle((x * cell_size) as f32, (y * cell_size) as f32, 1.0, WHITE);
             }
         }
     }
@@ -338,6 +339,17 @@ impl Simulation {
             Err(_) => {
                 warn!("error during saving sim");
             },
+        }
+    }
+
+    fn load_sim(&mut self) {
+        let path_str = "saves/last.json";
+        let path = Path::new(&path_str);
+        match fs::read_to_string(path) {
+            Err(_) => {},
+            Ok(save) => {
+
+            }
         }
     }
 
@@ -459,6 +471,7 @@ pub struct SimulationSave {
 }
 
 impl SimulationSave {
+    
     pub fn from_sim(sim: &Simulation) -> Self {
         let mut agents: Vec<AgentSketch> = vec![];
         let mut ranking: Vec<AgentSketch> = vec![];
@@ -478,4 +491,26 @@ impl SimulationSave {
             ranking: ranking.to_owned(), 
         }
     }
+
+/*     pub fn to_sim(saved: String) -> Simulation {
+        let sim_save: SimulationSave = serde_json::from_str(&saved).unwrap();
+        Simulation { simulation_name: 
+            world_size: sim_save.world_size.to_vec(),
+            font: ,
+            physics: ,
+            camera: ,
+            running: ,
+            sim_time: ,
+            ui: ,
+            sim_state: ,
+            signals: ,
+            select_phase: ,
+            selected: ,
+            mouse_state: ,
+            agents: ,
+            resources: ,
+            ranking: ,
+        }
+    } */
+
 }
