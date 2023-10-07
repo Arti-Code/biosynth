@@ -1,20 +1,17 @@
 #![allow(unused)]
 
-use std::collections::BTreeMap;
-use std::f32::consts::PI;
 use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
 use egui_macroquad::egui::widgets::Slider;
 use egui_macroquad::egui::Checkbox;
 use egui_macroquad::egui::Vec2 as UIVec2;
-use macroquad::math::Vec2 as Vec2;
+//use macroquad::math::Vec2 as Vec2;
 use macroquad::prelude::*;
-use image::{io::*, *};
-use macroquad::ui::StyleBuilder;
-use macroquad::ui::widgets::Texture;
+//use image::*;
+//use macroquad::ui::widgets::Texture;
 use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use crate::sim::{*, self};
+//use crate::sim::*;
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
@@ -622,6 +619,16 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut res_num = settings.res_num;
+                column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut res_num, 0.0..=4.0).step_by(0.05)).changed() {
+                    settings.res_num = res_num;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mutations: f32 = settings.mutations;
                 column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut mutations, 0.0..=1.0).step_by(0.05)).changed() {
@@ -636,6 +643,26 @@ impl UISystem {
                 column[0].label(RichText::new("NEURON LINKS RATE").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=1.0).step_by(0.05)).changed() {
                     settings.neurolink_rate = neurolink_rate;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut neuro_duration: f32 = settings.neuro_duration;
+                column[0].label(RichText::new("NEUROANALIZE DURATION").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut neuro_duration, 0.05..=2.0).step_by(0.05)).changed() {
+                    settings.neuro_duration = neuro_duration;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut hidden_nodes_num = settings.hidden_nodes_num as i32;
+                column[0].label(RichText::new("DEEP NEURONS NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<i32>(&mut hidden_nodes_num, 0..=20).step_by(1.0)).changed() {
+                    settings.hidden_nodes_num = hidden_nodes_num as usize;
                     signals.new_settings = true;
                 }
             });

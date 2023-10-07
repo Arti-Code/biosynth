@@ -19,7 +19,8 @@ Live2:
         ✔ fix: new sim name input field @done(23-10-07 01:44)
         ☐ fix: add\del nodes mutation @high
         ☐ fix: sources @high
-        ☐ fix new sim win layout
+        ✔ fix new sim win layout @done(23-10-07 03:56)
+        ✔ new settings options (neuro hidden nodes num, neuro duration, source num) @done(23-10-07 03:56)
     0.4:
         ✔ add rapier physics world
         ✔ add agents to physics world

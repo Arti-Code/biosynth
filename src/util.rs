@@ -237,6 +237,7 @@ pub struct UIState {
 }
 
 impl UIState {
+
     pub fn new() -> Self {
         Self {
             new_sim_name: String::new(),
@@ -277,6 +278,7 @@ pub struct SimState {
 }
 
 impl SimState {
+
     pub fn new() -> Self {
         Self {
             sim_name: String::new(),
@@ -300,8 +302,4 @@ impl SimState {
 
 pub struct MouseState {
     pub pos: Vec2,
-}
-
-pub struct HitList {
-    pub targets: HashMap<u64, f32>,
 }
