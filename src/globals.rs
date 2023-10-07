@@ -53,6 +53,8 @@ pub struct Settings {
     pub move_energy_cost: f32,
     pub attack_energy_cost: f32,
     pub res_num: f32,
+    pub neuro_duration: f32,
+    pub hidden_nodes_num: usize,
 }
 
 impl Default for Settings {
@@ -77,7 +79,8 @@ impl Default for Settings {
             move_energy_cost: 0.1,
             attack_energy_cost: 0.1,
             res_num: 0.2,
-
+            hidden_nodes_num: 5,
+            neuro_duration: 0.3,
        }
     }
 }

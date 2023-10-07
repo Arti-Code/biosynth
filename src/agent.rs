@@ -15,20 +15,10 @@ use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
-use serde_json::{self, *};
+use serde_json;
 use std::fs;
 
 
-pub struct NeuroTable {
-    pub inputs: Vec<(u64, String, Option<f32>)>,
-    pub outputs: Vec<(u64, String, f32)>,
-}
-
-
-struct NeuroValue {
-    pub label: String,
-    pub val: f32,
-}
 pub struct NeuroMap {
     pub sensors: HashMap<String, u64>,
     pub effectors: HashMap<String, u64>,
@@ -163,7 +153,7 @@ impl Agent {
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK"];
-        network.build(inp_labs.len(), inp_labs, 3, out_labs.len(), out_labs, settings.neurolink_rate);
+        network.build(inp_labs.len(), inp_labs, settings.hidden_nodes_num, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
@@ -182,7 +172,7 @@ impl Agent {
             eng: size.powi(2) * 10.0,
             color,
             shape,
-            analize_timer: Timer::new(1.0, true, true, true),
+            analize_timer: Timer::new(settings.neuro_duration, true, true, true),
             network,
             alife: true,
             lifetime: 0.0,
@@ -243,7 +233,7 @@ impl Agent {
             eng: sketch.size.powi(2) * 10.0,
             color,
             shape,
-            analize_timer: Timer::new(1.0, true, true, true),
+            analize_timer: Timer::new(settings.neuro_duration, true, true, true),
             network,
             alife: true,
             lifetime: 0.0,
@@ -300,10 +290,10 @@ impl Agent {
     }
 
     pub fn attack(&self) -> Vec<RigidBodyHandle> {
-        let dt = get_frame_time();
+        //let dt = get_frame_time();
         let mut hits: Vec<RigidBodyHandle> = vec![];
         if !self.attacking { return hits; }
-        for (rbh, id, ang) in self.contacts.to_vec() {
+        for (rbh, _, ang) in self.contacts.to_vec() {
             if ang <= PI/4.0 && ang >= -PI/4.0 {
                 hits.push(rbh);
             }
@@ -312,7 +302,7 @@ impl Agent {
     }
 
     fn prep_input(&mut self) {
-        let mut contact: f32;
+        let contact: f32;
         if self.contacts.len() > 0 {
             contact = 1.0; 
         } else {
@@ -365,7 +355,7 @@ impl Agent {
         let hp = self.eng/self.max_eng;
         //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
         //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED"];
-        let input_values: [f32; 8] = [contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
+        //let input_values: [f32; 8] = [contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
         self.neuro_map.set_signal("CON", contact);
         self.neuro_map.set_signal("ENG", hp);
         self.neuro_map.set_signal("TGL", tgl);
@@ -422,7 +412,7 @@ impl Agent {
     } */
 
     fn draw_front(&self) {
-        let dir = Vec2::from_angle(self.rot);
+        //let dir = Vec2::from_angle(self.rot);
         let left = Vec2::from_angle(self.rot-PI/10.0);
         let right = Vec2::from_angle(self.rot+PI/10.0);
         let l0 = self.pos + left*self.size;
@@ -437,12 +427,12 @@ impl Agent {
         draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
     }
 
-    fn draw_circle(&self) {
+/*     fn draw_circle(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         draw_circle_lines(x0, y0, self.size, 4.0, self.color);
         //self.draw_front();
-    }
+    } */
 
     fn draw_target(&self) {
         //if !self.enemy.is_none() {
@@ -485,7 +475,7 @@ impl Agent {
             color: LIGHTGRAY,
             ..Default::default()
         };
-        let rot = self.rot;
+        //let rot = self.rot;
         //let mass = self.mass;
         let info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
         //let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
@@ -662,7 +652,8 @@ impl Agent {
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
-        let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default(), InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 ));
+        let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
+        let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default(), interactions);
         let network = self.network.replicate();
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
