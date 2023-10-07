@@ -447,7 +447,7 @@ impl Network {
         let node = Node::new(position, NeuronTypes::DEEP, "");
         let id = node.id;
         self.nodes.insert(id, node);
-        println!("[NODE CREATE] id: {}", id);
+        //println!("[NODE CREATE] id: {}", id);
     }
 
 /*     pub fn draw(&self) {
@@ -524,14 +524,14 @@ impl Network {
     pub fn del_node(&mut self, id: u64) {
         self.links.retain(|k, v| {
             if v.node_from == id || v.node_to == id {
-                println!("[LINK DEL] id: {}", k);
+                //println!("[LINK DEL] id: {}", k);
                 return false;
             } else {
                 return true;
             }
         });
         self.nodes.remove(&id);
-        println!("[NODE DEL] id: {}", id);
+        //println!("[NODE DEL] id: {}", id);
     }
 
     pub fn unselect(&mut self) {
