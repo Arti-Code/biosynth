@@ -61,8 +61,8 @@ impl Default for Settings {
             world_w: WORLD_W as i32,
             world_h: WORLD_H as i32,
             agent_eng_bar: true,
-            agent_init_num: 60,
-            agent_min_num: 27,
+            agent_init_num: 100,
+            agent_min_num: 28,
             agent_rotate: 1.7,
             agent_speed: 60.0,
             agent_size_min: 3,
@@ -70,8 +70,8 @@ impl Default for Settings {
             agent_vision_range: 300.0,
             show_network: true,
             show_specie: true,
-            mutations: 0.2,
-            neurolink_rate: 0.4,
+            mutations: 0.3,
+            neurolink_rate: 0.2,
             damage: 80.0,
             base_energy_cost: 0.4,
             move_energy_cost: 0.1,
@@ -95,7 +95,6 @@ pub struct Signals {
     pub new_settings: bool,
     pub save_selected: bool,
     pub save_sim: bool,
-    pub ranking: bool,
 }
 
 impl Signals {
@@ -113,7 +112,6 @@ impl Signals {
             new_settings: false,
             save_selected: false,
             save_sim: false,
-            ranking: false,
         }
     }
 }

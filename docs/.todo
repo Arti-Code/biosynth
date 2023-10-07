@@ -1,4 +1,25 @@
 Live2:
+    0.5:
+        ☐ loading simulation @high
+        ✔ saving simulation @done(23-10-07 01:44)
+        ✔ save agent @done(23-10-07 01:44)
+        ☐ load agent @high
+        ☐ logs list
+        ☐ logs window
+        ✔ neural network visualization @done(23-10-07 01:44)
+        ✔ inputs and outputs window @done(23-10-07 01:44)
+        ✔ sources of energy @done(23-10-07 01:44)
+        ✔ reproduction @done(23-10-07 01:44)
+        ✔ mutations @done(23-10-07 01:44)
+        ✔ ranking @done(23-10-07 01:44)
+        ✔ fittness points @done(23-10-07 01:44)
+        ✔ ranking window @done(23-10-07 01:44)
+        ✔ global signals @done(23-10-07 01:44)
+        ✔ global settings @done(23-10-07 01:44)
+        ✔ fix: new sim name input field @done(23-10-07 01:44)
+        ☐ fix: add\del nodes mutation @high
+        ☐ fix: sources @high
+        ☐ fix new sim win layout
     0.4:
         ✔ add rapier physics world
         ✔ add agents to physics world
@@ -7,11 +28,6 @@ Live2:
         ✔ get collision events from physics world
         ✔ neural network @done(23-09-11 15:50)
         ✔ genethic algorithm @done(23-09-11 15:50)
-        ✘ loading/saving simulation
-        ✘ camera control window
-        ✘ fps count control 
-        ☐ timeflow window @low 
-        ☐ obstacles (rocks) @low
     0.3:
         ✔ world_size
         ✔ camera translation

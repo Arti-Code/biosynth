@@ -163,7 +163,7 @@ impl Agent {
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK"];
-        network.build(inp_labs.len(), inp_labs, 0, out_labs.len(), out_labs, settings.neurolink_rate);
+        network.build(inp_labs.len(), inp_labs, 3, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();

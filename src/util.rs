@@ -233,6 +233,7 @@ pub struct UIState {
     pub enviroment: bool,
     pub neuro_lab: bool,
     pub io: bool,
+    pub ranking: bool,
 }
 
 impl UIState {
@@ -252,6 +253,7 @@ impl UIState {
             enviroment: false,
             neuro_lab: false,
             io: false,
+            ranking: false,
         }
     }
 }
@@ -261,6 +263,7 @@ pub struct SimState {
     pub sim_name: String,
     pub ver: String,
     pub agents_num: i32,
+    pub sources_num: i32,
     pub plants_num: i32,
     pub lifes_num: i32,
     pub physics_num: i32,
@@ -279,6 +282,7 @@ impl SimState {
             sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
             agents_num: AGENTS_NUM as i32,
+            sources_num: 0,
             plants_num: AGENTS_NUM as i32,
             lifes_num: 0,
             physics_num: 0,

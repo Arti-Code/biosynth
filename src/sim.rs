@@ -121,13 +121,13 @@ impl Simulation {
         let min_points = 0.0;
     }
 
-    pub fn print_rank(&self) {
+/*     pub fn print_rank(&self) {
         let mut i = 0;
         for rank in self.ranking.iter() {
             i += 1;
             println!("[{}].{} | gen:{} | pts: {}", i, rank.specie.to_uppercase(), rank.generation, rank.points.round());
         }
-    }
+    } */
 
     fn update_res(&mut self) {
         for (_, res) in self.resources.get_iter_mut() {
@@ -235,7 +235,7 @@ impl Simulation {
     pub fn draw(&self) {
         //set_default_camera();
         set_camera(&self.camera);
-        clear_background(color_u8!(50,50,50,255));
+        clear_background(color_u8!(35,35,35,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_grid(25);
         self.draw_agents();
@@ -287,17 +287,13 @@ impl Simulation {
         let row_num = (h / cell_size as f32).floor() as u32;
         for x in 0..col_num + 1 {
             for y in 0..row_num + 1 {
-                draw_circle((x * cell_size) as f32, (y * cell_size) as f32, 1.0, WHITE);
+                draw_circle((x * cell_size) as f32, (y * cell_size) as f32, 1.0, LIGHTGRAY);
             }
         }
     }
 
     pub fn signals_check(&mut self) {
         let mut sign = mod_signals();
-        if self.signals.ranking {
-            self.signals.ranking = false;
-            self.print_rank();
-        }
         if self.signals.spawn_agent {
             self.agents.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
@@ -354,7 +350,7 @@ impl Simulation {
     }
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
-        println!("save");
+        //println!("save");
         match self.agents.get(handle) {
             Some(agent) => {
                 let agent_sketch = agent.get_sketch();
@@ -404,6 +400,7 @@ impl Simulation {
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
+        self.sim_state.sources_num = self.resources.resources.len() as i32;
         self.sim_state.physics_num = self.physics.get_physics_obj_num() as i32;
         let mut kin_eng = 0.0;
         let mut total_mass = 0.0;
@@ -424,7 +421,7 @@ impl Simulation {
             let agent_sketch = self.ranking.get_mut(r).unwrap();
             let s = agent_sketch.to_owned();
             let agent = Agent::from_sketch(s, &mut self.physics);
-            println!("RANK=>AGENT: {} | {} | {}", agent.generation, agent.specie, agent_sketch.points.round());
+            //println!("RANK=>AGENT: {} | {} | {}", agent.generation, agent.specie, agent_sketch.points.round());
             agent_sketch.points -= agent_sketch.points*0.2;
             agent_sketch.points.round();
             self.agents.add_agent(agent);
@@ -444,7 +441,7 @@ impl Simulation {
             },
             None => None,
         };
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected);
+        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected, &self.ranking);
     }
 
     pub fn draw_ui(&self) {

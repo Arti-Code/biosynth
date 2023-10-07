@@ -13,14 +13,14 @@
 - [x] sources of energy
 - [ ] biomes
 - [x] sensing (vision)
-- [ ] fitness function
-- [ ] mutation
+- [x] fitness function
+- [x] mutation
 - [ ] recombination
-- [ ] species
+- [x] species
 - [x] generations
 - [ ] genome coding
 - [x] camera with user translation control
 - [X] collision detection
 - [x] neural network
 - [x] genethics algorithm
-- [ ] input events
+- [x] input events
