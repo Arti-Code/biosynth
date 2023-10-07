@@ -2,6 +2,8 @@
 
 use std::f32::consts::PI;
 use crate::consts::*;
+use egui_macroquad::egui::epaint::ahash::HashMap;
+use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
 use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
@@ -29,7 +31,12 @@ pub fn random_unit_vec2() -> Vec2 {
 }
 
 pub fn random_color() -> color::Color {
-    let colors = vec![RED, GREEN, BLUE, YELLOW, ORANGE, GRAY, SKYBLUE, LIME];
+    let colors = vec![
+        LIGHTGRAY, GRAY, DARKGRAY, YELLOW, GOLD, ORANGE, PINK, RED, 
+        MAROON, GREEN, LIME, DARKGREEN, SKYBLUE, BLUE, DARKBLUE, PURPLE, 
+        VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, WHITE, MAGENTA
+    ];
+    //let colors = vec![RED, GREEN, BLUE, YELLOW, ORANGE, GRAY, SKYBLUE, LIME, ];
     let num = colors.len();
     let c = rand::gen_range(0, num);
     return colors[c];
@@ -197,34 +204,18 @@ pub fn create_name(num: usize) -> String {
 
 }
 
-pub struct Signals {
-    pub world: Vec2,
-    pub spawn_agent: bool,
-    pub spawn_plant: bool,
-    pub spawn_asteroid: bool,
-    pub spawn_jet: bool,
-    pub spawn_particles: bool,
-    pub new_sim: bool,
-    pub new_sim_name: String,
-    pub new_settings: bool,
+pub fn vec2_to_pos2(vec2: Vec2) -> Pos2 {
+    return Pos2 { x: vec2.x, y: vec2.y };
 }
 
-impl Signals {
-    
-    pub fn new() -> Self {
-        Self {
-            world: Vec2::NAN,
-            spawn_agent: false,
-            spawn_plant: false,
-            spawn_asteroid: false,
-            spawn_jet: false,
-            spawn_particles: false,
-            new_sim: false,
-            new_sim_name: String::new(),
-            new_settings: false,
-        }
-    }
+pub fn color_to_color32(color: Color) -> Color32 {
+    let r = (color.r*255.0) as u8;
+    let g = (color.g*255.0) as u8;
+    let b = (color.b*255.0) as u8;
+    let a = (color.a*255.0) as u8;
+    return Color32::from_rgba_unmultiplied(r, g, b, a);
 }
+
 
 
 pub struct UIState {
@@ -240,9 +231,9 @@ pub struct UIState {
     pub net: bool,
     pub about: bool,
     pub enviroment: bool,
-    pub static_rect: bool,
     pub neuro_lab: bool,
     pub io: bool,
+    pub ranking: bool,
 }
 
 impl UIState {
@@ -254,46 +245,15 @@ impl UIState {
             mouse: false,
             quit: false,
             agents_num: 0,
-            new_sim: false,
+            new_sim: true,
             credits: false,
             docs: false,
             net: false,
-            about: true,
+            about: false,
             enviroment: false,
-            static_rect: false,
             neuro_lab: false,
             io: false,
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct Settings {
-    pub world_w: i32,
-    pub world_h: i32,
-    pub agent_min_num: usize,
-    pub agent_init_num: usize,
-    pub agent_speed: f32,
-    pub agent_rotate: f32,
-    pub agent_eng_bar: bool,
-    pub agent_vision_range: f32,
-    pub agent_size_min: i32,
-    pub agent_size_max: i32,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            world_w: WORLD_W as i32,
-            world_h: WORLD_H as i32,
-            agent_min_num: AGENTS_NUM_MIN,
-            agent_init_num: AGENTS_NUM,
-            agent_speed: AGENT_SPEED,
-            agent_rotate: AGENT_ROTATE,
-            agent_eng_bar: true,
-            agent_vision_range: AGENT_VISION_RANGE,
-            agent_size_min: AGENT_SIZE_MIN,
-            agent_size_max: AGENT_SIZE_MAX,
+            ranking: false,
         }
     }
 }
@@ -303,6 +263,7 @@ pub struct SimState {
     pub sim_name: String,
     pub ver: String,
     pub agents_num: i32,
+    pub sources_num: i32,
     pub plants_num: i32,
     pub lifes_num: i32,
     pub physics_num: i32,
@@ -321,6 +282,7 @@ impl SimState {
             sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
             agents_num: AGENTS_NUM as i32,
+            sources_num: 0,
             plants_num: AGENTS_NUM as i32,
             lifes_num: 0,
             physics_num: 0,
@@ -338,4 +300,8 @@ impl SimState {
 
 pub struct MouseState {
     pub pos: Vec2,
+}
+
+pub struct HitList {
+    pub targets: HashMap<u64, f32>,
 }

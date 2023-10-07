@@ -11,7 +11,9 @@
 
 ##### v0.4
 
-- [ ] integration with rapier physics engine
+- [x] integration with rapier physics engine
+- [x] neural network
+- [x] genethic algorithm
 
 ##### v0.3
 

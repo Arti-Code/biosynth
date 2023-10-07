@@ -9,12 +9,15 @@ mod ui;
 mod util;
 mod physics;
 mod part;
-mod unit;
+mod agent;
 mod collector;
+mod food;
+mod globals;
+mod resource;
 
 use crate::consts::*;
 use crate::sim::*;
-use crate::util::*;
+use crate::globals::*;
 use macroquad::prelude::*;
 
 
@@ -30,24 +33,18 @@ fn app_configuration() -> Conf {
     }
 }
 
+fn setup() {
+    init_global_settings(Settings::default());
+    init_global_signals(Signals::new());
+}
+
 #[macroquad::main(app_configuration)]
 async fn main() {
-    let cfg = Settings {
-        world_w: WORLD_W as i32,
-        world_h: WORLD_H as i32,
-        agent_eng_bar: true,
-        agent_init_num: 40,
-        agent_min_num: 30,
-        agent_rotate: 2.0,
-        agent_speed: 100.0,
-        agent_size_min: 5,
-        agent_size_max: 12,
-        agent_vision_range: 300.0
-    };
+    setup();
     let font = load_ttf_font("assets/fonts/firacode.ttf")
         .await
         .expect("can't load font resource!");
-    let mut sim = Simulation::new(cfg, font.clone());
+    let mut sim = Simulation::new(font.clone());
     sim.ui.load_textures();
 
     loop {
