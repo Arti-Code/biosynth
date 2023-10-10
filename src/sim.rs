@@ -223,6 +223,7 @@ impl Simulation {
                         if hits.contains_key(tg) {
                             let new_dmg = hits.get_mut(tg).unwrap();
                             *new_dmg -= dmg*settings.eat_to_eng;
+                            //hits.insert(*tg, -dmg);
                         } else {
                             hits.insert(*tg, -dmg);
                         }

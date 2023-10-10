@@ -633,6 +633,26 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut atk_to_eng = settings.atk_to_eng;
+                column[0].label(RichText::new("ATACK TO ENG").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut atk_to_eng, 0.1..=20.0).step_by(0.1)).changed() {
+                    settings.atk_to_eng = atk_to_eng;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut eat_to_eng = settings.eat_to_eng;
+                column[0].label(RichText::new("EAT TO ENG").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut eat_to_eng, 1.0..=100.0).step_by(1.0)).changed() {
+                    settings.eat_to_eng = eat_to_eng;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mutations: f32 = settings.mutations;
                 column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut mutations, 0.0..=1.0).step_by(0.05)).changed() {

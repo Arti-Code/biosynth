@@ -634,7 +634,7 @@ impl Network {
             self.nodes.insert(nx, new_node);
             link.node_to = nx;
             self.add_link(nx, n1);
-            println!("RANDOM NODE!");
+            //println!("RANDOM NODE!");
         }
     }
 

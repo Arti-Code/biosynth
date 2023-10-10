@@ -83,8 +83,8 @@ impl Default for Settings {
             res_num: 0.3,
             hidden_nodes_num: 0,
             neuro_duration: 0.3,
-            atk_to_eng: 0.3,
-            eat_to_eng: 10.0,
+            atk_to_eng: 0.8,
+            eat_to_eng: 20.0,
        }
     }
 }
