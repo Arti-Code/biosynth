@@ -22,4 +22,4 @@ serde = "1.0.188"
 bincode = "1.3.3"
 
 [build-dependencies]
-embed-resource = "2.3.0"
+embed-resource = "2.4.0"

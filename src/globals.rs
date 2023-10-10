@@ -11,7 +11,6 @@ pub const FIX_DT: f32 = 1.0 / 30.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
-
 pub fn init_global_settings(settings: Settings) {
     storage::store(settings);
 }

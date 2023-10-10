@@ -264,6 +264,9 @@ impl UISystem {
 
     fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if self.state.new_sim {
+            let names0 = vec!["NEW", "IDEAL", "DANGER", "DARK", "FIRST", "EXPERIMENTAL", "RANDOM", "STRANGE"];
+            let names1 = vec!["SIMULATION", "UNIVERSE", "WORLD", "LAND", "LAB"];
+
             let mut settings = mod_settings();
             let w = 500.0; let h = 220.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h]).show(egui_ctx, |ui| {
@@ -291,8 +294,14 @@ impl UISystem {
                 ui.vertical_centered(|txt| {
                     let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
                     if self.temp_sim_name.is_empty() {
-                        let id = rand::gen_range(u8::MIN, u8::MAX) + rand::gen_range(u8::MIN, u8::MAX);
-                        self.temp_sim_name = format!("Simulation{}", id);
+                        let l0 = names0.len();
+                        let l1 = names1.len();
+                        let n0 = rand::gen_range(0, l0);
+                        let n1 = rand::gen_range(0, l1);
+                        let name0 = names0.get(n0).unwrap();
+                        let name1 = names1.get(n1).unwrap();
+                        let id = rand::gen_range(10000, 99999);
+                        self.temp_sim_name = format!("{} {}{}",name0.to_uppercase(), name1.to_uppercase(), id);
                     }
                     if response.gained_focus() {
                     }
