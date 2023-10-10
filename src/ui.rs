@@ -6,12 +6,7 @@ use egui_macroquad::egui::*;
 use egui_macroquad::egui::widgets::Slider;
 use egui_macroquad::egui::Checkbox;
 use egui_macroquad::egui::Vec2 as UIVec2;
-//use macroquad::math::Vec2 as Vec2;
 use macroquad::prelude::*;
-//use image::*;
-//use macroquad::ui::widgets::Texture;
-use crate::consts::{SCREEN_HEIGHT, SCREEN_WIDTH};
-//use crate::sim::*;
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
@@ -50,9 +45,9 @@ impl UISystem {
     
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
-            let img =  Self::load_image(Path::new("assets/img/synaptic32.png")).unwrap();
+            let img =  Self::load_image(Path::new("assets/img/biome32.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
-            let img2 =  Self::load_image(Path::new("assets/img/synaptic128.png")).unwrap();
+            let img2 =  Self::load_image(Path::new("assets/img/biome128.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
             let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
             self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
@@ -73,10 +68,11 @@ impl UISystem {
                     self.build_io_window(egui_ctx, agent.neuro_map.get_signal_list().clone(), agent.neuro_map.get_action_list().clone());
                     self.build_inspect_network(egui_ctx, &agent.network);
                 },
-                None => {}
+                None => {},
             }
             self.build_about_window(egui_ctx);
             self.build_settings_window(egui_ctx, signals);
+            self.build_agent_settings_window(egui_ctx, signals);
             self.build_ranking_window(egui_ctx, ranking);
         });
     }
@@ -164,7 +160,10 @@ impl UISystem {
                 ui.add_space(10.0);
 
                 menu::menu_button(ui, RichText::new("SETTINGS").strong(), |ui| {
-                    if ui.button(RichText::new("Settings").strong().color(Color32::YELLOW)).clicked() {
+                    if ui.button(RichText::new("Agent Settings").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.set_agent = !self.state.set_agent;
+                    }
+                    if ui.button(RichText::new("Sim Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.enviroment = !self.state.enviroment;
                     }
                 });
@@ -542,31 +541,31 @@ impl UISystem {
         }
     }
 
-    fn build_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
-        if !self.state.enviroment {
+    fn build_agent_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+        if !self.state.set_agent {
             return;
         }
         let mut settings = mod_settings();
-        Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
+        Window::new("AGENT SETTINGS").id("agent_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
-            ui.heading("AGENTS");
+            ui.heading("AGENT SETTINGS");
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut agents_num: i32 = settings.agent_min_num as i32;
-                column[0].label(RichText::new("MIN NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut agents_num, 0..=100)).changed() {
-                    settings.agent_min_num = agents_num as usize;
+                let mut agent_speed: i32 = settings.agent_speed as i32;
+                column[0].label(RichText::new("SPEED").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agent_speed, 0..=60)).changed() {
+                    settings.agent_speed = agent_speed as f32;
                     signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut agent_init_num: i32 = settings.agent_init_num as i32;
-                column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut agent_init_num, 0..=100)).changed() {
-                    settings.agent_init_num = agent_init_num as usize;
+                let mut agent_rotate = settings.agent_rotate;
+                column[0].label(RichText::new("AGILITY").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agent_rotate, 0.0..=5.0).step_by(0.1)).changed() {
+                    settings.agent_rotate = agent_rotate;
                     signals.new_settings = true;
                 }
             });
@@ -620,13 +619,20 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
-            ui.columns(2, |column| {
+            ui.style_mut().spacing.slider_width = 75.0;
+            ui.columns(3, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_num = settings.res_num;
-                column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_num, 0.0..=4.0).step_by(0.05)).changed() {
-                    settings.res_num = res_num;
+                column[1].set_max_size(UIVec2::new(140., 75.));
+                column[2].set_max_size(UIVec2::new(140., 75.));
+                let mut agent_size_min: i32 = settings.agent_size_min as i32;
+                let mut agent_size_max: i32 = (settings.agent_size_max as i32).max(agent_size_min);
+                column[0].label(RichText::new("SIZE [MIN|MAX]").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agent_size_min, 1..=40)).changed() {
+                    settings.agent_size_min = agent_size_min as i32;
+                    signals.new_settings = true;
+                }
+                if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=40)).changed() {
+                    settings.agent_size_max = agent_size_max as i32;
                     signals.new_settings = true;
                 }
             });
@@ -635,7 +641,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut atk_to_eng = settings.atk_to_eng;
                 column[0].label(RichText::new("ATACK TO ENG").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut atk_to_eng, 0.1..=20.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut atk_to_eng, 0.1..=5.0).step_by(0.1)).changed() {
                     settings.atk_to_eng = atk_to_eng;
                     signals.new_settings = true;
                 }
@@ -645,8 +651,59 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut eat_to_eng = settings.eat_to_eng;
                 column[0].label(RichText::new("EAT TO ENG").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut eat_to_eng, 1.0..=100.0).step_by(1.0)).changed() {
+                if column[1].add(Slider::new(&mut eat_to_eng, 1.0..=30.0).step_by(0.5)).changed() {
                     settings.eat_to_eng = eat_to_eng;
+                    signals.new_settings = true;
+                }
+            });
+            ui.add_space(2.0);
+            ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::DARK_GREEN);
+            ui.vertical_centered(|closer| {
+                //let mut stylus = closer.style();
+                if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
+                    self.state.set_agent = false;
+                    init_global_settings(settings);
+                }
+            });
+        });
+        init_global_settings(settings);
+    }
+
+    fn build_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+        if !self.state.enviroment {
+            return;
+        }
+        let mut settings = mod_settings();
+        Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
+        .title_bar(true).show(egui_ctx, |ui| {
+            ui.heading("AGENTS");
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut agents_num: i32 = settings.agent_min_num as i32;
+                column[0].label(RichText::new("MIN NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agents_num, 0..=100)).changed() {
+                    settings.agent_min_num = agents_num as usize;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut agent_init_num: i32 = settings.agent_init_num as i32;
+                column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut agent_init_num, 0..=100)).changed() {
+                    settings.agent_init_num = agent_init_num as usize;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut res_num = settings.res_num;
+                column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut res_num, 0.0..=50.0).step_by(1.0)).changed() {
+                    settings.res_num = res_num;
                     signals.new_settings = true;
                 }
             });
@@ -690,23 +747,7 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
-            ui.style_mut().spacing.slider_width = 75.0;
-            ui.columns(3, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(140., 75.));
-                column[2].set_max_size(UIVec2::new(140., 75.));
-                let mut agent_size_min: i32 = settings.agent_size_min as i32;
-                let mut agent_size_max: i32 = (settings.agent_size_max as i32).max(agent_size_min);
-                column[0].label(RichText::new("SIZE [MIN|MAX]").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut agent_size_min, 1..=40)).changed() {
-                    settings.agent_size_min = agent_size_min as i32;
-                    signals.new_settings = true;
-                }
-                if column[2].add(Slider::new(&mut agent_size_max, agent_size_min..=40)).changed() {
-                    settings.agent_size_max = agent_size_max as i32;
-                    signals.new_settings = true;
-                }
-            });
+
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(120., 75.));
                 column[1].set_max_size(UIVec2::new(120., 75.));

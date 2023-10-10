@@ -10,6 +10,7 @@ use crate::sim::Settings;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
+use crate::globals::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
@@ -225,6 +226,7 @@ impl Agent {
     }
 
     fn update_physics(&mut self, physics: &mut PhysicsWorld) {
+        let settings = get_settings();
         match self.physics_handle {
             Some(handle) => {
                 self.update_enemy_position(physics);
@@ -237,8 +239,8 @@ impl Agent {
                         let dir = Vec2::from_angle(self.rot);
                         //let rot = self.ang_vel * AGENT_TORQUE * self.size.powi(2);
                         //let v = dir * self.vel * AGENT_IMPULSE * self.size.powi(2);
-                        let v = dir * self.vel * AGENT_SPEED;
-                        let rot = self.ang_vel * AGENT_ROTATE;
+                        let v = dir * self.vel * settings.agent_speed;
+                        let rot = self.ang_vel * settings.agent_rotate;
                         body.set_linvel(Vector2::new(v.x, v.y), true);
                         body.set_angvel(rot, true);
                         //body.apply_impulse([v.x, v.y].into(), true);

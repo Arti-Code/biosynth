@@ -5,7 +5,6 @@ use std::collections::hash_map::{Iter, IterMut};
 use rapier2d::geometry::*;
 use macroquad::{prelude::*, color};
 use crate::util::*;
-use crate::consts::*;
 use crate::timer::*;
 use crate::globals::*;
 

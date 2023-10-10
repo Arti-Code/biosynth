@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use std::f32::consts::PI;
-use crate::consts::*;
+use crate::globals::*;
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
@@ -95,7 +95,7 @@ pub fn map_polygon(n: usize, r: f32, dev: f32) -> Vec<Vec2> {
     return points;
 }
 
-fn vec2_to_point2(v: &Vec2) -> Point2<f32> {
+pub fn vec2_to_point2(v: &Vec2) -> Point2<f32> {
     return Point2::new(v.x, v.y);
 }
 
@@ -216,7 +216,11 @@ pub fn color_to_color32(color: Color) -> Color32 {
     return Color32::from_rgba_unmultiplied(r, g, b, a);
 }
 
-
+pub fn iso_to_vec2_rot(isometry: &Isometry<Real>) -> (Vec2, f32) {
+    let pos = Vec2::new(isometry.translation.x, isometry.translation.y);
+    let rot = isometry.rotation.angle() + PI;
+    return (pos, rot);
+}
 
 pub struct UIState {
     pub new_sim_name: String,
@@ -234,6 +238,7 @@ pub struct UIState {
     pub neuro_lab: bool,
     pub io: bool,
     pub ranking: bool,
+    pub set_agent: bool,
 }
 
 impl UIState {
@@ -255,6 +260,7 @@ impl UIState {
             neuro_lab: false,
             io: false,
             ranking: false,
+            set_agent: false,
         }
     }
 }
@@ -283,9 +289,9 @@ impl SimState {
         Self {
             sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
-            agents_num: AGENTS_NUM as i32,
+            agents_num: 0,
             sources_num: 0,
-            plants_num: AGENTS_NUM as i32,
+            plants_num: 0,
             lifes_num: 0,
             physics_num: 0,
             total_mass: 0.0,

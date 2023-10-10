@@ -1,7 +1,15 @@
 #![allow(unused)]
 
-use crate::consts::*;
 use macroquad::{experimental::collections::storage, prelude::Vec2};
+
+
+pub const SCREEN_WIDTH: f32 = 1600.0;
+pub const SCREEN_HEIGHT: f32 = 900.0;
+pub const WORLD_W: f32 = 1600.0;
+pub const WORLD_H: f32 = 900.0;
+pub const FIX_DT: f32 = 1.0 / 30.0;
+pub const ZOOM_RATE: f32 = 1.0 / 800.0;
+pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
 
 pub fn init_global_settings(settings: Settings) {
@@ -57,6 +65,7 @@ pub struct Settings {
     pub hidden_nodes_num: usize,
     pub atk_to_eng: f32,
     pub eat_to_eng: f32,
+    pub ranking_size: usize,
 }
 
 impl Default for Settings {
@@ -67,8 +76,8 @@ impl Default for Settings {
             agent_eng_bar: true,
             agent_init_num: 60,
             agent_min_num: 24,
-            agent_rotate: 1.5,
-            agent_speed: 50.0,
+            agent_rotate: 1.0,
+            agent_speed: 25.0,
             agent_size_min: 3,
             agent_size_max: 10,
             agent_vision_range: 300.0,
@@ -76,15 +85,16 @@ impl Default for Settings {
             show_specie: true,
             mutations: 0.4,
             neurolink_rate: 0.2,
-            damage: 80.0,
+            damage: 50.0,
             base_energy_cost: 0.4,
             move_energy_cost: 0.1,
             attack_energy_cost: 0.1,
-            res_num: 0.3,
+            res_num: 12.0,
             hidden_nodes_num: 0,
             neuro_duration: 0.3,
-            atk_to_eng: 0.8,
-            eat_to_eng: 20.0,
+            atk_to_eng: 0.5,
+            eat_to_eng: 15.0,
+            ranking_size: 24,
        }
     }
 }

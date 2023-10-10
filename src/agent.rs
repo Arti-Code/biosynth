@@ -274,7 +274,8 @@ impl Agent {
         }
     }    
 
-    pub fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool {
+    pub fn update(&mut self, physics: &mut PhysicsWorld) -> bool {
+        let dt = get_frame_time();
         self.lifetime += dt;
         if self.analize_timer.update(dt) {
             self.watch(physics);
@@ -287,6 +288,16 @@ impl Agent {
         //self.network.update();
         self.calc_energy(dt);
         return self.alife;
+    }
+
+    pub fn eat(&self) -> Vec<RigidBodyHandle> {
+        let mut hits: Vec<RigidBodyHandle> = vec![];
+        for (rbh, _, ang) in self.contacts.to_vec() {
+            if ang <= PI/4.0 && ang >= -PI/4.0 {
+                hits.push(rbh);
+            }
+        }
+        return hits;
     }
 
     pub fn attack(&self) -> Vec<RigidBodyHandle> {
@@ -502,9 +513,10 @@ impl Agent {
         self.mass = physics_data.mass;
         match physics.rigid_bodies.get_mut(self.physics_handle) {
             Some(body) => {
+                let dt = get_frame_time();
                 let dir = Vec2::from_angle(self.rot);
-                let v = dir * self.vel * settings.agent_speed;
-                let rot = self.ang_vel * settings.agent_rotate;
+                let v = dir * self.vel * settings.agent_speed * dt *150.0;
+                let rot = self.ang_vel * settings.agent_rotate * dt *50.0;
                 body.set_linvel(Vector2::new(v.x, v.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);
@@ -515,7 +527,8 @@ impl Agent {
 
     fn check_edges(&mut self, body: &mut RigidBody) {
         let settings = get_settings();
-        let mut raw_pos = matrix_to_vec2(body.position().translation);
+        let (mut raw_pos, rot ) = iso_to_vec2_rot(body.position());
+        //let mut raw_pos = matrix_to_vec2(body.position().translation);
         let mut out_of_edge = false;
         if raw_pos.x < -5.0 {
             raw_pos.x = 0.0;
@@ -532,7 +545,7 @@ impl Agent {
             out_of_edge = true;
         }
         if out_of_edge {
-            body.set_position(make_isometry(raw_pos.x, raw_pos.y, self.rot), true);
+            body.set_position(make_isometry(raw_pos.x, raw_pos.y, rot), true);
             //body.set_linvel([0.0, 0.0].into(), true);
             //self.vel = 0.0;
         }

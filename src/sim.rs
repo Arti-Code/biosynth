@@ -2,7 +2,6 @@
 
 use crate::agent::*;
 use crate::camera::*;
-use crate::consts::*;
 use crate::neuro::MyPos2;
 use crate::ui::*;
 use crate::util::*;
@@ -101,12 +100,10 @@ impl Simulation {
     }
 
     fn update_agents(&mut self) {
-        let dt = self.sim_state.dt;
         for (_, agent) in self.agents.get_iter_mut() {
-            if !agent.update(dt, &mut self.physics) {
+            if !agent.update(&mut self.physics) {
                 let sketch = agent.get_sketch();
                 self.ranking.push(sketch);
-                //println!("RANKING: {} | max:{} | min:{}", self.ranking.len(), self.ranking.first().unwrap().points.round(), self.ranking.last().unwrap().points.round());
                 self.physics.remove_physics_object(agent.physics_handle);
             }
         }
@@ -114,20 +111,13 @@ impl Simulation {
     }
 
     fn update_rank(&mut self) {
+        let settings = get_settings();
         self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
-        if self.ranking.len() > RANK_SIZE {
+        if self.ranking.len() > settings.ranking_size {
             self.ranking.pop();
         }
         let min_points = 0.0;
     }
-
-/*     pub fn print_rank(&self) {
-        let mut i = 0;
-        for rank in self.ranking.iter() {
-            i += 1;
-            println!("[{}].{} | gen:{} | pts: {}", i, rank.specie.to_uppercase(), rank.generation, rank.points.round());
-        }
-    } */
 
     fn update_res(&mut self) {
         for (_, res) in self.resources.get_iter_mut() {
@@ -137,9 +127,10 @@ impl Simulation {
             }
         }
         self.resources.resources.retain(|_, res| res.alife == true);
+        let dt = get_frame_time();
         let settings = get_settings();
         let res_num = settings.res_num;
-        let res_prob = res_num/(self.resources.count() as f32+1.0);
+        let res_prob = (res_num*dt)/(self.resources.count() as f32+1.0);
         if rand::gen_range(0.0, 1.0) < res_prob {
             self.resources.add_many_resources(1, &mut self.physics);
         }
@@ -169,21 +160,24 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 if let Some(mut target) = self.agents.agents.get(tg) {
-                    let power1 = agent.size + agent.size*random_unit()/2.0;
-                    let power2 = target.size + target.size*random_unit()/2.0;
+                    let power1 = agent.size + agent.size*random_unit();
+                    let power2 = target.size + target.size*random_unit();
                     if power1 > power2 {
-                        let dmg = agent.size * (power1/(power1+power2))*dt*20.0;
+                        let mut dmg = (power1 - power2) * dt * settings.damage;
                         if hits.contains_key(id) {
-                            let new_dmg = hits.get_mut(id).unwrap();
-                            *new_dmg += dmg;
+                            let old_dmg = *hits.get_mut(id).unwrap();
+                            dmg = dmg + old_dmg;
+                            hits.insert(*id, dmg);
                         } else {
                             hits.insert(*id, dmg);
                         }
                         if hits.contains_key(tg) {
-                            let new_dmg = hits.get_mut(tg).unwrap();
-                            *new_dmg -= dmg;
+                            let old_dmg = *hits.get_mut(tg).unwrap();
+                            let hit = -dmg + old_dmg;
+                            hits.insert(*tg, hit);
                         } else {
-                            hits.insert(*tg, -dmg);
+                            let hit = -dmg;
+                            hits.insert(*tg, hit);
                         }
                     }
                 }
@@ -193,9 +187,9 @@ impl Simulation {
             let mut agent = self.agents.agents.get_mut(id).unwrap();
             let mut damage = *dmg;
             if damage >= 0.0 {
-                damage *= settings.atk_to_eng;
-                agent.add_energy(damage);
-                agent.points += damage;
+                let hp = damage * settings.atk_to_eng;
+                agent.add_energy(hp);
+                agent.points += hp;
             } else {
                 agent.add_energy(damage);
             }
@@ -209,34 +203,36 @@ impl Simulation {
         //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
-            let attacks = agent.attack();
+            let attacks = agent.eat();
             for tg in attacks.iter() {
                 if let Some(mut target) = self.resources.resources.get(tg) {
-                    let power1 = agent.size + agent.size*random_unit()/2.0;
-                        let dmg = dt*20.0;
+                    let power1 = agent.size + agent.size*random_unit();
+                        let mut food = settings.eat_to_eng * power1 * dt;
+                        let mut bite = -food;
                         if hits.contains_key(id) {
-                            let new_dmg = hits.get_mut(id).unwrap();
-                            *new_dmg += dmg*settings.eat_to_eng;
+                            let old_food = *hits.get_mut(id).unwrap();
+                            food = old_food + food;
+                            hits.insert(*id, food);
                         } else {
-                            hits.insert(*id, dmg);
+                            hits.insert(*id, food);
                         }
                         if hits.contains_key(tg) {
-                            let new_dmg = hits.get_mut(tg).unwrap();
-                            *new_dmg -= dmg*settings.eat_to_eng;
-                            //hits.insert(*tg, -dmg);
+                            let old_food = *hits.get_mut(tg).unwrap();
+                            bite = bite + old_food;
+                            hits.insert(*tg, bite);
                         } else {
-                            hits.insert(*tg, -dmg);
+                            hits.insert(*tg, bite);
                         }
                 }
             }
         }
         for (id, dmg) in hits.iter() {
             if *dmg > 0.0 {
+                let eat = *dmg;
                 let mut agent = self.agents.agents.get_mut(id).unwrap();
-                let damage = *dmg;
-                agent.add_energy(damage);
-                if damage > 0.0 {
-                    agent.points += damage;
+                agent.add_energy(eat);
+                if eat > 0.0 {
+                    agent.points += eat;
                 }
             } else {
                 let mut source = self.resources.resources.get_mut(id).unwrap();

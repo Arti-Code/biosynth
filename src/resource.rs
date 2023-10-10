@@ -8,7 +8,6 @@ use rapier2d::geometry::*;
 use macroquad::{prelude::*, color};
 use rapier2d::prelude::*;
 use crate::util::*;
-use crate::consts::*;
 use crate::timer::*;
 use crate::physics::*;
 use crate::globals::*;
