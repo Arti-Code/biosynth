@@ -115,7 +115,7 @@ impl Simulation {
 
     fn update_rank(&mut self) {
         self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
-        if self.ranking.len() > 10 {
+        if self.ranking.len() > RANK_SIZE {
             self.ranking.pop();
         }
         let min_points = 0.0;
@@ -152,6 +152,7 @@ impl Simulation {
         self.update_res();
         self.calc_selection_time();
         self.attacks();
+        self.eat();
         self.update_agents();
         self.update_rank();
         self.agents.populate(&mut self.physics);
@@ -159,6 +160,7 @@ impl Simulation {
     }
 
     fn attacks(&mut self) {
+        let settings = get_settings();
         let dt = get_frame_time();
         //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
@@ -189,15 +191,20 @@ impl Simulation {
         }
         for (id, dmg) in hits.iter() {
             let mut agent = self.agents.agents.get_mut(id).unwrap();
-            let damage = *dmg;
-            agent.add_energy(damage);
-            if damage > 0.0 {
-                agent.points += damage*0.5;
+            let mut damage = *dmg;
+            if damage >= 0.0 {
+                damage *= settings.atk_to_eng;
+                agent.add_energy(damage);
+                agent.points += damage;
+            } else {
+                agent.add_energy(damage);
             }
         }
     }
 
     fn eat(&mut self) {
+        let settings = get_settings();
+        //let eat_to_eng = settings.eat_to_eng;
         let dt = get_frame_time();
         //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
@@ -209,13 +216,13 @@ impl Simulation {
                         let dmg = dt*20.0;
                         if hits.contains_key(id) {
                             let new_dmg = hits.get_mut(id).unwrap();
-                            *new_dmg += dmg;
+                            *new_dmg += dmg*settings.eat_to_eng;
                         } else {
                             hits.insert(*id, dmg);
                         }
                         if hits.contains_key(tg) {
                             let new_dmg = hits.get_mut(tg).unwrap();
-                            *new_dmg -= dmg;
+                            *new_dmg -= dmg*settings.eat_to_eng;
                         } else {
                             hits.insert(*tg, -dmg);
                         }
@@ -223,11 +230,17 @@ impl Simulation {
             }
         }
         for (id, dmg) in hits.iter() {
-            let mut agent = self.agents.agents.get_mut(id).unwrap();
-            let damage = *dmg;
-            agent.add_energy(damage*2.0);
-            if damage > 0.0 {
-                agent.points += damage;
+            if *dmg > 0.0 {
+                let mut agent = self.agents.agents.get_mut(id).unwrap();
+                let damage = *dmg;
+                agent.add_energy(damage);
+                if damage > 0.0 {
+                    agent.points += damage;
+                }
+            } else {
+                let mut source = self.resources.resources.get_mut(id).unwrap();
+                let damage = *dmg;
+                source.drain_eng(damage.abs());
             }
         }
     }

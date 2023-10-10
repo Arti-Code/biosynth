@@ -55,6 +55,8 @@ pub struct Settings {
     pub res_num: f32,
     pub neuro_duration: f32,
     pub hidden_nodes_num: usize,
+    pub atk_to_eng: f32,
+    pub eat_to_eng: f32,
 }
 
 impl Default for Settings {
@@ -63,24 +65,26 @@ impl Default for Settings {
             world_w: WORLD_W as i32,
             world_h: WORLD_H as i32,
             agent_eng_bar: true,
-            agent_init_num: 100,
-            agent_min_num: 28,
-            agent_rotate: 1.7,
-            agent_speed: 60.0,
+            agent_init_num: 60,
+            agent_min_num: 24,
+            agent_rotate: 1.5,
+            agent_speed: 50.0,
             agent_size_min: 3,
             agent_size_max: 10,
             agent_vision_range: 300.0,
             show_network: true,
             show_specie: true,
-            mutations: 0.3,
+            mutations: 0.4,
             neurolink_rate: 0.2,
             damage: 80.0,
             base_energy_cost: 0.4,
             move_energy_cost: 0.1,
             attack_energy_cost: 0.1,
-            res_num: 0.2,
-            hidden_nodes_num: 5,
+            res_num: 0.3,
+            hidden_nodes_num: 0,
             neuro_duration: 0.3,
+            atk_to_eng: 0.3,
+            eat_to_eng: 10.0,
        }
     }
 }
