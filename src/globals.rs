@@ -112,6 +112,7 @@ pub struct Signals {
     pub new_settings: bool,
     pub save_selected: bool,
     pub save_sim: bool,
+    pub load_sim: bool,
 }
 
 impl Signals {
@@ -129,6 +130,7 @@ impl Signals {
             new_settings: false,
             save_selected: false,
             save_sim: false,
+            load_sim: false,
         }
     }
 }

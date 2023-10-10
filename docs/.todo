@@ -1,9 +1,9 @@
 Live2:
     0.5:
-        ☐ loading simulation @high
+        ✔ loading simulation @high @done(23-10-10 13:57)
         ✔ saving simulation @done(23-10-07 01:44)
         ✔ save agent @done(23-10-07 01:44)
-        ☐ load agent @high
+        ✔ load agent @high @done(23-10-10 13:57)
         ☐ logs list
         ☐ logs window
         ✔ neural network visualization @done(23-10-07 01:44)
@@ -17,8 +17,9 @@ Live2:
         ✔ global signals @done(23-10-07 01:44)
         ✔ global settings @done(23-10-07 01:44)
         ✔ fix: new sim name input field @done(23-10-07 01:44)
-        ☐ fix: add\del nodes mutation @high
-        ☐ fix: sources @high
+        ✔ fix: add nodes mutation @high @started(23-10-10 13:58) @done(23-10-10 13:59) @lasted(1m19s)
+        ☐ fix: del nodes mutation
+        ✔ fix: sources @high @done(23-10-10 13:57)
         ✔ fix new sim win layout @done(23-10-07 03:56)
         ✔ new settings options (neuro hidden nodes num, neuro duration, source num) @done(23-10-07 03:56)
     0.4:

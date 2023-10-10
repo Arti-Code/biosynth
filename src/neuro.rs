@@ -634,7 +634,6 @@ impl Network {
             self.nodes.insert(nx, new_node);
             link.node_to = nx;
             self.add_link(nx, n1);
-            //println!("RANDOM NODE!");
         }
     }
 
@@ -656,7 +655,6 @@ impl Network {
                             NeuronTypes::INPUT => { continue; },
                             _ => {
                                 self.add_link(n0, n1);
-                                info!("NEW LINK");
                                 break;
                             },
                         }
@@ -665,7 +663,6 @@ impl Network {
                         match node1.node_type {
                             NeuronTypes::OUTPUT => {
                                 self.add_link(n0, n1);
-                                info!("NEW LINK");
                                 break;
                             },
                             _ => { continue; }
@@ -687,26 +684,10 @@ impl Network {
             let r = rand::gen_range(0, num);
             let link_key = link_keys[r];
             self.links.remove(&link_key);
-            warn!("DEL LINK");
+            //warn!("DEL LINK");
         }
 
     }
-
-/*     pub fn get_visual_sketch(&self) -> NeuroVisual {
-        let t = self.timer/self.duration;
-        let mut sketch = NeuroVisual::new();
-        for (id, node) in self.nodes.iter() {
-            sketch.add_node(node.pos, node.get_colors().0, node.get_colors().1);
-        }
-        for (id, link) in self.links.iter() {
-            let pos1 = self.nodes.get(&link.node_from).unwrap().pos;
-            let pos2 = self.nodes.get(&link.node_to).unwrap().pos;
-            let (loc1, loc2, loc_t) = link.get_coords(&self.nodes, t);
-            let (color0, color1) = link.get_colors();
-            sketch.add_link(pos1, pos2, loc_t, color0, color1);
-        }
-        return sketch;
-    } */
 
 
 }

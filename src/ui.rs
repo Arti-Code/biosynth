@@ -96,8 +96,8 @@ impl UISystem {
                     if ui.button(RichText::new("New Simulation").strong().color(Color32::BLUE)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui.button(RichText::new("Load Simulation").weak().color(Color32::from_gray(100))).clicked() {
-
+                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::GREEN)).clicked() {
+                        signals.load_sim = true;
                     }
                     if ui.button(RichText::new("Save Simulation").weak().color(Color32::GREEN)).clicked() {
                         signals.save_sim = true;

@@ -30,6 +30,7 @@ pub struct Simulation {
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
+    last_autosave: f64,
     pub ui: UISystem,
     pub sim_state: SimState,
     pub signals: Signals,
@@ -64,6 +65,7 @@ impl Simulation {
             agents: AgentBox::new(),
             resources: ResBox::new(),
             ranking: vec![],
+            last_autosave: 0.0,
         }
     }
 
@@ -328,6 +330,10 @@ impl Simulation {
             self.signals.save_sim = false;
             self.save_sim();
         }
+        if self.signals.load_sim {
+            self.signals.load_sim = false;
+            self.load_sim();
+        }
     }
 
     fn save_sim(&self) {
@@ -335,8 +341,8 @@ impl Simulation {
         let s = serde_json::to_string_pretty(&data);
         match s {
             Ok(save) => {
-                let path_str = format!("saves/simulations/{}.json", self.simulation_name);
-                let path = Path::new(&path_str);
+                //let path_str = format!("saves/last.json", self.simulation_name);
+                let path = Path::new("saves/last.json");
                 match fs::write(path, save) {
                     Ok(_) => {},
                     Err(_) => println!("ERROR: not saved"),
@@ -354,9 +360,36 @@ impl Simulation {
         match fs::read_to_string(path) {
             Err(_) => {},
             Ok(save) => {
-
+                match serde_json::from_str::<SimulationSave>(&save) {
+                    Err(_) => {
+                        println!("error during deserialization of saved sim...");
+                    },
+                    Ok(sim_state) => {
+                        self.clean_sim();
+                        for agent_sketch in sim_state.agents.iter() {
+                            let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
+                        }
+                        self.ranking = sim_state.ranking.to_owned();
+                        self.sim_state.sim_time = sim_state.sim_time;
+                        self.last_autosave = sim_state.last_autosave;
+                        self.simulation_name = sim_state.simulation_name.to_owned();
+                        self.world_size = sim_state.world_size.to_vec2();
+                    },
+                }
             }
         }
+    }
+
+    fn clean_sim(&mut self) {
+        for (_, agent) in self.agents.get_iter_mut() {
+            self.physics.remove_physics_object(agent.physics_handle);
+        }
+        self.agents.agents.clear();
+        for (_, source) in self.resources.get_iter_mut() {
+            self.physics.remove_physics_object(source.physics_handle);
+        }
+        self.resources.resources.clear();
+        self.ranking.clear();
     }
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
@@ -406,7 +439,7 @@ impl Simulation {
     fn update_sim_state(&mut self) {
         self.sim_state.fps = get_fps();
         self.sim_state.dt = get_frame_time();
-        self.sim_state.sim_time += self.sim_state.dt as f64;
+        self.sim_state.sim_time += get_frame_time() as f64;
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
@@ -420,6 +453,9 @@ impl Simulation {
         }
         self.sim_state.total_eng = kin_eng;
         self.sim_state.total_mass = total_mass;
+        if (self.sim_state.sim_time-self.last_autosave) >= 1000.0 {
+            self.save_sim();
+        } 
     }
 
     fn check_agents_num(&mut self) {
@@ -473,6 +509,7 @@ pub struct SimulationSave {
     pub simulation_name: String,
     pub world_size: MyPos2,
     pub sim_time: f64,
+    last_autosave: f64,
     pub agents: Vec<AgentSketch>,
     pub ranking: Vec<AgentSketch>,
 }
@@ -493,31 +530,11 @@ impl SimulationSave {
         Self { 
             simulation_name: sim.simulation_name.to_owned(), 
             world_size: MyPos2::from_vec(&sim.world_size), 
-            sim_time: sim.sim_time, 
+            sim_time: sim.sim_state.sim_time, 
             agents: agents.to_owned(), 
-            ranking: ranking.to_owned(), 
+            ranking: ranking.to_owned(),
+            last_autosave: sim.sim_state.sim_time.round(),
         }
     }
-
-/*     pub fn to_sim(saved: String) -> Simulation {
-        let sim_save: SimulationSave = serde_json::from_str(&saved).unwrap();
-        Simulation { simulation_name: 
-            world_size: sim_save.world_size.to_vec(),
-            font: ,
-            physics: ,
-            camera: ,
-            running: ,
-            sim_time: ,
-            ui: ,
-            sim_state: ,
-            signals: ,
-            select_phase: ,
-            selected: ,
-            mouse_state: ,
-            agents: ,
-            resources: ,
-            ranking: ,
-        }
-    } */
 
 }
