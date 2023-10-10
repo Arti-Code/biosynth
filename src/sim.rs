@@ -2,7 +2,6 @@
 
 use crate::agent::*;
 use crate::camera::*;
-use crate::consts::*;
 use crate::neuro::MyPos2;
 use crate::ui::*;
 use crate::util::*;
@@ -31,6 +30,7 @@ pub struct Simulation {
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
+    last_autosave: f64,
     pub ui: UISystem,
     pub sim_state: SimState,
     pub signals: Signals,
@@ -65,6 +65,7 @@ impl Simulation {
             agents: AgentBox::new(),
             resources: ResBox::new(),
             ranking: vec![],
+            last_autosave: 0.0,
         }
     }
 
@@ -101,12 +102,10 @@ impl Simulation {
     }
 
     fn update_agents(&mut self) {
-        let dt = self.sim_state.dt;
         for (_, agent) in self.agents.get_iter_mut() {
-            if !agent.update(dt, &mut self.physics) {
+            if !agent.update(&mut self.physics) {
                 let sketch = agent.get_sketch();
                 self.ranking.push(sketch);
-                //println!("RANKING: {} | max:{} | min:{}", self.ranking.len(), self.ranking.first().unwrap().points.round(), self.ranking.last().unwrap().points.round());
                 self.physics.remove_physics_object(agent.physics_handle);
             }
         }
@@ -114,20 +113,13 @@ impl Simulation {
     }
 
     fn update_rank(&mut self) {
+        let settings = get_settings();
         self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
-        if self.ranking.len() > 10 {
+        if self.ranking.len() > settings.ranking_size {
             self.ranking.pop();
         }
         let min_points = 0.0;
     }
-
-/*     pub fn print_rank(&self) {
-        let mut i = 0;
-        for rank in self.ranking.iter() {
-            i += 1;
-            println!("[{}].{} | gen:{} | pts: {}", i, rank.specie.to_uppercase(), rank.generation, rank.points.round());
-        }
-    } */
 
     fn update_res(&mut self) {
         for (_, res) in self.resources.get_iter_mut() {
@@ -137,9 +129,10 @@ impl Simulation {
             }
         }
         self.resources.resources.retain(|_, res| res.alife == true);
+        let dt = get_frame_time();
         let settings = get_settings();
         let res_num = settings.res_num;
-        let res_prob = res_num/(self.resources.count() as f32+1.0);
+        let res_prob = (res_num*dt)/(self.resources.count() as f32+1.0);
         if rand::gen_range(0.0, 1.0) < res_prob {
             self.resources.add_many_resources(1, &mut self.physics);
         }
@@ -152,6 +145,7 @@ impl Simulation {
         self.update_res();
         self.calc_selection_time();
         self.attacks();
+        self.eat();
         self.update_agents();
         self.update_rank();
         self.agents.populate(&mut self.physics);
@@ -159,6 +153,7 @@ impl Simulation {
     }
 
     fn attacks(&mut self) {
+        let settings = get_settings();
         let dt = get_frame_time();
         //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
@@ -167,21 +162,24 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 if let Some(mut target) = self.agents.agents.get(tg) {
-                    let power1 = agent.size + agent.size*random_unit()/2.0;
-                    let power2 = target.size + target.size*random_unit()/2.0;
+                    let power1 = agent.size + agent.size*random_unit();
+                    let power2 = target.size + target.size*random_unit();
                     if power1 > power2 {
-                        let dmg = agent.size * (power1/(power1+power2))*dt*20.0;
+                        let mut dmg = (power1 - power2) * dt * settings.damage;
                         if hits.contains_key(id) {
-                            let new_dmg = hits.get_mut(id).unwrap();
-                            *new_dmg += dmg;
+                            let old_dmg = *hits.get_mut(id).unwrap();
+                            dmg = dmg + old_dmg;
+                            hits.insert(*id, dmg);
                         } else {
                             hits.insert(*id, dmg);
                         }
                         if hits.contains_key(tg) {
-                            let new_dmg = hits.get_mut(tg).unwrap();
-                            *new_dmg -= dmg;
+                            let old_dmg = *hits.get_mut(tg).unwrap();
+                            let hit = -dmg + old_dmg;
+                            hits.insert(*tg, hit);
                         } else {
-                            hits.insert(*tg, -dmg);
+                            let hit = -dmg;
+                            hits.insert(*tg, hit);
                         }
                     }
                 }
@@ -189,45 +187,59 @@ impl Simulation {
         }
         for (id, dmg) in hits.iter() {
             let mut agent = self.agents.agents.get_mut(id).unwrap();
-            let damage = *dmg;
-            agent.add_energy(damage);
-            if damage > 0.0 {
-                agent.points += damage*0.5;
+            let mut damage = *dmg;
+            if damage >= 0.0 {
+                let hp = damage * settings.atk_to_eng;
+                agent.add_energy(hp);
+                agent.points += hp;
+            } else {
+                agent.add_energy(damage);
             }
         }
     }
 
     fn eat(&mut self) {
+        let settings = get_settings();
+        //let eat_to_eng = settings.eat_to_eng;
         let dt = get_frame_time();
         //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
-            let attacks = agent.attack();
+            let attacks = agent.eat();
             for tg in attacks.iter() {
                 if let Some(mut target) = self.resources.resources.get(tg) {
-                    let power1 = agent.size + agent.size*random_unit()/2.0;
-                        let dmg = dt*20.0;
+                    let power1 = agent.size + agent.size*random_unit();
+                        let mut food = settings.eat_to_eng * power1 * dt;
+                        let mut bite = -food;
                         if hits.contains_key(id) {
-                            let new_dmg = hits.get_mut(id).unwrap();
-                            *new_dmg += dmg;
+                            let old_food = *hits.get_mut(id).unwrap();
+                            food = old_food + food;
+                            hits.insert(*id, food);
                         } else {
-                            hits.insert(*id, dmg);
+                            hits.insert(*id, food);
                         }
                         if hits.contains_key(tg) {
-                            let new_dmg = hits.get_mut(tg).unwrap();
-                            *new_dmg -= dmg;
+                            let old_food = *hits.get_mut(tg).unwrap();
+                            bite = bite + old_food;
+                            hits.insert(*tg, bite);
                         } else {
-                            hits.insert(*tg, -dmg);
+                            hits.insert(*tg, bite);
                         }
                 }
             }
         }
         for (id, dmg) in hits.iter() {
-            let mut agent = self.agents.agents.get_mut(id).unwrap();
-            let damage = *dmg;
-            agent.add_energy(damage*2.0);
-            if damage > 0.0 {
-                agent.points += damage;
+            if *dmg > 0.0 {
+                let eat = *dmg;
+                let mut agent = self.agents.agents.get_mut(id).unwrap();
+                agent.add_energy(eat);
+                if eat > 0.0 {
+                    agent.points += eat;
+                }
+            } else {
+                let mut source = self.resources.resources.get_mut(id).unwrap();
+                let damage = *dmg;
+                source.drain_eng(damage.abs());
             }
         }
     }
@@ -318,6 +330,10 @@ impl Simulation {
             self.signals.save_sim = false;
             self.save_sim();
         }
+        if self.signals.load_sim {
+            self.signals.load_sim = false;
+            self.load_sim();
+        }
     }
 
     fn save_sim(&self) {
@@ -325,8 +341,8 @@ impl Simulation {
         let s = serde_json::to_string_pretty(&data);
         match s {
             Ok(save) => {
-                let path_str = format!("saves/simulations/{}.json", self.simulation_name);
-                let path = Path::new(&path_str);
+                //let path_str = format!("saves/last.json", self.simulation_name);
+                let path = Path::new("saves/last.json");
                 match fs::write(path, save) {
                     Ok(_) => {},
                     Err(_) => println!("ERROR: not saved"),
@@ -344,9 +360,36 @@ impl Simulation {
         match fs::read_to_string(path) {
             Err(_) => {},
             Ok(save) => {
-
+                match serde_json::from_str::<SimulationSave>(&save) {
+                    Err(_) => {
+                        println!("error during deserialization of saved sim...");
+                    },
+                    Ok(sim_state) => {
+                        self.clean_sim();
+                        for agent_sketch in sim_state.agents.iter() {
+                            let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
+                        }
+                        self.ranking = sim_state.ranking.to_owned();
+                        self.sim_state.sim_time = sim_state.sim_time;
+                        self.last_autosave = sim_state.last_autosave;
+                        self.simulation_name = sim_state.simulation_name.to_owned();
+                        self.world_size = sim_state.world_size.to_vec2();
+                    },
+                }
             }
         }
+    }
+
+    fn clean_sim(&mut self) {
+        for (_, agent) in self.agents.get_iter_mut() {
+            self.physics.remove_physics_object(agent.physics_handle);
+        }
+        self.agents.agents.clear();
+        for (_, source) in self.resources.get_iter_mut() {
+            self.physics.remove_physics_object(source.physics_handle);
+        }
+        self.resources.resources.clear();
+        self.ranking.clear();
     }
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
@@ -396,7 +439,7 @@ impl Simulation {
     fn update_sim_state(&mut self) {
         self.sim_state.fps = get_fps();
         self.sim_state.dt = get_frame_time();
-        self.sim_state.sim_time += self.sim_state.dt as f64;
+        self.sim_state.sim_time += get_frame_time() as f64;
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
@@ -410,6 +453,9 @@ impl Simulation {
         }
         self.sim_state.total_eng = kin_eng;
         self.sim_state.total_mass = total_mass;
+        if (self.sim_state.sim_time-self.last_autosave) >= 1000.0 {
+            self.save_sim();
+        } 
     }
 
     fn check_agents_num(&mut self) {
@@ -463,6 +509,7 @@ pub struct SimulationSave {
     pub simulation_name: String,
     pub world_size: MyPos2,
     pub sim_time: f64,
+    last_autosave: f64,
     pub agents: Vec<AgentSketch>,
     pub ranking: Vec<AgentSketch>,
 }
@@ -483,31 +530,11 @@ impl SimulationSave {
         Self { 
             simulation_name: sim.simulation_name.to_owned(), 
             world_size: MyPos2::from_vec(&sim.world_size), 
-            sim_time: sim.sim_time, 
+            sim_time: sim.sim_state.sim_time, 
             agents: agents.to_owned(), 
-            ranking: ranking.to_owned(), 
+            ranking: ranking.to_owned(),
+            last_autosave: sim.sim_state.sim_time.round(),
         }
     }
-
-/*     pub fn to_sim(saved: String) -> Simulation {
-        let sim_save: SimulationSave = serde_json::from_str(&saved).unwrap();
-        Simulation { simulation_name: 
-            world_size: sim_save.world_size.to_vec(),
-            font: ,
-            physics: ,
-            camera: ,
-            running: ,
-            sim_time: ,
-            ui: ,
-            sim_state: ,
-            signals: ,
-            select_phase: ,
-            selected: ,
-            mouse_state: ,
-            agents: ,
-            resources: ,
-            ranking: ,
-        }
-    } */
 
 }

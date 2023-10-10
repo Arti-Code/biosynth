@@ -1,7 +1,6 @@
 //#![allow(unused)]
 
 mod camera;
-mod consts;
 mod neuro;
 mod sim;
 mod timer;
@@ -15,7 +14,6 @@ mod food;
 mod globals;
 mod resource;
 
-use crate::consts::*;
 use crate::sim::*;
 use crate::globals::*;
 use macroquad::prelude::*;

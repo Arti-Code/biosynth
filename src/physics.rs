@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use crate::consts::*;
+use crate::globals::get_settings;
 use crate::util::*;
 use macroquad::prelude::*;
 use rapier2d::na::Isometry2;
@@ -36,7 +36,7 @@ impl PhysicsProperities {
     }
 
     pub fn high_inert() -> Self {
-        Self { friction: 0.85, restitution: 0.15, density: 1.0, linear_damping: 0.9, angular_damping: 0.3 }
+        Self { friction: 2.0, restitution: 0.0, density: 2.0, linear_damping: 2.0, angular_damping: 0.3 }
     }
 
     pub fn free() -> Self {
@@ -137,11 +137,11 @@ impl PhysicsWorld {
         }
     }
 
-    fn iso_to_vec2_rot(&self, isometry: &Isometry<Real>) -> (Vec2, f32) {
+/*     fn iso_to_vec2_rot(&self, isometry: &Isometry<Real>) -> (Vec2, f32) {
         let pos = Vec2::new(isometry.translation.x, isometry.translation.y);
         let rot = isometry.rotation.angle() + PI;
         return (pos, rot);
-    }
+    } */
 
     fn add_dynamic_rigidbody(&mut self, key: u64, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
         let pos = Isometry2::new(Vector2::new(position.x, position.y), rotation);
@@ -180,9 +180,10 @@ impl PhysicsWorld {
     }
 
     pub fn get_physics_data(&self, handle: RigidBodyHandle) -> PhysicsData {
+        let settings = get_settings();
         if let Some(rb) = self.rigid_bodies.get(handle) {
             let iso = rb.position();
-            let (pos, rot) = self.iso_to_vec2_rot(iso);
+            let (pos, rot) = iso_to_vec2_rot(iso);
             let force = Vec2::new(rb.user_force().data.0[0][0], rb.user_force().data.0[0][1]);
             let data = PhysicsData {
                 position: pos,
@@ -194,7 +195,7 @@ impl PhysicsWorld {
             return data;
         } else {
             return PhysicsData {
-                position: Vec2::new(WORLD_W / 2., WORLD_H / 2.),
+                position: Vec2::new((settings.world_w / 2) as f32, (settings.world_h / 2) as f32 ),
                 rotation: 0.0,
                 mass: 0.0,
                 kin_eng: Some(0.0),

@@ -1,4 +1,4 @@
-use crate::consts::*;
+use crate::globals::*;
 use macroquad::prelude::*;
 
 pub fn create_camera() -> Camera2D {
