@@ -191,7 +191,7 @@ impl Simulation {
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
                 agent.add_energy(hp);
-                agent.points += hp;
+                agent.points += hp*0.2;
             } else {
                 agent.add_energy(damage);
             }
@@ -234,7 +234,7 @@ impl Simulation {
                 let mut agent = self.agents.agents.get_mut(id).unwrap();
                 agent.add_energy(eat);
                 if eat > 0.0 {
-                    agent.points += eat;
+                    agent.points += eat*0.4;
                 }
             } else {
                 let mut source = self.resources.resources.get_mut(id).unwrap();
@@ -453,7 +453,8 @@ impl Simulation {
         }
         self.sim_state.total_eng = kin_eng;
         self.sim_state.total_mass = total_mass;
-        if (self.sim_state.sim_time-self.last_autosave) >= 1000.0 {
+        if (self.sim_state.sim_time-self.last_autosave).round() >= 1000.0 {
+            self.last_autosave = self.sim_state.sim_time.round();
             self.save_sim();
         } 
     }
@@ -530,7 +531,7 @@ impl SimulationSave {
         Self { 
             simulation_name: sim.simulation_name.to_owned(), 
             world_size: MyPos2::from_vec(&sim.world_size), 
-            sim_time: sim.sim_state.sim_time, 
+            sim_time: sim.sim_state.sim_time.round(), 
             agents: agents.to_owned(), 
             ranking: ranking.to_owned(),
             last_autosave: sim.sim_state.sim_time.round(),

@@ -9,21 +9,30 @@ use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
 use rapier2d::na::{Isometry2, Vector2, Translation, Point2, Const};
 
+#[doc = r"Random unit value in range -1.0..1.0."]
 pub fn random_unit() -> f32 {
     return rand::gen_range(-1.0, 1.0);
 }
 
+#[doc = r"Random unit value in range 0.0..1.0."]
+pub fn random_unit_unsigned() -> f32 {
+    return rand::gen_range(0.0, 1.0);
+}
+
+#[doc = r"Random pocition vector2d in range between 0.0..max_value."]
 pub fn random_position(x_max: f32, y_max: f32) -> Vec2 {
     let x = rand::gen_range(0.0, x_max);
     let y = rand::gen_range(0.0, y_max);
     return Vec2::new(x, y);
 }
 
+#[doc = r"Random rotation angle in radians ranged between 0.0..2.0*PI"]
 pub fn random_rotation() -> f32 {
     let rot = rand::gen_range(0.0, PI * 2.0);
     return rot;
 }
 
+#[doc = r"Random unit vector2d with value in range -1.0..1.0."]
 pub fn random_unit_vec2() -> Vec2 {
     let x = rand::gen_range(-1.0, 1.0);
     let y = rand::gen_range(-1.0, 1.0);

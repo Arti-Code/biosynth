@@ -65,6 +65,7 @@ pub struct Settings {
     pub atk_to_eng: f32,
     pub eat_to_eng: f32,
     pub ranking_size: usize,
+    pub repro_points: f32,
 }
 
 impl Default for Settings {
@@ -82,18 +83,19 @@ impl Default for Settings {
             agent_vision_range: 300.0,
             show_network: true,
             show_specie: true,
-            mutations: 0.4,
+            mutations: 0.2,
             neurolink_rate: 0.2,
             damage: 50.0,
             base_energy_cost: 0.4,
             move_energy_cost: 0.1,
             attack_energy_cost: 0.1,
             res_num: 12.0,
-            hidden_nodes_num: 0,
+            hidden_nodes_num: 5,
             neuro_duration: 0.3,
-            atk_to_eng: 0.5,
-            eat_to_eng: 15.0,
+            atk_to_eng: 0.4,
+            eat_to_eng: 120.0,
             ranking_size: 24,
+            repro_points: 1000.0,
        }
     }
 }

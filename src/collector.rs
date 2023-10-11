@@ -45,7 +45,7 @@ impl AgentBox {
                 let newone = agent.replicate(physics);
                 newborns.push(newone);
                 agent.childs += 1;
-                agent.points += 100.0;
+                agent.points += settings.repro_points;
                 agent.eng -= 0.40*agent.max_eng;
             }
         }

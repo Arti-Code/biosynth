@@ -13,6 +13,7 @@ mod collector;
 mod food;
 mod globals;
 mod resource;
+mod neural;
 
 use crate::sim::*;
 use crate::globals::*;

@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use egui_macroquad::egui::InputState;
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use serde::ser::SerializeStruct;
@@ -12,13 +13,24 @@ use std::fs;
 use crate::util::*;
 
 
-fn rand_position(x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Vec2 {
+pub trait Neural {
+    fn get_links_t0_draw(&self) -> HashMap<u64, (Vec2, Vec2, Color, Color)>;
+    fn get_nodes_t0_draw(&self) -> HashMap<u64, (Vec2, Color, Color)>;
+    fn new_random(&mut self, node_num: usize, link_rate: f32);
+    fn get_random_io_keys(&self, n: usize) -> Vec<u64>;
+    fn send_input(&mut self, inputs: Vec<(u64, f32)>);
+    fn recv_output(&self) -> Vec<(u64, f32)>;
+    fn analize(&mut self);
+}
+
+
+pub fn rand_position(x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Vec2 {
     let x = rand::gen_range(x_min as i32, x_max as i32);
     let y = rand::gen_range(y_min as i32, y_max as i32);
     return Vec2::new(x as f32, y as f32);
 }
 
-fn rand_position_rel() -> Vec2 {
+pub fn rand_position_rel() -> Vec2 {
     let mut x: f32 = rand::gen_range(0.0, 1.0);
     let mut y: f32 = rand::gen_range(0.0, 1.0);
     x = (x*100.0).round()/100.0;
@@ -26,9 +38,11 @@ fn rand_position_rel() -> Vec2 {
     return Vec2::new(x, y);
 }
 
-fn generate_id() -> u64 {
+pub fn generate_id() -> u64 {
     return rand::gen_range(u64::MIN, u64::MAX);
 }
+
+
 
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
@@ -592,30 +606,54 @@ impl Network {
     }
 
     pub fn mutate(&mut self, mutation_rate: f32) {
-        for (id, link) in self.links.iter_mut() {
-            let r = rand::gen_range(0.0, 1.0);
-            if r < mutation_rate {
-                link.w = rand::gen_range(-1.0, 1.0);
-            }
-        }
-
-        for (id, node) in self.nodes.iter_mut() {
-            let r = rand::gen_range(0.0, 1.0);
-            if r < mutation_rate {
-                node.bias = rand::gen_range(-1.0, 1.0)*rand::gen_range(-1.0, 1.0);
-            }
-        }
-
-        self.delete_random_link(mutation_rate/3.0);
-        self.add_random_link(mutation_rate);
-        self.add_random_node(mutation_rate)
+        
+        let mut an: usize = 0; let mut dn: usize = 0; let mut al: usize = 0; let mut dl: usize = 0; let mut b: usize = 0; let mut w: usize = 0;
+        //self.delete_random_link(mutation_rate/3.0);
+        al = self.add_random_link(mutation_rate);
+        w = self.mutate_link_weight(mutation_rate);
+        (an, dn, dl, b) = self.mutate_nodes(mutation_rate);
+        println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al, dl, b, w);
     }
 
-    fn add_random_node(&mut self, mutation_rate: f32) {
+    fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize) {
+        let (dn, dl) = self.del_random_node(mutation_rate);
+        let an = self.add_random_node(mutation_rate);
+        let b = self.mutate_nodes_bias(mutation_rate);
+        return (an, dn, dl, b);
+    }
+
+    fn mutate_nodes_bias(&mut self, mutation_rate: f32) -> usize{
+        let mut counter = 0;
+        let n_num = self.nodes.len();
+        let xfactor = mutation_rate/n_num as f32;
+        for (id, node) in self.nodes.iter_mut() {
+            if random_unit_unsigned() < xfactor {
+                node.bias = rand::gen_range(-1.0, 1.0)*rand::gen_range(-1.0, 1.0);
+                counter += 1;
+            }
+        }
+        return counter;
+    }
+
+    fn mutate_link_weight(&mut self, mutation_rate: f32) -> usize {
+        let mut counter = 0;
+        let l_num = self.links.len();
+        if l_num == 0 { return 0; }
+        let xfactor = mutation_rate;
+        for (id, link) in self.links.iter_mut() {
+            if random_unit_unsigned() < xfactor {
+                link.w = rand::gen_range(-1.0, 1.0);
+                counter += 1;
+            }
+        }
+        return counter;
+    }
+
+    fn add_random_node(&mut self, mutation_rate: f32) -> usize {
         let link_keys: Vec<u64> = self.links.keys().copied().collect();
         let num = link_keys.len();
         //let n0: u64; let n1: u64; let nx: u64; let mut link: &Link;
-        if rand::gen_range(0.0, 1.0) <= mutation_rate {
+        if random_unit_unsigned() <= mutation_rate {
             let rand_key = rand::gen_range(0, num);
             let link_key = link_keys[rand_key];
             let link = self.links.get_mut(&link_key).unwrap();
@@ -634,10 +672,65 @@ impl Network {
             self.nodes.insert(nx, new_node);
             link.node_to = nx;
             self.add_link(nx, n1);
+            return 1;
         }
+        return 0;
     }
 
-    fn add_random_link(&mut self, mutation_rate: f32) {
+    fn find_connected_links(&self, n_key: u64) -> (Vec<u64>, Vec<u64>) {
+        let mut links_from: Vec<u64> = vec![];
+        let mut links_to: Vec<u64> = vec![];
+        for (l_key, _) in self.links.iter() {
+            let link = self.links.get(l_key).unwrap();
+            if n_key == link.node_from { links_from.push(*l_key) }
+            if n_key == link.node_to { links_to.push(*l_key) }
+        }
+        return (links_from, links_to);
+    }
+
+    fn del_random_node(&mut self, mutation_rate: f32) -> (usize, usize) {
+        let mut counter_n = 0;
+        let mut counter_l = 0;
+        let link_keys: Vec<u64> = self.links.keys().copied().collect();
+        let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
+        let mut nodes_to_del: Vec<u64> = vec![]; 
+        let mut links_to_del: Vec<u64> = vec![]; 
+        let l_num = link_keys.len();
+        let n_num = node_keys.len();
+        let xfactor = mutation_rate - mutation_rate/n_num as f32;
+        for nk in node_keys.iter() {
+            match self.nodes.get(nk).unwrap().node_type {
+                NeuronTypes::DEEP => {
+                        if random_unit_unsigned() <= xfactor {
+                            let node_key = *nk;
+                            nodes_to_del.push(node_key);
+                            let (mut links_from, mut links_to) = self.find_connected_links(node_key);
+                            for key in links_from.iter() {
+                                if links_to_del.contains(key) { continue; }
+                                links_to_del.push(*key);
+                            }
+                            for key in links_to.iter() {
+                                if links_to_del.contains(key) { continue; }
+                                links_to_del.push(*key);
+                            }
+                        }
+                },
+                _ => {},
+            }
+        }
+        for l_key in links_to_del.iter() {
+            self.links.remove(l_key);
+            counter_l += 1;
+        }
+        for n_key in nodes_to_del.iter() {
+            self.del_node(*n_key);
+            counter_n += 1;
+        }
+        return (counter_n, counter_l);
+    }
+
+    fn add_random_link(&mut self, mutation_rate: f32) -> usize {
+        let mut counter = 0;
         let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
         let num = node_keys.len();
         loop {
@@ -655,6 +748,7 @@ impl Network {
                             NeuronTypes::INPUT => { continue; },
                             _ => {
                                 self.add_link(n0, n1);
+                                counter += 1;
                                 break;
                             },
                         }
@@ -663,6 +757,7 @@ impl Network {
                         match node1.node_type {
                             NeuronTypes::OUTPUT => {
                                 self.add_link(n0, n1);
+                                counter += 1;
                                 break;
                             },
                             _ => { continue; }
@@ -675,6 +770,7 @@ impl Network {
                 break;
             }
         }
+        return counter;
     }
 
     fn delete_random_link(&mut self, mutation_rate: f32) {

@@ -300,8 +300,8 @@ impl UISystem {
                         let n1 = rand::gen_range(0, l1);
                         let name0 = names0.get(n0).unwrap();
                         let name1 = names1.get(n1).unwrap();
-                        let id = rand::gen_range(10000, 99999);
-                        self.temp_sim_name = format!("{} {}{}",name0.to_uppercase(), name1.to_uppercase(), id);
+                        let id = rand::gen_range(100, 999);
+                        self.temp_sim_name = format!("{} {}-{}",name0.to_uppercase(), name1.to_uppercase(), id);
                     }
                     if response.gained_focus() {
                     }
