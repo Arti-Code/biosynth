@@ -191,7 +191,7 @@ impl Simulation {
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
                 agent.add_energy(hp);
-                agent.points += hp*0.2;
+                agent.points += hp*0.1;
             } else {
                 agent.add_energy(damage);
             }
@@ -234,7 +234,7 @@ impl Simulation {
                 let mut agent = self.agents.agents.get_mut(id).unwrap();
                 agent.add_energy(eat);
                 if eat > 0.0 {
-                    agent.points += eat*0.4;
+                    agent.points += eat*0.1;
                 }
             } else {
                 let mut source = self.resources.resources.get_mut(id).unwrap();
@@ -342,6 +342,7 @@ impl Simulation {
         match s {
             Ok(save) => {
                 //let path_str = format!("saves/last.json", self.simulation_name);
+                //let p = format!("saves/{}/last.json", self.simulation_name);
                 let path = Path::new("saves/last.json");
                 match fs::write(path, save) {
                     Ok(_) => {},

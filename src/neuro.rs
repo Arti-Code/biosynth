@@ -607,19 +607,19 @@ impl Network {
 
     pub fn mutate(&mut self, mutation_rate: f32) {
         
-        let mut an: usize = 0; let mut dn: usize = 0; let mut al: usize = 0; let mut dl: usize = 0; let mut b: usize = 0; let mut w: usize = 0;
+        let mut an: usize = 0; let mut dn: usize = 0; let mut al: usize = 0; let mut dl: usize = 0; let mut b: usize = 0; let mut w: usize = 0; let mut al2: usize = 0;
         //self.delete_random_link(mutation_rate/3.0);
         al = self.add_random_link(mutation_rate);
         w = self.mutate_link_weight(mutation_rate);
-        (an, dn, dl, b) = self.mutate_nodes(mutation_rate);
-        println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al, dl, b, w);
+        (an, dn, al2, dl, b) = self.mutate_nodes(mutation_rate);
+        println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al+al2, dl, b, w);
     }
 
-    fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize) {
+    fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize, usize) {
         let (dn, dl) = self.del_random_node(mutation_rate);
-        let an = self.add_random_node(mutation_rate);
-        let b = self.mutate_nodes_bias(mutation_rate);
-        return (an, dn, dl, b);
+        let (an, al) = self.add_random_node(mutation_rate);
+        let b = self.mutate_nodes_bias(mutation_rate*1.5);
+        return (an, dn, al, dl, b);
     }
 
     fn mutate_nodes_bias(&mut self, mutation_rate: f32) -> usize{
@@ -639,7 +639,7 @@ impl Network {
         let mut counter = 0;
         let l_num = self.links.len();
         if l_num == 0 { return 0; }
-        let xfactor = mutation_rate;
+        let xfactor = mutation_rate / ((l_num as f32)/2.0);
         for (id, link) in self.links.iter_mut() {
             if random_unit_unsigned() < xfactor {
                 link.w = rand::gen_range(-1.0, 1.0);
@@ -649,7 +649,7 @@ impl Network {
         return counter;
     }
 
-    fn add_random_node(&mut self, mutation_rate: f32) -> usize {
+    fn add_random_node(&mut self, mutation_rate: f32) -> (usize, usize) {
         let link_keys: Vec<u64> = self.links.keys().copied().collect();
         let num = link_keys.len();
         //let n0: u64; let n1: u64; let nx: u64; let mut link: &Link;
@@ -672,9 +672,9 @@ impl Network {
             self.nodes.insert(nx, new_node);
             link.node_to = nx;
             self.add_link(nx, n1);
-            return 1;
+            return (1,1);
         }
-        return 0;
+        return (0, 0);
     }
 
     fn find_connected_links(&self, n_key: u64) -> (Vec<u64>, Vec<u64>) {
@@ -697,7 +697,7 @@ impl Network {
         let mut links_to_del: Vec<u64> = vec![]; 
         let l_num = link_keys.len();
         let n_num = node_keys.len();
-        let xfactor = mutation_rate - mutation_rate/n_num as f32;
+        let xfactor = mutation_rate/n_num as f32;
         for nk in node_keys.iter() {
             match self.nodes.get(nk).unwrap().node_type {
                 NeuronTypes::DEEP => {
@@ -733,8 +733,9 @@ impl Network {
         let mut counter = 0;
         let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
         let num = node_keys.len();
+        
         loop {
-            if rand::gen_range(0.0, 1.0) <= mutation_rate {
+            if random_unit_unsigned() <= mutation_rate {
                 let r0 = rand::gen_range(0, num);
                 let r1 = rand::gen_range(0, num);
                 if r0 == r1 { continue; }
