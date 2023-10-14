@@ -264,8 +264,9 @@ impl Agent {
             let e = self.eng/self.max_eng;
             self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
         }
-        draw_circle(x0, y0, self.size, self.color);
+        self.draw_body();
         self.draw_front();
+        self.draw_eyes();
         if selected {
             self.draw_info(&font);
             self.draw_target();
@@ -273,6 +274,16 @@ impl Agent {
             self.draw_info(&font);
         }
     }    
+
+    fn draw_body(&self) {
+        let x0 = self.pos.x;
+        let y0 = self.pos.y;
+        let rv = Vec2::from_angle(self.rot+PI);
+        let x1 = x0+rv.x*self.size*0.6;
+        let y1 = y0+rv.y*self.size*0.6;
+        draw_circle(x1, y1, self.size*0.6, self.color);
+        draw_circle(x0, y0, self.size, self.color);
+    }
 
     pub fn update(&mut self, physics: &mut PhysicsWorld) -> bool {
         let dt = get_frame_time();
@@ -342,14 +353,14 @@ impl Agent {
             tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs();
         }
         
-        let res_dist = match self.enemy_position {
+        let res_dist = match self.resource_position {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
                 1.0-(dist/self.vision_range)
             },
         };
-        let mut res_ang = match self.enemy_dir {
+        let mut res_ang = match self.resource_dir {
             None => PI,
             Some(dir) => {
                 dir
@@ -444,6 +455,18 @@ impl Agent {
         draw_circle_lines(x0, y0, self.size, 4.0, self.color);
         //self.draw_front();
     } */
+
+    fn draw_eyes(&self) {
+        let eye_l = Vec2::from_angle(self.rot - PI / 3.0) * self.size*0.66;
+        let eye_r = Vec2::from_angle(self.rot + PI / 3.0) * self.size*0.66;
+        let xl = self.pos.x + eye_l.x;
+        let yl = self.pos.y + eye_l.y;
+        let xr = self.pos.x + eye_r.x;
+        let yr = self.pos.y + eye_r.y;
+        let s = self.size*0.33;
+        draw_circle(xl, yl, s, SKYBLUE);
+        draw_circle(xr, yr, s, SKYBLUE);
+    }
 
     fn draw_target(&self) {
         //if !self.enemy.is_none() {

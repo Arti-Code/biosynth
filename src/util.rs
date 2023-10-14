@@ -221,8 +221,10 @@ pub fn color_to_color32(color: Color) -> Color32 {
     let r = (color.r*255.0) as u8;
     let g = (color.g*255.0) as u8;
     let b = (color.b*255.0) as u8;
-    let a = (color.a*255.0) as u8;
+    let af32 = clamp((color.a*255.0).round(), 0.0, 255.0);
+    let a = af32 as u8;
     return Color32::from_rgba_unmultiplied(r, g, b, a);
+
 }
 
 pub fn iso_to_vec2_rot(isometry: &Isometry<Real>) -> (Vec2, f32) {

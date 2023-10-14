@@ -115,6 +115,20 @@ impl Simulation {
     fn update_rank(&mut self) {
         let settings = get_settings();
         self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
+        let ranking_copy = self.ranking.to_vec();
+        for elem1 in ranking_copy.iter() {
+            self.ranking.retain(|elem2| {
+                if elem1.specie == elem2.specie {
+                    if elem1.points == elem2.points {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return true;
+                }
+            });
+        }
         if self.ranking.len() > settings.ranking_size {
             self.ranking.pop();
         }

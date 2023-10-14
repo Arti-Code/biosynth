@@ -329,7 +329,6 @@ impl Network {
         }
     }
 
-
     pub fn build(&mut self,input_num: usize, input_labels: Vec<&str>, hidden_num: usize, output_num: usize, output_labels: Vec<&str>, link_rate: f32) {
         self.create_nodes(input_num, input_labels, hidden_num, output_num, output_labels);
         self.create_links(link_rate);
