@@ -300,8 +300,8 @@ impl UISystem {
                         let n1 = rand::gen_range(0, l1);
                         let name0 = names0.get(n0).unwrap();
                         let name1 = names1.get(n1).unwrap();
-                        let id = rand::gen_range(10000, 99999);
-                        self.temp_sim_name = format!("{} {}{}",name0.to_uppercase(), name1.to_uppercase(), id);
+                        let id = rand::gen_range(100, 999);
+                        self.temp_sim_name = format!("{} {}-{}",name0.to_uppercase(), name1.to_uppercase(), id);
                     }
                     if response.gained_focus() {
                     }
@@ -685,7 +685,16 @@ impl UISystem {
         let mut settings = mod_settings();
         Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
-            ui.heading("AGENTS");
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut ranking_size: i32 = settings.ranking_size as i32;
+                column[0].label(RichText::new("RANKING SIZE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut ranking_size, 0..=100)).changed() {
+                    settings.ranking_size = ranking_size as usize;
+                    signals.new_settings = true;
+                }
+            });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));

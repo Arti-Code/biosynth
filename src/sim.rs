@@ -115,6 +115,20 @@ impl Simulation {
     fn update_rank(&mut self) {
         let settings = get_settings();
         self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
+        let ranking_copy = self.ranking.to_vec();
+        for elem1 in ranking_copy.iter() {
+            self.ranking.retain(|elem2| {
+                if elem1.specie == elem2.specie {
+                    if elem1.points == elem2.points {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return true;
+                }
+            });
+        }
         if self.ranking.len() > settings.ranking_size {
             self.ranking.pop();
         }
@@ -191,7 +205,7 @@ impl Simulation {
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
                 agent.add_energy(hp);
-                agent.points += hp;
+                agent.points += hp*0.1;
             } else {
                 agent.add_energy(damage);
             }
@@ -234,7 +248,7 @@ impl Simulation {
                 let mut agent = self.agents.agents.get_mut(id).unwrap();
                 agent.add_energy(eat);
                 if eat > 0.0 {
-                    agent.points += eat;
+                    agent.points += eat*0.1;
                 }
             } else {
                 let mut source = self.resources.resources.get_mut(id).unwrap();
@@ -342,6 +356,7 @@ impl Simulation {
         match s {
             Ok(save) => {
                 //let path_str = format!("saves/last.json", self.simulation_name);
+                //let p = format!("saves/{}/last.json", self.simulation_name);
                 let path = Path::new("saves/last.json");
                 match fs::write(path, save) {
                     Ok(_) => {},
@@ -453,7 +468,8 @@ impl Simulation {
         }
         self.sim_state.total_eng = kin_eng;
         self.sim_state.total_mass = total_mass;
-        if (self.sim_state.sim_time-self.last_autosave) >= 1000.0 {
+        if (self.sim_state.sim_time-self.last_autosave).round() >= 1000.0 {
+            self.last_autosave = self.sim_state.sim_time.round();
             self.save_sim();
         } 
     }
@@ -530,7 +546,7 @@ impl SimulationSave {
         Self { 
             simulation_name: sim.simulation_name.to_owned(), 
             world_size: MyPos2::from_vec(&sim.world_size), 
-            sim_time: sim.sim_state.sim_time, 
+            sim_time: sim.sim_state.sim_time.round(), 
             agents: agents.to_owned(), 
             ranking: ranking.to_owned(),
             last_autosave: sim.sim_state.sim_time.round(),

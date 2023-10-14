@@ -13,7 +13,10 @@ mod collector;
 mod food;
 mod globals;
 mod resource;
+mod neural;
 
+
+use std::time::{SystemTime, Duration, UNIX_EPOCH, Instant};
 use crate::sim::*;
 use crate::globals::*;
 use macroquad::prelude::*;
@@ -39,6 +42,12 @@ fn setup() {
 #[macroquad::main(app_configuration)]
 async fn main() {
     setup();
+    let t = SystemTime::now();
+    let s = t.duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let s2 = s / 1000000;
+    let seed = s%s2;
+    println!("SEED: {}", seed); 
+    rand::srand(seed);
     let font = load_ttf_font("assets/fonts/firacode.ttf")
         .await
         .expect("can't load font resource!");

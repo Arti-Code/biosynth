@@ -9,21 +9,30 @@ use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
 use rapier2d::na::{Isometry2, Vector2, Translation, Point2, Const};
 
+#[doc = r"Random unit value in range -1.0..1.0."]
 pub fn random_unit() -> f32 {
     return rand::gen_range(-1.0, 1.0);
 }
 
+#[doc = r"Random unit value in range 0.0..1.0."]
+pub fn random_unit_unsigned() -> f32 {
+    return rand::gen_range(0.0, 1.0);
+}
+
+#[doc = r"Random pocition vector2d in range between 0.0..max_value."]
 pub fn random_position(x_max: f32, y_max: f32) -> Vec2 {
     let x = rand::gen_range(0.0, x_max);
     let y = rand::gen_range(0.0, y_max);
     return Vec2::new(x, y);
 }
 
+#[doc = r"Random rotation angle in radians ranged between 0.0..2.0*PI"]
 pub fn random_rotation() -> f32 {
     let rot = rand::gen_range(0.0, PI * 2.0);
     return rot;
 }
 
+#[doc = r"Random unit vector2d with value in range -1.0..1.0."]
 pub fn random_unit_vec2() -> Vec2 {
     let x = rand::gen_range(-1.0, 1.0);
     let y = rand::gen_range(-1.0, 1.0);
@@ -212,8 +221,10 @@ pub fn color_to_color32(color: Color) -> Color32 {
     let r = (color.r*255.0) as u8;
     let g = (color.g*255.0) as u8;
     let b = (color.b*255.0) as u8;
-    let a = (color.a*255.0) as u8;
+    let af32 = clamp((color.a*255.0).round(), 0.0, 255.0);
+    let a = af32 as u8;
     return Color32::from_rgba_unmultiplied(r, g, b, a);
+
 }
 
 pub fn iso_to_vec2_rot(isometry: &Isometry<Real>) -> (Vec2, f32) {
