@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use macroquad::{experimental::collections::storage, prelude::Vec2};
+use serde::{Deserialize, Serialize};
 
 
 pub const SCREEN_WIDTH: f32 = 1600.0;
@@ -16,11 +17,11 @@ pub fn init_global_settings(settings: Settings) {
 }
 
 pub fn get_settings() -> Settings {
-    return *storage::get::<Settings>();
+    return storage::get::<Settings>().clone();
 }
 
 pub fn mod_settings() -> Settings {
-    return *storage::get_mut::<Settings>();
+    return storage::get_mut::<Settings>().clone();
 }
 
 
@@ -39,7 +40,7 @@ pub fn mod_signals() -> Signals {
 }
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
     pub world_h: i32,
@@ -66,6 +67,7 @@ pub struct Settings {
     pub eat_to_eng: f32,
     pub ranking_size: usize,
     pub repro_points: f32,
+    pub repro_time: f32,
     pub new_one_probability: f32,
 }
 
@@ -77,8 +79,8 @@ impl Default for Settings {
             agent_eng_bar: true,
             agent_init_num: 45,
             agent_min_num: 15,
-            agent_rotate: 0.9,
-            agent_speed: 16.0,
+            agent_rotate: 0.8,
+            agent_speed: 14.0,
             agent_size_min: 3,
             agent_size_max: 10,
             agent_vision_range: 300.0,
@@ -87,17 +89,18 @@ impl Default for Settings {
             mutations: 0.2,
             neurolink_rate: 0.2,
             damage: 40.0,
-            base_energy_cost: 0.4,
-            move_energy_cost: 0.1,
-            attack_energy_cost: 0.1,
-            res_num: 12.0,
-            hidden_nodes_num: 5,
+            base_energy_cost: 0.5,
+            move_energy_cost: 0.2,
+            attack_energy_cost: 0.2,
+            res_num: 18.0,
+            hidden_nodes_num: 3,
             neuro_duration: 0.3,
-            atk_to_eng: 1.0,
+            atk_to_eng: 0.6,
             eat_to_eng: 20.0,
-            ranking_size: 14,
+            ranking_size: 20,
             repro_points: 1000.0,
-            new_one_probability: 0.005,
+            repro_time: 75.0,
+            new_one_probability: 0.001,
        }
     }
 }

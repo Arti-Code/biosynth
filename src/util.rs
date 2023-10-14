@@ -285,6 +285,8 @@ pub struct SimState {
     pub plants_num: i32,
     pub lifes_num: i32,
     pub physics_num: i32,
+    pub rigid_num: usize,
+    pub colliders_num: usize,
     pub total_mass: f32,
     pub total_eng: f32,
     pub sim_time: f64,
@@ -312,6 +314,8 @@ impl SimState {
             dt: 0.0,
             total_kin_eng: 0.0,
             contacts_info: (0, 0),
+            rigid_num: 0,
+            colliders_num: 0,
         }
     }
 }

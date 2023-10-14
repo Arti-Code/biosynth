@@ -7,6 +7,7 @@ use egui_macroquad::egui::widgets::Slider;
 use egui_macroquad::egui::Checkbox;
 use egui_macroquad::egui::Vec2 as UIVec2;
 use macroquad::prelude::*;
+use crate::sim;
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
@@ -200,6 +201,7 @@ impl UISystem {
                     ui.label(format!("TIME: {}", time.round()));
                     ui.label(format!("AGENTS: {}", agents_num));
                     ui.label(format!("SOURCES: {}", sources_num));
+                    ui.label(format!("RIG: {} | COL: {}", sim_state.rigid_num, sim_state.colliders_num));
                 })
             });
         }
@@ -264,8 +266,15 @@ impl UISystem {
 
     fn build_new_sim_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if self.state.new_sim {
-            let names0 = vec!["NEW", "IDEAL", "DANGER", "DARK", "FIRST", "EXPERIMENTAL", "RANDOM", "STRANGE"];
-            let names1 = vec!["SIMULATION", "UNIVERSE", "WORLD", "LAND", "LAB"];
+            let names0 = vec![
+                "NEW", "IDEAL", "DANGER", "DARK", "FIRST", "EXPERIMENTAL", 
+                "RANDOM", "STRANGE", "CRAZY", "FANTASTIC", "ALTERNATIVE",
+                "DEEP", "DIGITAL", "FIRST", "GREAT"
+            ];
+            let names1 = vec![
+                "SIMULATION", "UNIVERSE", "WORLD", "LAND", "LAB", "PLANET", "SIM",
+                "REALITY", "BIOME", "LABOLATORY", "ROCK", "ISLAND", "NATURE", "ECOSYSTEM"
+            ];
 
             let mut settings = mod_settings();
             let w = 500.0; let h = 220.0;
@@ -300,8 +309,8 @@ impl UISystem {
                         let n1 = rand::gen_range(0, l1);
                         let name0 = names0.get(n0).unwrap();
                         let name1 = names1.get(n1).unwrap();
-                        let id = rand::gen_range(100, 999);
-                        self.temp_sim_name = format!("{} {}-{}",name0.to_uppercase(), name1.to_uppercase(), id);
+                        //let id = rand::gen_range(100, 999);
+                        self.temp_sim_name = format!("{} {}",name0.to_uppercase(), name1.to_uppercase());
                     }
                     if response.gained_focus() {
                     }
@@ -327,11 +336,11 @@ impl UISystem {
                     row.columns(2, |columns| {
                         if columns[0].add(Slider::new(&mut w, 400..=4800)).changed() {
                             settings.world_w = w;
-                            init_global_settings(settings);
+                            init_global_settings(settings.clone());
                         }
                         if columns[1].add(Slider::new(&mut h, 300..=3600)).changed() {
                             settings.world_h = h;
-                            init_global_settings(settings);
+                            init_global_settings(settings.clone());
                         }
                     });
                 });
@@ -384,9 +393,8 @@ impl UISystem {
                 status_txt.push_str(&s);
                 status_txt.push_str(" |");
             }
-            //let title_txt = format!("{} [ ENERGY: {} / {} ]", name.to_uppercase(), agent.eng.round(), agent.max_eng.round()); 
             let title_txt = format!("{}", name.to_uppercase()); 
-            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((400.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
+            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((0.0, 160.0)).min_width(380.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
                     //vert.label(RichText::new(name.to_uppercase()).strong().color(Color32::BLUE));
                     row.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::RED));
@@ -411,64 +419,9 @@ impl UISystem {
                     row.label(format!("ORIENT: [{}]", ((rot * 10.0).round()) / 10.0));
                     row.separator();
                     row.label(format!("COORD: [X{}|Y{}]", pos.x.round(), pos.y.round()));
-                    
                 });
-//                ui.separator();
-//                ui.horizontal(|row| {
-//                    row.label(RichText::new(status_txt).strong().color(Color32::BLUE));
-//                    //row.label(format!("childs: [{}]", childs));
-//                    //row.label(format!("rot: [{}]", ((rot * 10.0).round()) / 10.0));
-//                    //row.label(format!("pos: [X:{}|Y:{}]", pos.x.round(), pos.y.round()));
-//                    //row.label(RichText::new(format!("ENG: {}/{}", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::RED));
-//                });
             });
         }
-
-/*                 if attack {
-                    ui.label(RichText::new("[ATTACK]").strong().color(Color32::RED));
-                } else {
-                    ui.label(RichText::new("[......]").strong().color(Color32::LIGHT_GRAY));
-                }
-                ui.separator();
-                if is_resource {
-                    ui.label(RichText::new("RESOURCE").strong().color(Color32::YELLOW));
-                } else {
-                    ui.label(RichText::new("[......]").strong().color(Color32::YELLOW));
-                }
-                match (res_pos, res_ang) {
-                    (Some(target), Some(ang)) => {
-                        ui.label(format!("pos: [x: {} | y:{}]", target.x.round(), target.y.round()));
-                        ui.label(format!("ang: [{}]", (ang*10.0).round()/10.0));
-                    }
-                    (None, None) => {
-                        ui.label(format!("pos: [---]"));
-                        ui.label(format!("ang: [---]"));
-                    }
-                    (_, _) => {
-                        ui.label(format!("pos: [---]"));
-                        ui.label(format!("ang: [---]"));
-                    }
-                }
-                ui.separator();
-                ui.label(RichText::new("ENEMY").strong().color(Color32::RED));
-                ui.label(format!("cont: [{}]", contacts_num));
-                match (tg_pos, tg_ang) {
-                    (Some(target), Some(ang)) => {
-                        ui.label(format!("pos: [x: {} | y:{}]", target.x.round(), target.y.round()));
-                        ui.label(format!("ang: [{}]", (ang*10.0).round()/10.0));
-                    }
-                    (None, None) => {
-                        ui.label(format!("pos: [---]"));
-                        ui.label(format!("ang: [---]"));
-                    }
-                    (_, _) => {
-                        ui.label(format!("pos: [---]"));
-                        ui.label(format!("ang: [---]"));
-                    }
-                }
-                ui.separator();
-            });
-        } */
     }
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
@@ -554,7 +507,7 @@ impl UISystem {
         if !self.state.set_agent {
             return;
         }
-        let mut settings = mod_settings();
+        let mut settings = get_settings();
         Window::new("AGENT SETTINGS").id("agent_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.heading("AGENT SETTINGS");
@@ -671,18 +624,18 @@ impl UISystem {
                 //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.set_agent = false;
-                    init_global_settings(settings);
+                    init_global_settings(settings.clone());
                 }
             });
         });
-        init_global_settings(settings);
+        init_global_settings(settings.clone());
     }
 
     fn build_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if !self.state.enviroment {
             return;
         }
-        let mut settings = mod_settings();
+        let mut settings = get_settings();
         Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.columns(2, |column| {
@@ -768,6 +721,16 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut repro_time = settings.repro_time as i32;
+                column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<i32>(&mut repro_time, 0..=200).step_by(1.0)).changed() {
+                    settings.repro_time = repro_time as f32;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut new_one_probability = settings.new_one_probability;
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.01).step_by(0.0005)).changed() {
@@ -811,11 +774,11 @@ impl UISystem {
                 //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.enviroment = false;
-                    init_global_settings(settings);
+                    init_global_settings(settings.clone());
                 }
             });
         });
-        init_global_settings(settings);
+        init_global_settings(settings.clone());
     }
 
     fn build_ranking_window(&mut self, egui_ctx: &Context, ranking: &Vec<AgentSketch>) {
@@ -823,50 +786,17 @@ impl UISystem {
             Window::new("RANKING").default_pos((SCREEN_WIDTH/2.-50., SCREEN_HEIGHT/6.)).title_bar(true).default_width(100.0).show(egui_ctx, |ui| {
                 let mut i = 0;
                 ui.horizontal(|ui| {
-                    //ui.set_max_width(70.0);
                     ui.heading(RichText::new("NAME(GEN)").strong().monospace());
-                    //ui.set_max_width(10.0);
-                    //ui.heading(RichText::new("GEN").strong());
-                    //ui.set_max_width(20.0);
                     ui.heading(RichText::new("POINTS").strong().monospace());
-                    //ui.columns(3, |col| {
-                        //col[0].set_max_width(10.0);
-                        //col[0].heading(RichText::new("N°").strong());
-/*                         col[0].set_max_width(80.0);
-                        col[0].heading(RichText::new("NAME").strong());
-                        col[1].set_max_width(15.0);
-                        col[1].heading(RichText::new("GEN").strong());
-                        col[2].set_max_width(35.0);
-                        col[2].heading(RichText::new("PTS").strong()); */
-                    //});
                 });
                 ui.separator();
                 for rank in ranking.iter() {
                     i += 1;
                     ui.horizontal(|ui| {
                         let msg1 = format!("[{}] {}({})",i, rank.specie.to_uppercase(), rank.generation);
-                        //let msg2 = format!("{}", rank.generation);
                         let msg3 = format!("{}", rank.points.round());
-                        //ui.set_max_width(70.0);
                         ui.label(RichText::new(msg1).monospace());
-                        //ui.set_width(10.0);
-                        //ui.label(msg2);
-                        //ui.set_width(20.0);
                         ui.label(RichText::new(msg3).monospace());
-                        //ui.columns(3, |col| {
-                            //let msg0 = format!("[{}].", i);
-                            //let msg1 = format!("[{}] {}",i, rank.specie.to_uppercase());
-                            //let msg2 = format!("{}", rank.generation);
-                            //let msg3 = format!("{}", rank.points.round());
-                            //col[0].set_max_width(10.0);
-                            //col[0].label(msg0);
-                            /* col[0].set_max_width(70.0);
-                            col[0].label(msg1);
-                            col[1].set_max_width(10.0);
-                            col[1].label(msg2);
-                            col[2].set_max_width(20.0);
-                            col[2].label(msg3); */
-                        //});
                     });
                 }
             });

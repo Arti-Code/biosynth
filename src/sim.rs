@@ -121,8 +121,10 @@ impl Simulation {
                 if elem1.specie == elem2.specie {
                     if elem1.points == elem2.points {
                         return true;
-                    } else {
+                    } else if elem2.points < elem1.points {
                         return false;
+                    } else {
+                        return true;
                     }
                 } else {
                     return true;
@@ -400,11 +402,15 @@ impl Simulation {
             self.physics.remove_physics_object(agent.physics_handle);
         }
         self.agents.agents.clear();
+
         for (_, source) in self.resources.get_iter_mut() {
             self.physics.remove_physics_object(source.physics_handle);
         }
         self.resources.resources.clear();
+
         self.ranking.clear();
+
+        //self.physics.rigid_bodies.
     }
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
@@ -460,6 +466,7 @@ impl Simulation {
         self.sim_state.agents_num = self.agents.agents.len() as i32;
         self.sim_state.sources_num = self.resources.resources.len() as i32;
         self.sim_state.physics_num = self.physics.get_physics_obj_num() as i32;
+        (self.sim_state.rigid_num, self.sim_state.colliders_num) = self.physics.get_numbers();
         let mut kin_eng = 0.0;
         let mut total_mass = 0.0;
         for (_, rb) in self.physics.rigid_bodies.iter() {
@@ -495,7 +502,7 @@ impl Simulation {
         let agent_sketch = self.ranking.get_mut(r).unwrap();
         let s = agent_sketch.to_owned();
         let agent = Agent::from_sketch(s, &mut self.physics);
-        agent_sketch.points -= agent_sketch.points*0.2;
+        agent_sketch.points -= agent_sketch.points*0.35;
         agent_sketch.points.round();
         self.agents.add_agent(agent);
     }

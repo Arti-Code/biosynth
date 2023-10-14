@@ -108,8 +108,8 @@ impl PhysicsWorld {
     }
 
     pub fn remove_physics_object(&mut self, body_handle: RigidBodyHandle) {
-        self.remove_body_key_relation(&body_handle);
         _ = self.rigid_bodies.remove(body_handle, &mut self.island_manager, &mut self.colliders, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
+        self.remove_body_key_relation(&body_handle);
     }
 
     pub fn get_physics_obj_num(&self) -> usize {
@@ -202,6 +202,12 @@ impl PhysicsWorld {
                 force: None,
             };
         }
+    }
+
+    pub fn get_numbers(&self) -> (usize, usize) {
+        let r = self.rigid_bodies.len();
+        let c = self.colliders.len();
+        return (r,c);
     }
 
     pub fn get_object_position(&self, handle: RigidBodyHandle) -> Option<Vec2> {
