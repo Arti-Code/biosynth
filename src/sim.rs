@@ -486,7 +486,7 @@ impl Simulation {
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
             self.agent_from_zero();
             self.agent_from_sketch();
-        } else if random_unit_unsigned() < settings.new_one_probability/10.0  {
+        } else if random_unit_unsigned() < settings.new_one_probability*get_frame_time()  {
             self.agent_from_zero();
             self.agent_from_sketch();
         }

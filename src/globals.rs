@@ -89,18 +89,18 @@ impl Default for Settings {
             mutations: 0.2,
             neurolink_rate: 0.2,
             damage: 40.0,
-            base_energy_cost: 0.5,
-            move_energy_cost: 0.2,
+            base_energy_cost: 0.6,
+            move_energy_cost: 0.3,
             attack_energy_cost: 0.2,
             res_num: 18.0,
             hidden_nodes_num: 3,
             neuro_duration: 0.3,
-            atk_to_eng: 0.6,
-            eat_to_eng: 20.0,
+            atk_to_eng: 0.8,
+            eat_to_eng: 15.0,
             ranking_size: 20,
             repro_points: 1000.0,
             repro_time: 75.0,
-            new_one_probability: 0.001,
+            new_one_probability: 0.2,
        }
     }
 }

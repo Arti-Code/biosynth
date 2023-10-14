@@ -722,7 +722,7 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut repro_time = settings.repro_time as i32;
-                column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
+                column[0].label(RichText::new("REPRODUCTION TIME").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new::<i32>(&mut repro_time, 0..=200).step_by(1.0)).changed() {
                     settings.repro_time = repro_time as f32;
                     signals.new_settings = true;
@@ -733,7 +733,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut new_one_probability = settings.new_one_probability;
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.01).step_by(0.0005)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=10.0).step_by(0.1)).changed() {
                     settings.new_one_probability = new_one_probability;
                     signals.new_settings = true;
                 }
