@@ -16,7 +16,7 @@ mod resource;
 mod neural;
 
 
-use std::time::{SystemTime, Duration, UNIX_EPOCH, Instant};
+use std::time::{SystemTime, UNIX_EPOCH/* , Duration, Instant */};
 use crate::sim::*;
 use crate::globals::*;
 use macroquad::prelude::*;

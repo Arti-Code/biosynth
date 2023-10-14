@@ -477,18 +477,27 @@ impl Simulation {
     fn check_agents_num(&mut self) {
         let settings = get_settings();
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
-            self.agents.add_many_agents(1, &mut self.physics);
-            let l = self.ranking.len();
-            let r = rand::gen_range(0, l);
-            let agent_sketch = self.ranking.get_mut(r).unwrap();
-            let s = agent_sketch.to_owned();
-            let agent = Agent::from_sketch(s, &mut self.physics);
-            //println!("RANK=>AGENT: {} | {} | {}", agent.generation, agent.specie, agent_sketch.points.round());
-            agent_sketch.points -= agent_sketch.points*0.2;
-            agent_sketch.points.round();
-            self.agents.add_agent(agent);
-
+            self.agent_from_zero();
+            self.agent_from_sketch();
+        } else if random_unit_unsigned() < settings.new_one_probability/10.0  {
+            self.agent_from_zero();
+            self.agent_from_sketch();
         }
+    }
+
+    fn agent_from_zero(&mut self) {
+        self.agents.add_many_agents(1, &mut self.physics);
+    }
+
+    fn agent_from_sketch(&mut self) {
+        let l = self.ranking.len();
+        let r = rand::gen_range(0, l);
+        let agent_sketch = self.ranking.get_mut(r).unwrap();
+        let s = agent_sketch.to_owned();
+        let agent = Agent::from_sketch(s, &mut self.physics);
+        agent_sketch.points -= agent_sketch.points*0.2;
+        agent_sketch.points.round();
+        self.agents.add_agent(agent);
     }
 
     fn calc_selection_time(&mut self) {

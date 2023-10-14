@@ -279,8 +279,8 @@ impl Agent {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let rv = Vec2::from_angle(self.rot+PI);
-        let x1 = x0+rv.x*self.size*0.6;
-        let y1 = y0+rv.y*self.size*0.6;
+        let x1 = x0+rv.x*self.size*0.8;
+        let y1 = y0+rv.y*self.size*0.8;
         draw_circle(x1, y1, self.size*0.6, self.color);
         draw_circle(x0, y0, self.size, self.color);
     }

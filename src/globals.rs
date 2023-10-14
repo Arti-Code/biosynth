@@ -66,6 +66,7 @@ pub struct Settings {
     pub eat_to_eng: f32,
     pub ranking_size: usize,
     pub repro_points: f32,
+    pub new_one_probability: f32,
 }
 
 impl Default for Settings {
@@ -96,6 +97,7 @@ impl Default for Settings {
             eat_to_eng: 20.0,
             ranking_size: 14,
             repro_points: 1000.0,
+            new_one_probability: 0.005,
        }
     }
 }
