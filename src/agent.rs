@@ -135,7 +135,8 @@ pub struct Agent {
     pub specie: String,
     pub attacking: bool,
     pub points: f32,
-    //pub hit_list: HitList,
+    pub pain: bool,
+    pub run: bool,
 }
 
 
@@ -151,8 +152,8 @@ impl Agent {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED"];
-        let out_labs = vec!["MOV", "LFT", "RGT", "ATK"];
+        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
+        let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "RUN"];
         network.build(inp_labs.len(), inp_labs, settings.hidden_nodes_num, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
@@ -192,6 +193,8 @@ impl Agent {
             specie: create_name(4),
             attacking: false,
             points: 0.0,
+            pain: false,
+            run: false,
         }
     }
 
@@ -257,6 +260,8 @@ impl Agent {
             specie: sketch.specie.to_owned(),
             attacking: false,
             points: 0.0,
+            pain: false,
+            run: false,
         }
     }
 
@@ -380,8 +385,12 @@ impl Agent {
         
         let hp = self.eng/self.max_eng;
         //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
-        //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED"];
+        //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
         //let input_values: [f32; 8] = [contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
+        let mut pain = 0.0;
+        if self.pain { pain = 1.0; }
+        self.pain = false;
+        self.pain = false;
         self.neuro_map.set_signal("CON", contact);
         self.neuro_map.set_signal("ENG", hp);
         self.neuro_map.set_signal("TGL", tgl);
@@ -390,6 +399,7 @@ impl Agent {
         self.neuro_map.set_signal("REL", resl);
         self.neuro_map.set_signal("RER", resr);
         self.neuro_map.set_signal("RED", res_dist);
+        self.neuro_map.set_signal("PAI", pain);
     }
 
     fn analize(&mut self) {
@@ -400,13 +410,17 @@ impl Agent {
         self.network.calc();
         self.neuro_map.recv_actions(&self.network);
 
-        //vec!["MOV", "LFT", "RGT", "ATK"];
+        //vec!["MOV", "LFT", "RGT", "ATK", "RUN"];
         if self.neuro_map.get_action("MOV") > 0.0 {
             self.vel = self.neuro_map.get_action("MOV");
         } else {
             self.vel = 0.0;
         }
         
+        if self.neuro_map.get_action("RUN") > 0.75 {
+            self.run = true;
+        }
+
         self.ang_vel = -self.neuro_map.get_action("LFT")+self.neuro_map.get_action("RGT");
         if self.neuro_map.get_action("ATK") >= 0.5 {
             self.attacking = true;
@@ -542,7 +556,10 @@ impl Agent {
             Some(body) => {
                 let dt = get_frame_time();
                 let dir = Vec2::from_angle(self.rot);
-                let v = dir * self.vel * settings.agent_speed * dt *150.0;
+                let mut v = dir * self.vel * settings.agent_speed * dt *150.0;
+                if self.run {
+                    v *= 1.5;
+                }
                 let rot = self.ang_vel * settings.agent_rotate * dt *50.0;
                 body.set_linvel(Vector2::new(v.x, v.y), true);
                 body.set_angvel(rot, true);
@@ -659,7 +676,10 @@ impl Agent {
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
         let basic_loss = self.size * base_cost;
-        let move_loss = self.vel * self.size * move_cost;
+        let mut move_loss = self.vel * self.size * move_cost;
+        if self.run {
+            move_loss *= 2.0;
+        }
         let attack_loss = match self.attacking {
             true => attack_cost * self.size,
             false => 0.0,
@@ -732,6 +752,8 @@ impl Agent {
             specie: self.specie.to_owned(),
             attacking: false,
             points: 0.0,
+            pain: false,
+            run: false,
         }
     }
 

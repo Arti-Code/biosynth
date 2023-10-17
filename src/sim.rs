@@ -211,6 +211,7 @@ impl Simulation {
                 agent.points += hp*0.1;
             } else {
                 agent.add_energy(damage);
+                agent.pain = true;
             }
         }
     }
@@ -406,8 +407,8 @@ impl Simulation {
     }
 
     fn load_sim(&mut self) {
-        let f = format!("saves/{}/last.json", self.simulation_name);
-        let path = Path::new(&f);
+        //let f = format!("saves/last.json", self.simulation_name);
+        let path = Path::new("saves/last.json");
         match fs::read_to_string(path) {
             Err(_) => {},
             Ok(save) => {

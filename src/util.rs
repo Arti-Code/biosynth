@@ -250,6 +250,7 @@ pub struct UIState {
     pub io: bool,
     pub ranking: bool,
     pub set_agent: bool,
+    pub load_sim: bool,
 }
 
 impl UIState {
@@ -272,6 +273,7 @@ impl UIState {
             io: false,
             ranking: false,
             set_agent: false,
+            load_sim: false,
         }
     }
 }

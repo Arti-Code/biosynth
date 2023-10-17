@@ -3,6 +3,7 @@
 use egui_macroquad::egui::InputState;
 use macroquad::prelude::*;
 use macroquad::rand::*;
+use rapier2d::na::ComplexField;
 use serde::ser::SerializeStruct;
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -146,6 +147,14 @@ impl Node {
         Node { id: sketch.id, pos: sketch.pos.to_vec2(), bias: sketch.bias, val: 0.0, sum: 0.0, selected: false, node_type: sketch.node_type, last: 0.0, active: false, label: sketch.label.to_string(), new_mut: false }
     }
 
+    pub fn get_size(&self) -> f32 {
+        if !self.active {
+            return 2.0;
+        } else {
+            return 2.0 + 6.0*self.val.abs();
+        }
+    }
+
     pub fn get_colors(&self) -> (Color, Color) {
         if !self.active {
             return (LIGHTGRAY, GRAY);
@@ -271,14 +280,23 @@ impl Link {
             return (color0, color1);
         }
         if s > 0.0 {
-            color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
+            let mut r = 100 + (155.0 * s) as u8;
+            r = clamp(r, 0, 255);
+            color1 = color_u8!(r, 0, 0, (100.0+155.0*s) as u8);
         }
         if s < 0.0 {
-            color1 = color_u8!(0, 0, 255, (100.0+155.0*s.abs()) as u8);
+            let mut b = 100 + (155.0 * s.abs()) as u8;
+            b = clamp(b, 0, 255);
+            color1 = color_u8!(0, 0, b, (100.0+155.0*s.abs()) as u8);
         }
         return (color0, color1);
     }
     
+    pub fn get_width(&self) -> f32 {
+        let s = clamp(self.signal.abs(), 0.0, 1.0);
+        return 1.0 + s * 4.0;
+    }
+
     pub fn calc(&mut self, nodes: &mut HashMap<u64, Node>) {
         let n0 = self.node_from;
         let n1 = self.node_to;

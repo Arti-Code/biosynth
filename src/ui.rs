@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use std::fs;
+use std::fs::*;
 use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
@@ -75,6 +77,7 @@ impl UISystem {
             self.build_settings_window(egui_ctx, signals);
             self.build_agent_settings_window(egui_ctx, signals);
             self.build_ranking_window(egui_ctx, ranking);
+            self.build_load_sim_window(egui_ctx);
         });
     }
 
@@ -97,8 +100,13 @@ impl UISystem {
                     if ui.button(RichText::new("New Simulation").strong().color(Color32::BLUE)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::GREEN)).clicked() {
+                    if ui.button(RichText::new("Quick Load").strong().color(Color32::BLUE)).clicked() {
                         signals.load_sim = true;
+                        //self.state.load_sim = true;
+                    }
+                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::GREEN)).clicked() {
+                        //signals.load_sim = true;
+                        self.state.load_sim = true;
                     }
                     if ui.button(RichText::new("Save Simulation").weak().color(Color32::GREEN)).clicked() {
                         signals.save_sim = true;
@@ -221,6 +229,31 @@ impl UISystem {
                             col[1].label(format!("{lab}:{o}"));
                         }
                     })
+                });
+            });
+        }
+    }
+
+    fn build_load_sim_window(&self, egui_ctx: &Context) {
+        if self.state.load_sim {
+            let mut saved_sims: Vec<String> = vec![];
+            let path = Path::new("saves\\simulations\\");
+            let sims =  fs::read_dir(path).unwrap();
+            for entry in sims {
+                if let Ok(sim_dir) = entry {
+                    let path = sim_dir.path();
+                    if path.is_dir() {
+                        let sim_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                        saved_sims.push(sim_name);
+                    }
+                }
+            }
+            Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(120.0).show(egui_ctx, |ui| {
+                ui.horizontal(|horizont| {
+                    for sim in saved_sims {
+                        horizont.label(RichText::new(sim).strong());
+                    }
+                        
                 });
             });
         }
@@ -436,6 +469,7 @@ impl UISystem {
                     //let sketch = network.get_visual_sketch();
                     for (key, link) in network.links.iter() {
                         let (coord0, coord1, coord_t) = link.get_coords(&network.nodes, 0.0);
+                        let w = link.get_width();
                         let p1 = vec2_to_pos2(coord0*resize)+zero;
                         let p2 = vec2_to_pos2(coord1*resize)+zero;
                         //let pt = vec2_to_pos2(link.loc_t*resize)+zero;
@@ -444,24 +478,25 @@ impl UISystem {
                         let c2 = color_to_color32(color0);
                         let points1 = [p1, p2];
                         //let points2 = [p1, pt];
-                        painter.line_segment(points1, Stroke { color: c1, width: 1.5 });
+                        painter.line_segment(points1, Stroke { color: c1, width: w });
                         //painter.line_segment(points2, Stroke { color: c2, width: 4.0 });
                     }
                     for (key, node) in network.nodes.iter() {
                         let (color0, color1) = node.get_colors();
+                        let r = node.get_size();
                         let p1 = vec2_to_pos2(node.pos*resize)+zero;
                         let c0 = color_to_color32(color1);
                         let c1 = color_to_color32(color0);
                         let label = node.get_label();
-                        painter.circle_filled(p1, 3.0,  Color32::BLACK);
-                        painter.circle_filled(p1, 3.0,  c1);
-                        painter.circle_stroke(p1, 3.0, Stroke { color: c0, width: 1.0 });
+                        painter.circle_filled(p1, r,  Color32::BLACK);
+                        painter.circle_filled(p1, r,  c1);
+                        painter.circle_stroke(p1, r, Stroke { color: c0, width: 1.0 });
                         match node.node_type {
                             NeuronTypes::INPUT => {
                                 painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, label, egui_macroquad::egui::FontId::default(), Color32::WHITE);
                             },
                             NeuronTypes::OUTPUT => {
-                                painter.text(p1+UIVec2{x: -18.0, y: 0.0}, Align2::LEFT_CENTER, label, egui_macroquad::egui::FontId::default(), Color32::WHITE);
+                                painter.text(p1+UIVec2{x: -40.0, y: 0.0}, Align2::LEFT_CENTER, label, egui_macroquad::egui::FontId::default(), Color32::WHITE);
                             },
                             _ => {},
                         }
