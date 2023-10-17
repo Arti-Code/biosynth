@@ -15,6 +15,7 @@ use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::fmt::format;
+use std::fs::DirEntry;
 use serde::{Serialize, Deserialize};
 use serde_json;
 use std::fs;
@@ -321,7 +322,7 @@ impl Simulation {
     }
 
     pub fn signals_check(&mut self) {
-        let mut sign = mod_signals();
+        //let mut sign = mod_signals();
         if self.signals.spawn_agent {
             self.agents.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
@@ -352,28 +353,61 @@ impl Simulation {
         }
     }
 
+/*     fn is_saves_dir_exist() -> bool {
+        match fs::read_all_dir(Path::new("saves")) {
+            Ok(saves) => {
+                for dir in saves {
+                    match dir {
+                        Err(_) => {
+                            return false;
+                        },
+                        Ok(directory) => {
+                            directory.
+                        }
+                    }
+                }
+                return true;
+            },
+            Err(_) => {
+                return false;
+            }
+        }
+    } */
+
     fn save_sim(&self) {
         let data = SimulationSave::from_sim(self);
         let s = serde_json::to_string_pretty(&data);
+        let p = format!("saves/{}", self.simulation_name);
         match s {
             Ok(save) => {
-                //let path_str = format!("saves/last.json", self.simulation_name);
-                //let p = format!("saves/{}/last.json", self.simulation_name);
-                let path = Path::new("saves/last.json");
-                match fs::write(path, save) {
-                    Ok(_) => {},
-                    Err(_) => println!("ERROR: not saved"),
+                match fs::DirBuilder::new().recursive(true).create(p) {
+                    Ok(_) => {
+                        let f = format!("saves/{}/last.json", self.simulation_name);
+                        //let path = Path::new("saves/last.json");
+                        match fs::write(f, save) {
+                            Ok(_) => {println!("SAVED");},
+                            Err(_) => println!("ERROR"),
+                        }
+                    },
+                    Err(_) => {
+                        let f = format!("saves/{}/last.json", self.simulation_name);
+                        //let path = Path::new("saves/last.json");
+                        match fs::write(f, save) {
+                            Ok(_) => {println!("SAVED EXIST");},
+                            Err(_) => println!("ERROR EXIST"),
+                        }
+                    },
                 }
             },
             Err(_) => {
-                warn!("error during saving sim");
+                warn!("ERROR PATH");
             },
         }
     }
 
     fn load_sim(&mut self) {
-        let path_str = "saves/last.json";
-        let path = Path::new(&path_str);
+        let f = format!("saves/{}/last.json", self.simulation_name);
+        let path = Path::new(&f);
         match fs::read_to_string(path) {
             Err(_) => {},
             Ok(save) => {
@@ -497,6 +531,9 @@ impl Simulation {
     }
 
     fn agent_from_sketch(&mut self) {
+        if self.ranking.is_empty() {
+            return;
+        }
         let l = self.ranking.len();
         let r = rand::gen_range(0, l);
         let agent_sketch = self.ranking.get_mut(r).unwrap();

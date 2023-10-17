@@ -1,6 +1,6 @@
 [package]
 name = "evolve"
-version = "0.5.19"
+version = "0.5.20"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
 keywords = [
@@ -13,6 +13,7 @@ keywords = [
 
 [dependencies]
 macroquad = "0.3.26"
+#macroquad = "0.4.4"
 rapier2d = { version = "0.17.2", features = [ "simd-stable" ] }
 egui-macroquad = {version = "0.15.0"}
 egui_extras = {version = "0.23.0", features = ["image"]}

@@ -200,6 +200,11 @@ impl Agent {
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
+        let mut size = sketch.size;
+        if rand::gen_range(0, 9) == 0 {
+            size += rand::gen_range(-1, 1) as f32;
+        }
+        size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32);
         let shape = match sketch.shape {
             MyShapeType::Ball => {
                 SharedShape::ball(sketch.size)
@@ -227,7 +232,7 @@ impl Agent {
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
-            size: sketch.size,
+            size,
             vision_range: sketch.vision_range,
             max_eng: sketch.size.powi(2) * 10.0,
             eng: sketch.size.powi(2) * 10.0,
@@ -247,10 +252,9 @@ impl Agent {
             resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            //neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             neuro_map,
             childs: 0,
-            specie: create_name(4),
+            specie: sketch.specie.to_owned(),
             attacking: false,
             points: 0.0,
         }
