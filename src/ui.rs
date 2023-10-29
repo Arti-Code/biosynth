@@ -768,7 +768,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut new_one_probability = settings.new_one_probability;
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=1.0).step_by(0.01)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.3).step_by(0.01)).changed() {
                     settings.new_one_probability = new_one_probability;
                     signals.new_settings = true;
                 }
