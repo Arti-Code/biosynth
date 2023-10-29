@@ -22,8 +22,8 @@ Live2:
         ✔ fix: sources @high @done(23-10-10 13:57)
         ✔ fix new sim win layout @done(23-10-07 03:56)
         ✔ new settings options (neuro hidden nodes num, neuro duration, source num) @done(23-10-07 03:56)
-        ☐ impr: load_sim window
-        ☐ impr: gui font sizes
+        ✔ impr: load_sim window @done(23-10-29 18:01)
+        ✔ impr: gui font sizes @done(23-10-29 18:02)
         ☐ impr: subwindows layout
     0.4:
         ✔ add rapier physics world

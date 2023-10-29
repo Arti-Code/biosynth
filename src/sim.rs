@@ -345,7 +345,7 @@ impl Simulation {
     }
 
     pub fn signals_check(&mut self) {
-        //let mut sign = mod_signals();
+        let mut sign = get_signals();
         if self.signals.spawn_agent {
             self.agents.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
@@ -371,51 +371,35 @@ impl Simulation {
             self.signals.save_sim = false;
             self.save_sim();
         }
-        if self.signals.load_sim {
-            self.signals.load_sim = false;
-            self.load_sim();
-        }
-    }
-
-/*     fn is_saves_dir_exist() -> bool {
-        match fs::read_all_dir(Path::new("saves")) {
-            Ok(saves) => {
-                for dir in saves {
-                    match dir {
-                        Err(_) => {
-                            return false;
-                        },
-                        Ok(directory) => {
-                            directory.
-                        }
-                    }
-                }
-                return true;
-            },
-            Err(_) => {
-                return false;
+        if sign.load_sim_name.is_some() {
+            match sign.load_sim_name.clone() {
+                None => {},
+                Some(name) => {
+                    let sim_name = name.to_owned();
+                    sign.load_sim_name = None;
+                    init_global_signals(sign);
+                    self.load_sim(&sim_name);
+                },
             }
         }
-    } */
+    }
 
     fn save_sim(&self) {
         let data = SimulationSave::from_sim(self);
         let s = serde_json::to_string_pretty(&data);
-        let p = format!("saves/{}", self.simulation_name);
+        let p = format!("saves/simulations/{}/", self.simulation_name);
         match s {
             Ok(save) => {
                 match fs::DirBuilder::new().recursive(true).create(p) {
                     Ok(_) => {
-                        let f = format!("saves/{}/last.json", self.simulation_name);
-                        //let path = Path::new("saves/last.json");
+                        let f = format!("saves/simulations/{}/last.json", self.simulation_name);
                         match fs::write(f, save) {
                             Ok(_) => {println!("SAVED");},
                             Err(_) => println!("ERROR"),
                         }
                     },
                     Err(_) => {
-                        let f = format!("saves/{}/last.json", self.simulation_name);
-                        //let path = Path::new("saves/last.json");
+                        let f = format!("saves/simulations/{}/last.json", self.simulation_name);
                         match fs::write(f, save) {
                             Ok(_) => {println!("SAVED EXIST");},
                             Err(_) => println!("ERROR EXIST"),
@@ -429,12 +413,13 @@ impl Simulation {
         }
     }
 
-    fn load_sim(&mut self) {
-        //let f = format!("saves/last.json", self.simulation_name);
-        let path = Path::new("saves/last.json");
+    fn load_sim(&mut self, sim_name: &str) {
+        let f = format!("saves/simulations/{}/last.json", sim_name);
+        let path = Path::new(&f);
         match fs::read_to_string(path) {
             Err(_) => {},
             Ok(save) => {
+                //println!("loading: {}", &save);
                 match serde_json::from_str::<SimulationSave>(&save) {
                     Err(_) => {
                         println!("error during deserialization of saved sim...");
@@ -445,22 +430,21 @@ impl Simulation {
                             let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
                             self.agents.add_agent(agent);
                         }
-                        println!("NUM2: {}", self.physics.rigid_bodies.len());
                         self.ranking = sim_state.ranking.to_owned();
                         self.sim_state.sim_time = sim_state.sim_time;
                         self.last_autosave = sim_state.last_autosave;
                         self.simulation_name = sim_state.simulation_name.to_owned();
                         self.sim_state.sim_name = sim_state.simulation_name.to_owned();
                         self.world_size = sim_state.world_size.to_vec2();
-                        println!("NUM3: {}", self.physics.rigid_bodies.len());
+                        let settings = sim_state.settings.to_owned();
+                        init_global_settings(settings);
                     },
                 }
             }
         }
-        println!("NUM4: {}", self.physics.rigid_bodies.len());
     }
 
-    fn clean_sim(&mut self) {
+/*     fn clean_sim(&mut self) {
         for (_, agent) in self.agents.get_iter_mut() {
             self.physics.remove_physics_object(agent.physics_handle);
         }
@@ -474,7 +458,7 @@ impl Simulation {
         self.ranking.clear();
 
         //self.physics.rigid_bodies.
-    }
+    } */
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
         //println!("save");
@@ -614,6 +598,7 @@ pub struct SimulationSave {
     last_autosave: f64,
     pub agents: Vec<AgentSketch>,
     pub ranking: Vec<AgentSketch>,
+    settings: Settings,
 }
 
 impl SimulationSave {
@@ -629,6 +614,7 @@ impl SimulationSave {
             let sketch2 = sketch.to_owned();
             ranking.push(sketch2);
         }
+        let settings = get_settings();
         Self { 
             simulation_name: sim.simulation_name.to_owned(), 
             world_size: MyPos2::from_vec(&sim.world_size), 
@@ -636,6 +622,7 @@ impl SimulationSave {
             agents: agents.to_owned(), 
             ranking: ranking.to_owned(),
             last_autosave: sim.sim_state.sim_time.round(),
+            settings: settings.to_owned(),
         }
     }
 

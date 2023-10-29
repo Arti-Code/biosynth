@@ -100,7 +100,7 @@ impl Default for Settings {
             ranking_size: 20,
             repro_points: 1000.0,
             repro_time: 75.0,
-            new_one_probability: 0.03,
+            new_one_probability: 0.01,
        }
     }
 }
@@ -119,6 +119,7 @@ pub struct Signals {
     pub save_selected: bool,
     pub save_sim: bool,
     pub load_sim: bool,
+    pub load_sim_name: Option<String>,
 }
 
 impl Signals {
@@ -137,6 +138,7 @@ impl Signals {
             save_selected: false,
             save_sim: false,
             load_sim: false,
+            load_sim_name: None,
         }
     }
 }

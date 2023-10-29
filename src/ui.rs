@@ -8,6 +8,10 @@ use egui_macroquad::egui::*;
 use egui_macroquad::egui::widgets::Slider;
 use egui_macroquad::egui::Checkbox;
 use egui_macroquad::egui::Vec2 as UIVec2;
+use egui_macroquad::egui::FontFamily::Proportional;
+use egui_macroquad::egui::FontId;
+use egui_macroquad::egui::TextStyle::*;
+use egui_macroquad::egui::Label;
 use macroquad::prelude::*;
 use crate::sim;
 use crate::util::*;
@@ -57,13 +61,28 @@ impl UISystem {
         });
     }
 
+    fn set_fonts_styles(&mut self, egui_ctx: &Context) {
+        let mut style = (*egui_ctx.style()).clone();
+        style.text_styles = [
+            (Heading, FontId::new(14.0, Proportional)),
+            (Name("Heading2".into()), FontId::new(12.0, Proportional)),
+            (Name("Context".into()), FontId::new(11.0, Proportional)),
+            (Body, FontId::new(11.0, Proportional)),
+            (Monospace, FontId::new(11.0, Proportional)),
+            (Button, FontId::new(12.0, Proportional)),
+            (Small, FontId::new(9.0, Proportional)),
+        ].into();
+        egui_ctx.set_style(style);
+    }
+
     pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, ranking: &Vec<AgentSketch>) {
         egui_macroquad::ui(|egui_ctx| {
+            self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
             self.build_top_menu(egui_ctx, &sim_state.sim_name, signals);
             self.build_quit_window(egui_ctx);
             self.build_monit_window(egui_ctx, &sim_state);
-            self.build_debug_window(egui_ctx, camera2d);
+            self.build_debug_window(egui_ctx, camera2d, &sim_state);
             self.build_new_sim_window(egui_ctx, signals);
             match agent {
                 Some(agent) => {
@@ -99,10 +118,6 @@ impl UISystem {
                 menu::menu_button(ui, RichText::new("SIMULATION").strong(), |ui| {
                     if ui.button(RichText::new("New Simulation").strong().color(Color32::BLUE)).clicked() {
                         self.state.new_sim = true;
-                    }
-                    if ui.button(RichText::new("Quick Load").strong().color(Color32::BLUE)).clicked() {
-                        signals.load_sim = true;
-                        //self.state.load_sim = true;
                     }
                     if ui.button(RichText::new("Load Simulation").strong().color(Color32::GREEN)).clicked() {
                         //signals.load_sim = true;
@@ -209,7 +224,6 @@ impl UISystem {
                     ui.label(format!("TIME: {}", time.round()));
                     ui.label(format!("AGENTS: {}", agents_num));
                     ui.label(format!("SOURCES: {}", sources_num));
-                    ui.label(format!("RIG: {} | COL: {}", sim_state.rigid_num, sim_state.colliders_num));
                 })
             });
         }
@@ -234,8 +248,10 @@ impl UISystem {
         }
     }
 
-    fn build_load_sim_window(&self, egui_ctx: &Context) {
+    fn build_load_sim_window(&mut self, egui_ctx: &Context) {
         if self.state.load_sim {
+            let mut signals = get_signals();
+            let mut close = false;
             let mut saved_sims: Vec<String> = vec![];
             let path = Path::new("saves\\simulations\\");
             let sims =  fs::read_dir(path).unwrap();
@@ -249,28 +265,53 @@ impl UISystem {
                 }
             }
             Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(120.0).show(egui_ctx, |ui| {
-                ui.horizontal(|horizont| {
-                    for sim in saved_sims {
-                        horizont.label(RichText::new(sim).strong());
+                //ui.horizontal(|horizont| {
+                ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::BLUE);
+                ui.style_mut().visuals.widgets.inactive.fg_stroke = Stroke::new(2.0, Color32::LIGHT_BLUE);
+                
+                for sim in saved_sims {
+                    ui.vertical_centered(|column| {
+                        if column.button(RichText::new(sim.to_owned()).strong().color(Color32::BLUE)).clicked()  {
+                            println!("loading simulation: {}", &sim);
+                            signals.load_sim_name = Some(String::from(&sim));
+                            init_global_signals(signals.clone());
+                            self.state.load_sim = false;
+                        }
+                    });
+                    ui.add_space(4.0);
+                }
+                ui.add_space(16.0);
+                ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::YELLOW);
+                ui.style_mut().visuals.widgets.inactive.fg_stroke = Stroke::new(2.0, Color32::YELLOW);
+                
+                ui.vertical_centered(|ctn| {
+                    if ctn.button(RichText::new("CLOSE")).clicked() {
+                        //close = true;
+                        self.state.load_sim = false;
                     }
-                        
-                });
+                })
             });
+            //});
+            //if close { self.state.load_sim = false; }
         }
     }
 
-    fn build_debug_window(&self, egui_ctx: &Context, camera2d: &Camera2D) {
+    fn build_debug_window(&self, egui_ctx: &Context, camera2d: &Camera2D, sim_state: &SimState) {
         if self.state.mouse {
             let (mouse_x, mouse_y) = mouse_position();
             Window::new("DEBUG INFO").default_pos((375.0, 5.0)).default_width(175.0).show(egui_ctx, |ui| {
-                ui.label(RichText::new("MOUSE").strong());
+                ui.label(RichText::new("MOUSE").strong().color(Color32::YELLOW));
                 ui.label(format!("coords [x: {} | y: {}]", mouse_x.round(), mouse_y.round()));
                 ui.separator();
-                ui.label(RichText::new("CAMERA").strong());
+                ui.label(RichText::new("CAMERA").strong().color(Color32::LIGHT_BLUE));
                 ui.label(format!("target [x:{} | Y:{}]", camera2d.target.x.round(), camera2d.target.y.round()));
                 ui.label(format!("offset [x:{} | Y:{}]", camera2d.offset.x.round(), camera2d.offset.y.round()));
                 ui.label(format!("zoom [x:{} | Y:{}]", (camera2d.zoom.x * 10000.).round() / 10., (camera2d.zoom.y * 10000.).round() / 10.));
                 ui.label(format!("rotation: {}", camera2d.rotation.round()));
+                ui.separator();
+                ui.label(RichText::new("PHYSICS CORE").strong().color(Color32::RED));
+                ui.label(format!("RIGID: {}", sim_state.rigid_num));
+                ui.label(format!("COLLIDERS: {}", sim_state.colliders_num));
             });
         }
     }
@@ -427,7 +468,7 @@ impl UISystem {
                 status_txt.push_str(" |");
             }
             let title_txt = format!("{}", name.to_uppercase()); 
-            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((0.0, 160.0)).min_width(380.0).show(egui_ctx, |ui| {
+            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((0.0, 100.0)).min_width(380.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
                     //vert.label(RichText::new(name.to_uppercase()).strong().color(Color32::BLUE));
                     row.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::RED));
@@ -818,11 +859,11 @@ impl UISystem {
 
     fn build_ranking_window(&mut self, egui_ctx: &Context, ranking: &Vec<AgentSketch>) {
         if self.state.ranking {
-            Window::new("RANKING").default_pos((SCREEN_WIDTH/2.-50., SCREEN_HEIGHT/6.)).title_bar(true).default_width(100.0).show(egui_ctx, |ui| {
+            Window::new("RANKING").default_pos((0.0, 200.0)).title_bar(true).default_width(100.0).show(egui_ctx, |ui| {
                 let mut i = 0;
                 ui.horizontal(|ui| {
-                    ui.heading(RichText::new("NAME(GEN)").strong().monospace());
-                    ui.heading(RichText::new("POINTS").strong().monospace());
+                    ui.label(RichText::new("NAME(GEN)").strong().monospace());
+                    ui.label(RichText::new("POINTS").strong().monospace());
                 });
                 ui.separator();
                 for rank in ranking.iter() {
@@ -833,6 +874,7 @@ impl UISystem {
                         ui.label(RichText::new(msg1).monospace());
                         ui.label(RichText::new(msg3).monospace());
                     });
+                    ui.separator();
                 }
             });
         }
