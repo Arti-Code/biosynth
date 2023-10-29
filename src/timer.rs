@@ -11,6 +11,7 @@ pub struct Timer {
 }
 
 impl Timer {
+
     pub fn new(duration: f32, repeat: bool, autostart: bool, random_start: bool) -> Self {
         let mut start_time: f32 = 0.0;
         if random_start {
@@ -61,4 +62,5 @@ impl Timer {
         self.stop();
         self.run = true
     }
+
 }

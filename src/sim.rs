@@ -3,6 +3,7 @@
 use crate::agent::*;
 use crate::camera::*;
 use crate::neuro::MyPos2;
+use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
 use crate::physics::*;
@@ -41,6 +42,7 @@ pub struct Simulation {
     pub agents: AgentBox,
     pub resources: ResBox,
     pub ranking: Vec<AgentSketch>,
+    population_timer: Timer,
 }
 
 impl Simulation {
@@ -67,6 +69,7 @@ impl Simulation {
             resources: ResBox::new(),
             ranking: vec![],
             last_autosave: 0.0,
+            population_timer: Timer::new(1.0, true, true, false),
         }
     }
 
@@ -89,6 +92,25 @@ impl Simulation {
         self.mouse_state = MouseState { pos: Vec2::NAN };
         self.running = true;
         self.init();
+    }
+
+    fn clear_sim(&mut self) {
+        println!("NUM0: {}", self.physics.rigid_bodies.len());
+        let settings = get_settings();
+        self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
+        self.physics = PhysicsWorld::new();
+        self.agents = AgentBox::new();
+        self.resources = ResBox::new();
+        self.ranking = vec![];
+        self.sim_time = 0.0;
+        self.sim_state = SimState::new();
+        self.sim_state.sim_name = String::from("");
+        self.signals = Signals::new();
+        self.selected = None;
+        self.select_phase = 0.0;
+        self.mouse_state = MouseState { pos: Vec2::NAN };
+        self.running = true;
+        println!("NUM1: {}", self.physics.rigid_bodies.len());    
     }
 
     pub fn init(&mut self) {
@@ -331,6 +353,7 @@ impl Simulation {
         if self.signals.new_sim {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
+            //self.app_state = AppState::RESTART;
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
@@ -417,19 +440,24 @@ impl Simulation {
                         println!("error during deserialization of saved sim...");
                     },
                     Ok(sim_state) => {
-                        self.clean_sim();
+                        self.clear_sim();
                         for agent_sketch in sim_state.agents.iter() {
                             let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
+                            self.agents.add_agent(agent);
                         }
+                        println!("NUM2: {}", self.physics.rigid_bodies.len());
                         self.ranking = sim_state.ranking.to_owned();
                         self.sim_state.sim_time = sim_state.sim_time;
                         self.last_autosave = sim_state.last_autosave;
                         self.simulation_name = sim_state.simulation_name.to_owned();
+                        self.sim_state.sim_name = sim_state.simulation_name.to_owned();
                         self.world_size = sim_state.world_size.to_vec2();
+                        println!("NUM3: {}", self.physics.rigid_bodies.len());
                     },
                 }
             }
         }
+        println!("NUM4: {}", self.physics.rigid_bodies.len());
     }
 
     fn clean_sim(&mut self) {
@@ -518,12 +546,16 @@ impl Simulation {
 
     fn check_agents_num(&mut self) {
         let settings = get_settings();
+        let dt = get_frame_time();
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
             self.agent_from_zero();
             self.agent_from_sketch();
-        } else if random_unit_unsigned() < settings.new_one_probability*get_frame_time()  {
-            self.agent_from_zero();
-            self.agent_from_sketch();
+        }
+        if self.population_timer.update(dt) {
+            if random_unit_unsigned() < settings.new_one_probability  {
+                self.agent_from_zero();
+                self.agent_from_sketch();
+            }
         }
     }
 

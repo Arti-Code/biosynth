@@ -19,6 +19,7 @@ use serde_json;
 use std::fs;
 
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NeuroMap {
     pub sensors: HashMap<String, u64>,
     pub effectors: HashMap<String, u64>,
@@ -222,11 +223,11 @@ impl Agent {
         let gen = sketch.generation + 1;
         let mut network = sketch.network.from_sketch();
         network.mutate(settings.mutations);
-        let input_pairs = network.get_input_pairs();
-        let output_pairs = network.get_output_pairs();
-        let mut neuro_map = NeuroMap::new();
-        neuro_map.add_sensors(input_pairs);
-        neuro_map.add_effectors(output_pairs);
+        //let input_pairs = network.get_input_pairs();
+        //let output_pairs = network.get_output_pairs();
+        //let mut neuro_map = NeuroMap::new();
+        //neuro_map.add_sensors(input_pairs);
+        //neuro_map.add_effectors(output_pairs);
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent {
             key,
@@ -255,7 +256,7 @@ impl Agent {
             resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            neuro_map,
+            neuro_map: sketch.neuro_map.clone(),
             childs: 0,
             specie: sketch.specie.to_owned(),
             attacking: false,
@@ -770,6 +771,7 @@ impl Agent {
             vision_range: self.vision_range, 
             network: self.network.get_sketch(),
             points: self.points, 
+            neuro_map: self.neuro_map.clone(),
         }
     }
 }
@@ -800,6 +802,6 @@ pub struct AgentSketch {
     pub vision_range: f32,
     pub network: NetworkSketch,
     pub points: f32,
-
+    pub neuro_map: NeuroMap
 }
 

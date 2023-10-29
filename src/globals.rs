@@ -77,8 +77,8 @@ impl Default for Settings {
             world_w: WORLD_W as i32,
             world_h: WORLD_H as i32,
             agent_eng_bar: true,
-            agent_init_num: 45,
-            agent_min_num: 15,
+            agent_init_num: 0,
+            agent_min_num: 0,
             agent_rotate: 0.8,
             agent_speed: 14.0,
             agent_size_min: 3,
@@ -100,7 +100,7 @@ impl Default for Settings {
             ranking_size: 20,
             repro_points: 1000.0,
             repro_time: 75.0,
-            new_one_probability: 0.2,
+            new_one_probability: 0.03,
        }
     }
 }
