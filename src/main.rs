@@ -46,7 +46,7 @@ async fn main() {
     let s = t.duration_since(UNIX_EPOCH).unwrap().as_secs();
     let s2 = s / 1000000;
     let seed = s%s2;
-    println!("SEED: {}", seed); 
+    //println!("SEED: {}", seed); 
     rand::srand(seed);
     let font = load_ttf_font("assets/fonts/firacode.ttf")
         .await

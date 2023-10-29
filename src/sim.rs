@@ -95,7 +95,6 @@ impl Simulation {
     }
 
     fn clear_sim(&mut self) {
-        println!("NUM0: {}", self.physics.rigid_bodies.len());
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = PhysicsWorld::new();
@@ -110,7 +109,6 @@ impl Simulation {
         self.select_phase = 0.0;
         self.mouse_state = MouseState { pos: Vec2::NAN };
         self.running = true;
-        println!("NUM1: {}", self.physics.rigid_bodies.len());    
     }
 
     pub fn init(&mut self) {
@@ -419,7 +417,6 @@ impl Simulation {
         match fs::read_to_string(path) {
             Err(_) => {},
             Ok(save) => {
-                //println!("loading: {}", &save);
                 match serde_json::from_str::<SimulationSave>(&save) {
                     Err(_) => {
                         println!("error during deserialization of saved sim...");
@@ -461,7 +458,6 @@ impl Simulation {
     } */
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
-        //println!("save");
         match self.agents.get(handle) {
             Some(agent) => {
                 let agent_sketch = agent.get_sketch();

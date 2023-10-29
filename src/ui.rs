@@ -272,7 +272,6 @@ impl UISystem {
                 for sim in saved_sims {
                     ui.vertical_centered(|column| {
                         if column.button(RichText::new(sim.to_owned()).strong().color(Color32::BLUE)).clicked()  {
-                            println!("loading simulation: {}", &sim);
                             signals.load_sim_name = Some(String::from(&sim));
                             init_global_signals(signals.clone());
                             self.state.load_sim = false;

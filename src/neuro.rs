@@ -629,7 +629,7 @@ impl Network {
         al = self.add_random_link(mutation_rate);
         w = self.mutate_link_weight(mutation_rate);
         (an, dn, al2, dl, b) = self.mutate_nodes(mutation_rate);
-        println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al+al2, dl, b, w);
+        //println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al+al2, dl, b, w);
     }
 
     fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize, usize) {
