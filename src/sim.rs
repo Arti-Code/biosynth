@@ -433,7 +433,9 @@ impl Simulation {
                         self.simulation_name = sim_state.simulation_name.to_owned();
                         self.sim_state.sim_name = sim_state.simulation_name.to_owned();
                         self.world_size = sim_state.world_size.to_vec2();
-                        let settings = sim_state.settings.to_owned();
+                        let mut settings = sim_state.settings.to_owned();
+                        settings.world_h = sim_state.world_size.y as i32;
+                        settings.world_w = sim_state.world_size.x as i32;
                         init_global_settings(settings);
                     },
                 }
