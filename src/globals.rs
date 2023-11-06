@@ -4,8 +4,8 @@ use macroquad::{experimental::collections::storage, prelude::Vec2};
 use serde::{Deserialize, Serialize};
 
 
-pub const SCREEN_WIDTH: f32 = 1600.0;
-pub const SCREEN_HEIGHT: f32 = 900.0;
+pub const SCREEN_WIDTH: f32 = 1900.0;
+pub const SCREEN_HEIGHT: f32 = 1000.0;
 pub const WORLD_W: f32 = 1600.0;
 pub const WORLD_H: f32 = 900.0;
 pub const FIX_DT: f32 = 1.0 / 30.0;

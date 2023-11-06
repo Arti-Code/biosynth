@@ -293,6 +293,19 @@ impl Agent {
         let y1 = y0+rv.y*self.size*0.8;
         draw_circle(x1, y1, self.size*0.6, self.color);
         draw_circle(x0, y0, self.size, self.color);
+        if self.run {
+            let mut shadow = self.color;
+            shadow.a = 0.6;
+            let xs0 = x0 + rv.x * self.size * self.vel;
+            let ys0 = y0 + rv.y * self.size * self.vel;
+            let xs1 = x1 + rv.x * self.size * 1.3 * self.vel;
+            let ys1 = y1 + rv.y * self.size * 1.3 * self.vel;
+            let xs2 = x1 + rv.x * self.size * 1.7 * self.vel;
+            let ys2 = y1 + rv.y * self.size * 1.7 * self.vel;
+            draw_circle(xs2, ys2, self.size*0.5, shadow);
+            draw_circle(xs1, ys1, self.size*0.8, shadow);
+            draw_circle(xs0, ys0, self.size, shadow);
+        }
     }
 
     pub fn update(&mut self, physics: &mut PhysicsWorld) -> bool {
@@ -476,6 +489,8 @@ impl Agent {
     } */
 
     fn draw_eyes(&self) {
+        let mut color = SKYBLUE;
+        if self.attacking { color = RED; }
         let eye_l = Vec2::from_angle(self.rot - PI / 3.0) * self.size*0.66;
         let eye_r = Vec2::from_angle(self.rot + PI / 3.0) * self.size*0.66;
         let xl = self.pos.x + eye_l.x;
@@ -483,8 +498,8 @@ impl Agent {
         let xr = self.pos.x + eye_r.x;
         let yr = self.pos.y + eye_r.y;
         let s = self.size*0.33;
-        draw_circle(xl, yl, s, SKYBLUE);
-        draw_circle(xr, yr, s, SKYBLUE);
+        draw_circle(xl, yl, s, color);
+        draw_circle(xr, yr, s, color);
     }
 
     fn draw_target(&self) {

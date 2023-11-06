@@ -28,7 +28,7 @@ fn app_configuration() -> Conf {
         window_width: SCREEN_WIDTH as i32,
         window_height: SCREEN_HEIGHT as i32,
         sample_count: 16,
-        window_resizable: false,
+        window_resizable: true,
         //icon: Some(image::io::Reader::open("assets/ico/molecular.ico").unwrap().decode().unwrap().into()),
         ..Default::default()
     }
