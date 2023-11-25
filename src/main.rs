@@ -19,10 +19,13 @@ mod neural;
 use std::time::{SystemTime, UNIX_EPOCH/* , Duration, Instant */};
 use crate::sim::*;
 use crate::globals::*;
+use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
+use util::MyIcon;
 
 
 fn app_configuration() -> Conf {
+    let ico = MyIcon::color_filled(GREEN);
     Conf {
         window_title: env!("CARGO_PKG_NAME").to_string().to_uppercase(),
         window_width: SCREEN_WIDTH as i32,
@@ -30,6 +33,11 @@ fn app_configuration() -> Conf {
         sample_count: 16,
         window_resizable: true,
         //icon: Some(image::io::Reader::open("assets/ico/molecular.ico").unwrap().decode().unwrap().into()),
+        icon: Some(Icon {
+            small: ico.small,
+            medium: ico.medium,
+            big: ico.big,
+        }),
         ..Default::default()
     }
 }

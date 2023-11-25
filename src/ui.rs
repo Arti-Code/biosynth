@@ -210,17 +210,14 @@ impl UISystem {
 
     fn build_monit_window(&self, egui_ctx: &Context, sim_state: &SimState) {
         if self.state.performance {
-//            let total_mass = sim_state.total_mass;
             let fps = sim_state.fps;
             let delta = sim_state.dt;
             let time = sim_state.sim_time;
             let physics_num = sim_state.physics_num;
             let agents_num = sim_state.agents_num;
             let sources_num = sim_state.sources_num;
-            Window::new("MONITOR").default_pos((0.0, 0.0)).default_width(400.0).default_height(80.0).show(egui_ctx, |ui| {
+            Window::new("MONITOR").default_pos((170.0, 0.0)).default_width(400.0).default_height(80.0).show(egui_ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(format!("DT: {}ms", (delta * 1000.0).round()));
-                    ui.label(format!("FPS: {}", fps));
                     ui.label(format!("TIME: {}", time.round()));
                     ui.label(format!("AGENTS: {}", agents_num));
                     ui.label(format!("SOURCES: {}", sources_num));
@@ -266,8 +263,8 @@ impl UISystem {
             }
             Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(120.0).show(egui_ctx, |ui| {
                 //ui.horizontal(|horizont| {
-                ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::BLUE);
-                ui.style_mut().visuals.widgets.inactive.fg_stroke = Stroke::new(2.0, Color32::LIGHT_BLUE);
+                ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, Color32::BLUE);
+                //ui.style_mut().visuals.widgets.inactive.fg_stroke = Stroke::new(1.0, Color32::LIGHT_BLUE);
                 
                 for sim in saved_sims {
                     ui.vertical_centered(|column| {
@@ -299,6 +296,11 @@ impl UISystem {
         if self.state.mouse {
             let (mouse_x, mouse_y) = mouse_position();
             Window::new("DEBUG INFO").default_pos((375.0, 5.0)).default_width(175.0).show(egui_ctx, |ui| {
+                let fps = sim_state.fps;
+                let delta = sim_state.dt;
+                //ui.label(RichText::new("PERFORMANCE").strong().color(Color32::BLUE));
+                ui.label(format!("FPS: {} dT: {}ms", fps, (delta * 1000.0).round()));
+                ui.separator();
                 ui.label(RichText::new("MOUSE").strong().color(Color32::YELLOW));
                 ui.label(format!("coords [x: {} | y: {}]", mouse_x.round(), mouse_y.round()));
                 ui.separator();
@@ -467,7 +469,7 @@ impl UISystem {
                 status_txt.push_str(" |");
             }
             let title_txt = format!("{}", name.to_uppercase()); 
-            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((0.0, 100.0)).min_width(380.0).show(egui_ctx, |ui| {
+            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((435.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
                     //vert.label(RichText::new(name.to_uppercase()).strong().color(Color32::BLUE));
                     row.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::RED));
@@ -499,9 +501,10 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            let w = 220.0; let h = 200.0; let resize = 200.0;
-            Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w)
+            let w = 270.0; let h = 250.0; let resize = 240.0;
+            Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w).resizable(true)
                 .title_bar(true).show(egui_ctx, |ui| {
+                    
                     let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
                     let rect = response.rect;
                     let zero = rect.left_top().to_vec2();
@@ -808,7 +811,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut new_one_probability = settings.new_one_probability;
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.3).step_by(0.01)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.1).step_by(0.005)).changed() {
                     settings.new_one_probability = new_one_probability;
                     signals.new_settings = true;
                 }
@@ -843,6 +846,16 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut grid_size = settings.grid_size;
+                column[0].label(RichText::new("GRID-SIZE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<u32>(&mut grid_size, 0..=250).step_by(10.0)).changed() {
+                    settings.grid_size = grid_size;
+                    signals.new_settings = true;
+                }
+            });
             ui.add_space(2.0);
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::DARK_GREEN);
             ui.vertical_centered(|closer| {
@@ -858,20 +871,27 @@ impl UISystem {
 
     fn build_ranking_window(&mut self, egui_ctx: &Context, ranking: &Vec<AgentSketch>) {
         if self.state.ranking {
-            Window::new("RANKING").default_pos((0.0, 200.0)).title_bar(true).default_width(100.0).show(egui_ctx, |ui| {
+            Window::new("RANKING").default_pos((0.0, 0.0)).title_bar(true).default_width(120.0).show(egui_ctx, |ui| {
                 let mut i = 0;
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new("NAME(GEN)").strong().monospace());
-                    ui.label(RichText::new("POINTS").strong().monospace());
+                    ui.label(RichText::new("NAME").strong().monospace());
+                    ui.separator();
+                    ui.label(RichText::new("GEN").strong().monospace());
+                    ui.separator();
+                    ui.label(RichText::new("PTS").strong().monospace());
                 });
                 ui.separator();
                 for rank in ranking.iter() {
                     i += 1;
                     ui.horizontal(|ui| {
-                        let msg1 = format!("[{}] {}({})",i, rank.specie.to_uppercase(), rank.generation);
+                        let msg1 = format!("{}. {}",i, rank.specie.to_uppercase());
+                        let msg2 = format!("{}", rank.generation);
                         let msg3 = format!("{}", rank.points.round());
-                        ui.label(RichText::new(msg1).monospace());
-                        ui.label(RichText::new(msg3).monospace());
+                        ui.label(RichText::new(msg1).small().monospace());
+                        ui.separator();
+                        ui.label(RichText::new(msg2).small().monospace());
+                        ui.separator();
+                        ui.label(RichText::new(msg3).small().monospace());
                     });
                     ui.separator();
                 }

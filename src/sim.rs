@@ -287,7 +287,7 @@ impl Simulation {
         set_camera(&self.camera);
         clear_background(color_u8!(35,35,35,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
-        self.draw_grid(25);
+        self.draw_grid();
         self.draw_agents();
         self.draw_res();
     }
@@ -330,7 +330,9 @@ impl Simulation {
         }
     }
 
-    fn draw_grid(&self, cell_size: u32) {
+    fn draw_grid(&self) {
+        let settings = get_settings();
+        let cell_size = settings.grid_size;
         let w = self.world_size.x;
         let h = self.world_size.y;
         let col_num = (w / cell_size as f32).floor() as u32;

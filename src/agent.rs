@@ -126,6 +126,7 @@ pub struct Agent {
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
+    pub enemy_size: Option<f32>,
     pub resource: Option<RigidBodyHandle>,
     pub resource_position: Option<Vec2>,
     pub resource_dir: Option<f32>,
@@ -138,6 +139,9 @@ pub struct Agent {
     pub points: f32,
     pub pain: bool,
     pub run: bool,
+    power: i32,
+    speed: i32,
+    shell: i32,
 }
 
 
@@ -153,7 +157,7 @@ impl Agent {
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
+        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "DNG", "REL", "RER", "RED", "PAI"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "RUN"];
         network.build(inp_labs.len(), inp_labs, settings.hidden_nodes_num, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
@@ -183,6 +187,7 @@ impl Agent {
             enemy: None,
             enemy_position: None,
             enemy_dir: None,
+            enemy_size: None,
             resource: None,
             resource_position: None,
             resource_dir: None,
@@ -196,6 +201,9 @@ impl Agent {
             points: 0.0,
             pain: false,
             run: false,
+            speed: gen_range(0, 10),
+            power: gen_range(0, 10),
+            shell: gen_range(0, 10),
         }
     }
 
@@ -209,6 +217,25 @@ impl Agent {
             size += rand::gen_range(-1, 1) as f32;
         }
         size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32);
+        
+        let mut power = sketch.power;
+        if rand::gen_range(0, 9) == 0 {
+            power += rand::gen_range(-1, 1);
+        }
+        power = clamp(power, 0, 10);
+
+        let mut speed = sketch.speed;
+        if rand::gen_range(0, 9) == 0 {
+            speed += rand::gen_range(-1, 1);
+        }
+        speed = clamp(speed, 0, 10);
+
+        let mut shell = sketch.shell;
+        if rand::gen_range(0, 9) == 0 {
+            shell += rand::gen_range(-1, 1);
+        }
+        shell = clamp(shell, 0, 10);
+
         let shape = match sketch.shape {
             MyShapeType::Ball => {
                 SharedShape::ball(sketch.size)
@@ -223,11 +250,6 @@ impl Agent {
         let gen = sketch.generation + 1;
         let mut network = sketch.network.from_sketch();
         network.mutate(settings.mutations);
-        //let input_pairs = network.get_input_pairs();
-        //let output_pairs = network.get_output_pairs();
-        //let mut neuro_map = NeuroMap::new();
-        //neuro_map.add_sensors(input_pairs);
-        //neuro_map.add_effectors(output_pairs);
         let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent {
             key,
@@ -251,6 +273,7 @@ impl Agent {
             enemy: None,
             enemy_position: None,
             enemy_dir: None,
+            enemy_size: None,
             resource: None,
             resource_position: None,
             resource_dir: None,
@@ -263,6 +286,9 @@ impl Agent {
             points: 0.0,
             pain: false,
             run: false,
+            power: sketch.power,
+            speed: sketch.speed,
+            shell: sketch.shell,
         }
     }
 
@@ -291,6 +317,8 @@ impl Agent {
         let rv = Vec2::from_angle(self.rot+PI);
         let x1 = x0+rv.x*self.size*0.8;
         let y1 = y0+rv.y*self.size*0.8;
+        let shell = self.size + (self.shell as f32)*0.2;
+        draw_circle(x0, y0, shell, WHITE);
         draw_circle(x1, y1, self.size*0.6, self.color);
         draw_circle(x0, y0, self.size, self.color);
         if self.run {
@@ -368,6 +396,13 @@ impl Agent {
                 dir
             },
         };
+        let mut tg_dng = match self.enemy_size {
+            None => 0.0,
+            Some(size2) => {
+                ((size2/(size2+self.size))-0.5)/0.5
+            },
+        };
+
         tg_ang = tg_ang/PI;
         let mut tgr: f32=0.0; let mut tgl: f32=0.0;
         if tg_ang > 0.0 {
@@ -410,6 +445,7 @@ impl Agent {
         self.neuro_map.set_signal("TGL", tgl);
         self.neuro_map.set_signal("TGR", tgr);
         self.neuro_map.set_signal("DST", tg_dist);
+        self.neuro_map.set_signal("DNG", tg_dng);
         self.neuro_map.set_signal("REL", resl);
         self.neuro_map.set_signal("RER", resr);
         self.neuro_map.set_signal("RED", res_dist);
@@ -442,28 +478,6 @@ impl Agent {
             self.attacking = false;
         }
     }
-
-/*     fn analize2(&mut self) {
-
-        self.network.deactivate_nodes();
-        let iii = self.prep_input();
-        self.network.input(iii.clone());
-        self.network.calc();
-        let mut outputs2 = self.network.get_outputs2();
-        self.neuro_table.inputs = iii.clone();
-        //self.neuro_table.outputs = outputs2.clone();
-        if *outputs2.get("MOV").unwrap() >= 0.0 {
-            self.vel = *outputs2.get("MOV").unwrap();
-        } else {
-            self.vel = 0.0;
-        }
-        self.ang_vel = -*outputs2.get("LFT").unwrap()+*outputs2.get("RGT").unwrap();
-        if *outputs2.get("ATK").unwrap() >= 0.5 {
-            self.attacking = true;
-        } else {
-            self.attacking = false;
-        }
-    } */
 
     fn draw_front(&self) {
         //let dir = Vec2::from_angle(self.rot);
@@ -543,14 +557,9 @@ impl Agent {
             color: LIGHTGRAY,
             ..Default::default()
         };
-        //let rot = self.rot;
-        //let mass = self.mass;
         let info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
-        //let info = format!("rot: {}", (rot * 10.0).round() / 10.0);
-        //let info_mass = format!("mass: {}", mass.round());
         let txt_center = get_text_center(&info, Some(*font), 10, 1.0, 0.0);
         draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 8.0, text_cfg.clone());
-        //draw_text_ex(&info_mass, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 43.0, text_cfg.clone());
     }
 
     fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {
@@ -588,7 +597,6 @@ impl Agent {
     fn check_edges(&mut self, body: &mut RigidBody) {
         let settings = get_settings();
         let (mut raw_pos, rot ) = iso_to_vec2_rot(body.position());
-        //let mut raw_pos = matrix_to_vec2(body.position().translation);
         let mut out_of_edge = false;
         if raw_pos.x < -5.0 {
             raw_pos.x = 0.0;
@@ -618,6 +626,9 @@ impl Agent {
                 let rel_pos = enemy_position - self.pos;
                 let enemy_dir = rel_pos.angle_between(Vec2::from_angle(self.rot));
                 self.enemy_dir = Some(enemy_dir);
+                if let Some(enemy_size) = physics.get_object_size(rb) {
+                    self.enemy_size = Some(enemy_size);
+                }
             } else {
                 self.enemy = None;
                 self.enemy_position = None;
@@ -681,10 +692,6 @@ impl Agent {
         }
         self.update_enemy_position(physics);
     }
-
-/*     fn calc_timers(&mut self, _dt: f32) {
-
-    } */
 
     fn calc_energy(&mut self, dt: f32) {
         let settings = get_settings();
@@ -758,6 +765,7 @@ impl Agent {
             enemy: None,
             enemy_position: None,
             enemy_dir: None,
+            enemy_size: None,
             resource: None,
             resource_position: None,
             resource_dir: None,
@@ -770,6 +778,9 @@ impl Agent {
             points: 0.0,
             pain: false,
             run: false,
+            power: self.power,
+            speed: self.speed,
+            shell: self.shell,
         }
     }
 
@@ -787,6 +798,9 @@ impl Agent {
             network: self.network.get_sketch(),
             points: self.points, 
             neuro_map: self.neuro_map.clone(),
+            power: self.power,
+            speed: self.speed,
+            shell: self.shell,
         }
     }
 }
@@ -817,6 +831,9 @@ pub struct AgentSketch {
     pub vision_range: f32,
     pub network: NetworkSketch,
     pub points: f32,
-    pub neuro_map: NeuroMap
+    pub neuro_map: NeuroMap,
+    pub power: i32,
+    pub speed: i32,
+    pub shell: i32,
 }
 

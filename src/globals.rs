@@ -4,10 +4,10 @@ use macroquad::{experimental::collections::storage, prelude::Vec2};
 use serde::{Deserialize, Serialize};
 
 
-pub const SCREEN_WIDTH: f32 = 1900.0;
-pub const SCREEN_HEIGHT: f32 = 1000.0;
-pub const WORLD_W: f32 = 1600.0;
-pub const WORLD_H: f32 = 900.0;
+pub const SCREEN_WIDTH: f32 = 1600.0;
+pub const SCREEN_HEIGHT: f32 = 900.0;
+pub const WORLD_W: f32 = 2400.0;
+pub const WORLD_H: f32 = 1350.0;
 pub const FIX_DT: f32 = 1.0 / 30.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
@@ -69,6 +69,7 @@ pub struct Settings {
     pub repro_points: f32,
     pub repro_time: f32,
     pub new_one_probability: f32,
+    pub grid_size: u32,
 }
 
 impl Default for Settings {
@@ -101,6 +102,7 @@ impl Default for Settings {
             repro_points: 1000.0,
             repro_time: 75.0,
             new_one_probability: 0.01,
+            grid_size: 50,
        }
     }
 }

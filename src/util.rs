@@ -326,3 +326,39 @@ impl SimState {
 pub struct MouseState {
     pub pos: Vec2,
 }
+
+
+pub struct MyIcon {
+    pub small: [u8; 16*16*4],
+    pub medium: [u8; 32*32*4],
+    pub big: [u8; 64*64*4],
+}
+
+impl MyIcon {
+    pub fn color_filled(color: Color) -> Self {
+        let r = (color.r * 255.) as u8;
+        let g = (color.g * 255.) as u8;
+        let b = (color.b * 255.) as u8;
+        let a = (color.a * 255.) as u8;
+        let small = [r, g, b, a].repeat(16*16);
+        let medium = [r, g, b, a].repeat(32*32);
+        let big = [r, g, b, a].repeat(64*64);
+        let mut s: [u8; 16*16*4] = [0; 16*16*4]; 
+        let mut m: [u8; 32*32*4] = [0; 32*32*4]; 
+        let mut l: [u8; 64*64*4] = [0; 64*64*4]; 
+        for i in 0..s.len() {
+            s[i] = small[i];
+        }
+        for i in 0..m.len() {
+            m[i] = medium[i];
+        }
+        for i in 0..l.len() {
+            l[i] = big[i];
+        }
+        Self {
+            small: s,
+            medium: m,
+            big: l,
+        }
+    }
+}
