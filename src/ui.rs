@@ -261,34 +261,36 @@ impl UISystem {
                     }
                 }
             }
-            Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(120.0).show(egui_ctx, |ui| {
-                //ui.horizontal(|horizont| {
-                ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, Color32::BLUE);
-                //ui.style_mut().visuals.widgets.inactive.fg_stroke = Stroke::new(1.0, Color32::LIGHT_BLUE);
-                
+            Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
                 for sim in saved_sims {
-                    ui.vertical_centered(|column| {
-                        if column.button(RichText::new(sim.to_owned()).strong().color(Color32::BLUE)).clicked()  {
-                            signals.load_sim_name = Some(String::from(&sim));
-                            init_global_signals(signals.clone());
-                            self.state.load_sim = false;
-                        }
+                    ui.vertical_centered(|row| {
+                        row.columns(2, |columns| {
+                            columns[0].label(RichText::new(sim.to_owned()).strong().color(Color32::WHITE));
+                            columns[1].horizontal(|col| {
+                                    if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
+                                        signals.load_sim_name = Some(String::from(&sim));
+                                        init_global_signals(signals.clone());
+                                        self.state.load_sim = false;
+                                    }
+                                    col.separator();
+                                    if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
+                                        signals.del_sim_name = Some(String::from(&sim));
+                                        init_global_signals(signals.clone());
+                                        self.state.load_sim = false;
+                                    }
+                            })
+                        })
                     });
                     ui.add_space(4.0);
                 }
                 ui.add_space(16.0);
-                ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::YELLOW);
-                ui.style_mut().visuals.widgets.inactive.fg_stroke = Stroke::new(2.0, Color32::YELLOW);
                 
                 ui.vertical_centered(|ctn| {
-                    if ctn.button(RichText::new("CLOSE")).clicked() {
-                        //close = true;
+                    if ctn.button(RichText::new("CLOSE").strong().color(Color32::YELLOW)).clicked() {
                         self.state.load_sim = false;
                     }
                 })
             });
-            //});
-            //if close { self.state.load_sim = false; }
         }
     }
 
@@ -454,6 +456,7 @@ impl UISystem {
             let lifetime = agent.lifetime.round();
             let generation = agent.generation;
             let childs = agent.childs;
+            let kills = agent.kills;
             let attack = agent.attacking;
             let points = agent.points;
             let is_resource: bool = agent.resource.is_some();
@@ -490,6 +493,8 @@ impl UISystem {
                 //ui.separator();
                 ui.horizontal(|row| {
                     row.label(format!("CHILD: [{}]", childs));
+                    row.separator();
+                    row.label(format!("KILLS: [{}]", kills));
                     row.separator();
                     row.label(format!("ORIENT: [{}]", ((rot * 10.0).round()) / 10.0));
                     row.separator();

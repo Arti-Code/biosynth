@@ -193,7 +193,7 @@ impl Simulation {
         let settings = get_settings();
         let dt = get_frame_time();
         //let temp_units = self.units.agents.
-        let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
+        let mut hits: HashMap<RigidBodyHandle, (f32, RigidBodyHandle)> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
             if !agent.attacking { continue; }
             let attacks = agent.attack();
@@ -204,35 +204,44 @@ impl Simulation {
                     if power1 > power2 {
                         let mut dmg = (power1 - power2) * dt * settings.damage;
                         if hits.contains_key(id) {
-                            let old_dmg = *hits.get_mut(id).unwrap();
+                            let (old_dmg, _) = *hits.get_mut(id).unwrap();
                             dmg = dmg + old_dmg;
-                            hits.insert(*id, dmg);
+                            hits.insert(*id, (dmg, *tg));
                         } else {
-                            hits.insert(*id, dmg);
+                            hits.insert(*id, (dmg, *tg));
                         }
                         if hits.contains_key(tg) {
-                            let old_dmg = *hits.get_mut(tg).unwrap();
+                            let (old_dmg, _) = *hits.get_mut(tg).unwrap();
                             let hit = -dmg + old_dmg;
-                            hits.insert(*tg, hit);
+                            hits.insert(*tg, (hit, *id));
                         } else {
                             let hit = -dmg;
-                            hits.insert(*tg, hit);
+                            hits.insert(*tg, (hit, *id));
                         }
                     }
                 }
             }
         }
-        for (id, dmg) in hits.iter() {
-            let mut agent = self.agents.agents.get_mut(id).unwrap();
+        let mut killers: Vec<RigidBodyHandle> = vec![];
+        for (id1, (dmg, id2)) in hits.iter() {
+            let mut agent1 = self.agents.agents.get_mut(id1).unwrap();
+            //let mut agent2 = self.agents.agents.get(id2).unwrap();
             let mut damage = *dmg;
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
-                agent.add_energy(hp);
-                agent.points += hp*0.1;
+                agent1.add_energy(hp);
+                agent1.points += hp*0.1;
             } else {
-                agent.add_energy(damage);
-                agent.pain = true;
+                agent1.add_energy(damage);
+                agent1.pain = true;
+                if agent1.is_death() { killers.push(*id2); }
             }
+        }
+
+        for killer_rbh in killers.iter() {
+            let mut killer = self.agents.agents.get_mut(killer_rbh).unwrap();
+            killer.points + 350.0;
+            killer.kills += 1;
         }
     }
 
@@ -346,6 +355,7 @@ impl Simulation {
 
     pub fn signals_check(&mut self) {
         let mut sign = get_signals();
+        let mut sign2 = sign.clone();
         if self.signals.spawn_agent {
             self.agents.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
@@ -382,6 +392,17 @@ impl Simulation {
                 },
             }
         }
+        if sign2.del_sim_name.is_some() {
+            match sign2.del_sim_name {
+                None => {},
+                Some(name) => {
+                    let sim_name = name.to_owned();
+                    sign2.del_sim_name = None;
+                    init_global_signals(sign2);
+                    self.delete_sim(&sim_name);
+                },
+            }
+        }
     }
 
     fn save_sim(&self) {
@@ -413,6 +434,17 @@ impl Simulation {
         }
     }
 
+    fn delete_sim(&self, sim_name: &str) {
+        let f = format!("saves/simulations/{}", sim_name);
+        let path = Path::new(&f);
+        match fs::remove_dir_all(path) {
+            Err(_) => {
+                println!("error during removing saved simulation");
+            },
+            Ok(_) => {},
+        }
+    }
+
     fn load_sim(&mut self, sim_name: &str) {
         let f = format!("saves/simulations/{}/last.json", sim_name);
         let path = Path::new(&f);
@@ -421,7 +453,7 @@ impl Simulation {
             Ok(save) => {
                 match serde_json::from_str::<SimulationSave>(&save) {
                     Err(_) => {
-                        println!("error during deserialization of saved sim...");
+                        println!("error during deserialization of saved sim... [{}]", &f);
                     },
                     Ok(sim_state) => {
                         self.clear_sim();
@@ -444,22 +476,6 @@ impl Simulation {
             }
         }
     }
-
-/*     fn clean_sim(&mut self) {
-        for (_, agent) in self.agents.get_iter_mut() {
-            self.physics.remove_physics_object(agent.physics_handle);
-        }
-        self.agents.agents.clear();
-
-        for (_, source) in self.resources.get_iter_mut() {
-            self.physics.remove_physics_object(source.physics_handle);
-        }
-        self.resources.resources.clear();
-
-        self.ranking.clear();
-
-        //self.physics.rigid_bodies.
-    } */
 
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
         match self.agents.get(handle) {

@@ -134,6 +134,7 @@ pub struct Agent {
     //pub neuro_table: NeuroTable,
     pub neuro_map: NeuroMap,
     pub childs: usize,
+    pub kills: usize,
     pub specie: String,
     pub attacking: bool,
     pub points: f32,
@@ -196,6 +197,7 @@ impl Agent {
             //neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             neuro_map,
             childs: 0,
+            kills: 0,
             specie: create_name(4),
             attacking: false,
             points: 0.0,
@@ -281,6 +283,7 @@ impl Agent {
             physics_handle: rbh,
             neuro_map: sketch.neuro_map.clone(),
             childs: 0,
+            kills: 0,
             specie: sketch.specie.to_owned(),
             attacking: false,
             points: 0.0,
@@ -317,8 +320,9 @@ impl Agent {
         let rv = Vec2::from_angle(self.rot+PI);
         let x1 = x0+rv.x*self.size*0.8;
         let y1 = y0+rv.y*self.size*0.8;
-        let shell = self.size + (self.shell as f32)*0.2;
+        let shell = self.size + (self.shell as f32)*0.4;
         draw_circle(x0, y0, shell, WHITE);
+        draw_circle(x1, y1, shell*0.6, WHITE);
         draw_circle(x1, y1, self.size*0.6, self.color);
         draw_circle(x0, y0, self.size, self.color);
         if self.run {
@@ -712,8 +716,21 @@ impl Agent {
             self.eng -= loss;
         } else {
             self.eng = 0.0;
+            //self.alife = false;
+        }
+        self.check_alife();
+    }
+
+    fn check_alife(&mut self) {
+        if self.eng > 0.0 {
+            self.alife = true;
+        } else {
             self.alife = false;
         }
+    }
+
+    pub fn is_death(&self) -> bool {
+        return self.alife;
     }
 
     pub fn add_energy(&mut self, e: f32) {
@@ -721,6 +738,7 @@ impl Agent {
         if self.eng > self.max_eng {
             self.eng = self.max_eng;
         }
+        self.check_alife();
     }
 
     pub fn replicate(&self, physics: &mut PhysicsWorld) -> Self {
@@ -773,6 +791,7 @@ impl Agent {
             physics_handle: rbh,
             neuro_map,
             childs: 0,
+            kills: 0,
             specie: self.specie.to_owned(),
             attacking: false,
             points: 0.0,

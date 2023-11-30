@@ -122,6 +122,7 @@ pub struct Signals {
     pub save_sim: bool,
     pub load_sim: bool,
     pub load_sim_name: Option<String>,
+    pub del_sim_name: Option<String>,
 }
 
 impl Signals {
@@ -140,6 +141,7 @@ impl Signals {
             save_selected: false,
             save_sim: false,
             load_sim: false,
+            del_sim_name: None,
             load_sim_name: None,
         }
     }
