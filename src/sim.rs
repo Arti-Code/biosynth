@@ -25,7 +25,7 @@ pub struct Simulation {
     pub simulation_name: String,
     pub world_size: Vec2,
     pub font: Font,
-    pub physics: PhysicsWorld,
+    pub physics: Physics,
     pub camera: Camera2D,
     pub running: bool,
     pub sim_time: f64,
@@ -52,7 +52,7 @@ impl Simulation {
                 y: f32::NAN,
             },
             font,
-            physics: PhysicsWorld::new(),
+            physics: Physics::new(),
             camera: create_camera(),
             running: false,
             sim_time: 0.0,
@@ -77,7 +77,7 @@ impl Simulation {
         };
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
-        self.physics = PhysicsWorld::new();
+        self.physics = Physics::new();
         self.agents.agents.clear();
         self.resources.resources.clear();
         self.sim_time = 0.0;
@@ -94,7 +94,7 @@ impl Simulation {
     fn clear_sim(&mut self) {
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
-        self.physics = PhysicsWorld::new();
+        self.physics = Physics::new();
         self.agents = AgentBox::new();
         self.resources = ResBox::new();
         self.ranking = vec![];
@@ -119,7 +119,7 @@ impl Simulation {
             if !agent.update(&mut self.physics) {
                 let sketch = agent.get_sketch();
                 self.ranking.push(sketch);
-                self.physics.remove_physics_object(agent.physics_handle);
+                self.physics.remove_object(agent.physics_handle);
             }
         }
         self.agents.agents.retain(|_, agent| agent.alife == true);
@@ -153,7 +153,7 @@ impl Simulation {
         for (_, res) in self.resources.get_iter_mut() {
             res.update(&mut self.physics);
             if !res.alife {
-                self.physics.remove_physics_object(res.physics_handle);
+                self.physics.remove_object(res.physics_handle);
             }
         }
         self.resources.resources.retain(|_, res| res.alife == true);
@@ -177,7 +177,7 @@ impl Simulation {
         self.update_agents();
         self.update_rank();
         self.agents.populate(&mut self.physics);
-        self.physics.step_physics();
+        self.physics.step();
     }
 
     fn attacks(&mut self) {
@@ -374,7 +374,7 @@ impl Simulation {
                 Some(name) => {
                     let sim_name = name.to_owned();
                     sign.load_sim_name = None;
-                    init_global_signals(sign);
+                    set_global_signals(sign);
                     self.load_sim(&sim_name);
                 },
             }
@@ -385,7 +385,7 @@ impl Simulation {
                 Some(name) => {
                     let sim_name = name.to_owned();
                     sign2.del_sim_name = None;
-                    init_global_signals(sign2);
+                    set_global_signals(sign2);
                     self.delete_sim(&sim_name);
                 },
             }
@@ -457,7 +457,7 @@ impl Simulation {
                         let mut settings = sim_state.settings.to_owned();
                         settings.world_h = sim_state.world_size.y as i32;
                         settings.world_w = sim_state.world_size.x as i32;
-                        init_global_settings(settings);
+                        set_global_settings(settings);
                     },
                 }
             }
@@ -515,11 +515,11 @@ impl Simulation {
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
         self.sim_state.sources_num = self.resources.resources.len() as i32;
-        self.sim_state.physics_num = self.physics.get_physics_obj_num() as i32;
-        (self.sim_state.rigid_num, self.sim_state.colliders_num) = self.physics.get_numbers();
+        self.sim_state.physics_num = self.physics.get_bodies_num() as i32;
+        (self.sim_state.rigid_num, self.sim_state.colliders_num) = self.physics.get_bodies_and_colliders_num();
         let mut kin_eng = 0.0;
         let mut total_mass = 0.0;
-        for (_, rb) in self.physics.rigid_bodies.iter() {
+        for (_, rb) in self.physics.get_objects_iter() {
             kin_eng += rb.kinetic_energy();
             total_mass += rb.mass();
         }

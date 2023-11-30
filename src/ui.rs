@@ -184,7 +184,7 @@ impl UISystem {
                         self.state.set_agent = !self.state.set_agent;
                     }
                     if ui.button(RichText::new("Sim Settings").strong().color(Color32::YELLOW)).clicked() {
-                        self.state.enviroment = !self.state.enviroment;
+                        self.state.environment = !self.state.environment;
                     }
                 });
 
@@ -261,13 +261,13 @@ impl UISystem {
                             columns[1].horizontal(|col| {
                                     if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
                                         signals.load_sim_name = Some(String::from(&sim));
-                                        init_global_signals(signals.clone());
+                                        set_global_signals(signals.clone());
                                         self.state.load_sim = false;
                                     }
                                     col.separator();
                                     if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
                                         signals.del_sim_name = Some(String::from(&sim));
-                                        init_global_signals(signals.clone());
+                                        set_global_signals(signals.clone());
                                         self.state.load_sim = false;
                                     }
                             })
@@ -345,7 +345,7 @@ impl UISystem {
                 "REALITY", "BIOME", "LABOLATORY", "ROCK", "ISLAND", "NATURE", "ECOSYSTEM"
             ];
 
-            let mut settings = mod_settings();
+            let mut settings = get_settings();
             let w = 500.0; let h = 220.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h]).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
@@ -405,11 +405,11 @@ impl UISystem {
                     row.columns(2, |columns| {
                         if columns[0].add(Slider::new(&mut w, 400..=4800)).changed() {
                             settings.world_w = w;
-                            init_global_settings(settings.clone());
+                            set_global_settings(settings.clone());
                         }
                         if columns[1].add(Slider::new(&mut h, 300..=3600)).changed() {
                             settings.world_h = h;
-                            init_global_settings(settings.clone());
+                            set_global_settings(settings.clone());
                         }
                     });
                 });
@@ -696,15 +696,15 @@ impl UISystem {
                 //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.set_agent = false;
-                    init_global_settings(settings.clone());
+                    set_global_settings(settings.clone());
                 }
             });
         });
-        init_global_settings(settings.clone());
+        set_global_settings(settings.clone());
     }
 
     fn build_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
-        if !self.state.enviroment {
+        if !self.state.environment {
             return;
         }
         let mut settings = get_settings();
@@ -855,12 +855,12 @@ impl UISystem {
             ui.vertical_centered(|closer| {
                 //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
-                    self.state.enviroment = false;
-                    init_global_settings(settings.clone());
+                    self.state.environment = false;
+                    set_global_settings(settings.clone());
                 }
             });
         });
-        init_global_settings(settings.clone());
+        set_global_settings(settings.clone());
     }
 
     fn build_ranking_window(&mut self, egui_ctx: &Context, ranking: &Vec<AgentSketch>) {

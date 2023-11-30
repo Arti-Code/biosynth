@@ -14,8 +14,8 @@ use rapier2d::prelude::RigidBodyHandle;
 pub trait PhysicsObject {
     fn new() -> Self;
     fn draw(&self, selected: bool, font: &Font);
-    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool;
-    fn update_physics(&mut self, physics: &mut PhysicsWorld);
+    fn update(&mut self, dt: f32, physics: &mut Physics) -> bool;
+    fn update_physics(&mut self, physics: &mut Physics);
     fn link_physics_handle(&mut self, handle: RigidBodyHandle);
 }
 
@@ -30,14 +30,14 @@ impl AgentBox {
         }
     }
 
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld) {
+    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut Physics) {
         for _ in 0..agents_num {
             let agent = Agent::new(physics_world);
             _ = self.add_agent(agent);
         }
     }
 
-    pub fn populate(&mut self, physics: &mut PhysicsWorld) {
+    pub fn populate(&mut self, physics: &mut Physics) {
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
@@ -103,7 +103,7 @@ impl ResBox {
         }
     }
 
-    pub fn add_many_resources(&mut self, resources_num: usize, physics_world: &mut PhysicsWorld) {
+    pub fn add_many_resources(&mut self, resources_num: usize, physics_world: &mut Physics) {
         for _ in 0..resources_num {
             let resource = Resource::new(physics_world);
             _ = self.add_resource(resource);

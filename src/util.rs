@@ -19,7 +19,7 @@ pub fn random_unit_unsigned() -> f32 {
     return rand::gen_range(0.0, 1.0);
 }
 
-#[doc = r"Random pocition vector2d in range between 0.0..max_value."]
+#[doc = r"Random position vector2d in range between 0.0..max_value."]
 pub fn random_position(x_max: f32, y_max: f32) -> Vec2 {
     let x = rand::gen_range(0.0, x_max);
     let y = rand::gen_range(0.0, y_max);
@@ -245,7 +245,7 @@ pub struct UIState {
     pub docs: bool,
     pub net: bool,
     pub about: bool,
-    pub enviroment: bool,
+    pub environment: bool,
     pub neuro_lab: bool,
     pub io: bool,
     pub ranking: bool,
@@ -268,7 +268,7 @@ impl UIState {
             docs: false,
             net: false,
             about: false,
-            enviroment: false,
+            environment: false,
             neuro_lab: false,
             io: false,
             ranking: false,
@@ -285,7 +285,7 @@ pub struct SimState {
     pub agents_num: i32,
     pub sources_num: i32,
     pub plants_num: i32,
-    pub lifes_num: i32,
+    //pub agents_num: i32,
     pub physics_num: i32,
     pub rigid_num: usize,
     pub colliders_num: usize,
@@ -307,7 +307,7 @@ impl SimState {
             agents_num: 0,
             sources_num: 0,
             plants_num: 0,
-            lifes_num: 0,
+            //agents_num: 0,
             physics_num: 0,
             total_mass: 0.0,
             total_eng: 0.0,

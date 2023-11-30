@@ -8,11 +8,10 @@ pub const SCREEN_WIDTH: f32 = 1600.0;
 pub const SCREEN_HEIGHT: f32 = 900.0;
 pub const WORLD_W: f32 = 2400.0;
 pub const WORLD_H: f32 = 1350.0;
-pub const FIX_DT: f32 = 1.0 / 30.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
-pub fn init_global_settings(settings: Settings) {
+pub fn set_global_settings(settings: Settings) {
     storage::store(settings);
 }
 
@@ -20,12 +19,9 @@ pub fn get_settings() -> Settings {
     return storage::get::<Settings>().clone();
 }
 
-pub fn mod_settings() -> Settings {
-    return storage::get_mut::<Settings>().clone();
-}
 
 
-pub fn init_global_signals(signals: Signals) {
+pub fn set_global_signals(signals: Signals) {
     storage::store(signals);
 }
 
@@ -34,10 +30,6 @@ pub fn get_signals() -> Signals {
     return signals.clone();
 }
 
-pub fn mod_signals() -> Signals {
-    let signals = storage::get_mut::<Signals>();
-    return signals.clone();
-}
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -73,6 +65,7 @@ pub struct Settings {
 }
 
 impl Default for Settings {
+
     fn default() -> Self {
         Self {
             world_w: WORLD_W as i32,
@@ -105,6 +98,7 @@ impl Default for Settings {
             grid_size: 50,
        }
     }
+
 }
 
 #[derive(Clone)]
@@ -145,4 +139,5 @@ impl Signals {
             load_sim_name: None,
         }
     }
+
 }

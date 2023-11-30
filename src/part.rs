@@ -8,7 +8,7 @@ use crate::physics::*;
 trait Ability {
 
     fn new(offset: Vec2) -> Self;
-    fn update(&mut self, physics: &mut PhysicsWorld);
+    fn update(&mut self, physics: &mut Physics);
     fn draw(&self, position: Vec2);
     fn get_input_num(&self) -> usize;
     fn set_input_nodes(&mut self, node_keys: Vec<u64>);
@@ -40,7 +40,7 @@ impl Ability for Movent {
         todo!()
     }
 
-    fn update(&mut self, physics: &mut PhysicsWorld) {
+    fn update(&mut self, physics: &mut Physics) {
         todo!()
     }
 
@@ -93,7 +93,7 @@ pub struct Part {
 }
 
 impl Part {
-    pub fn new_circle(position: Vec2, radius: f32, rigid_handle: RigidBodyHandle, physics_world: &mut PhysicsWorld, properties: PhysicsProperities) -> Self {
+    pub fn new_circle(position: Vec2, radius: f32, rigid_handle: RigidBodyHandle, physics_world: &mut Physics, properties: PhysicsProperities) -> Self {
         let shape = SharedShape::ball(radius);
         let collider_handle = physics_world.add_ball_collider(rigid_handle, radius, properties.density, properties.restitution, properties.friction);
         Self {

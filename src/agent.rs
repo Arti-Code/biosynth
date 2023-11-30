@@ -121,7 +121,7 @@ pub struct Agent {
     pub alife: bool,
     pub lifetime: f32,
     pub generation: u32,
-    pub contacts: Vec<(RigidBodyHandle, u64, f32)>,
+    pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_position: Option<Vec2>,
@@ -149,13 +149,13 @@ pub struct Agent {
 
 impl Agent {
     
-    pub fn new(physics: &mut PhysicsWorld) -> Self {
+    pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
+        let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "DNG", "REL", "RER", "RED", "PAI"];
@@ -209,7 +209,7 @@ impl Agent {
         }
     }
 
-    pub fn from_sketch(sketch: AgentSketch, physics: &mut PhysicsWorld) -> Agent {
+    pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
         let key = gen_range(u64::MIN, u64::MAX);
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
@@ -252,7 +252,7 @@ impl Agent {
         let gen = sketch.generation + 1;
         let mut network = sketch.network.from_sketch();
         network.mutate(settings.mutations);
-        let rbh = physics.add_dynamic(key, &pos, 0.0, shape.clone(), PhysicsProperities::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
+        let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent {
             key,
             pos,
@@ -340,7 +340,7 @@ impl Agent {
         }
     }
 
-    pub fn update(&mut self, physics: &mut PhysicsWorld) -> bool {
+    pub fn update(&mut self, physics: &mut Physics) -> bool {
         let dt = get_frame_time();
         self.lifetime += dt;
         if self.analize_timer.update(dt) {
@@ -358,7 +358,7 @@ impl Agent {
 
     pub fn eat(&self) -> Vec<RigidBodyHandle> {
         let mut hits: Vec<RigidBodyHandle> = vec![];
-        for (rbh, _, ang) in self.contacts.to_vec() {
+        for (rbh, ang) in self.contacts.to_vec() {
             if ang <= PI/4.0 && ang >= -PI/4.0 {
                 hits.push(rbh);
             }
@@ -370,7 +370,7 @@ impl Agent {
         //let dt = get_frame_time();
         let mut hits: Vec<RigidBodyHandle> = vec![];
         if !self.attacking { return hits; }
-        for (rbh, _, ang) in self.contacts.to_vec() {
+        for (rbh, ang) in self.contacts.to_vec() {
             if ang <= PI/4.0 && ang >= -PI/4.0 {
                 hits.push(rbh);
             }
@@ -574,14 +574,14 @@ impl Agent {
         draw_rectangle(x0, y0, w, 3.0, color1);
     }
 
-    fn update_physics(&mut self, physics: &mut PhysicsWorld) {
+    fn update_physics(&mut self, physics: &mut Physics) {
         let settings = get_settings();
         self.update_enemy_position(physics);
-        let physics_data = physics.get_physics_data(self.physics_handle);
+        let physics_data = physics.get_object_state(self.physics_handle);
         self.pos = physics_data.position;
         self.rot = physics_data.rotation;
         self.mass = physics_data.mass;
-        match physics.rigid_bodies.get_mut(self.physics_handle) {
+        match physics.get_object_mut(self.physics_handle) {
             Some(body) => {
                 let dt = get_frame_time();
                 let dir = Vec2::from_angle(self.rot);
@@ -623,7 +623,7 @@ impl Agent {
         }
     }
 
-    fn update_enemy_position(&mut self, physics: &PhysicsWorld) {
+    fn update_enemy_position(&mut self, physics: &Physics) {
         if let Some(rb) = self.enemy {
             if let Some(enemy_position) = physics.get_object_position(rb) {
                 self.enemy_position = Some(enemy_position);
@@ -659,7 +659,7 @@ impl Agent {
         }
     }
 
-    fn update_contacts(&mut self, physics: &mut PhysicsWorld) {
+    fn update_contacts(&mut self, physics: &mut Physics) {
         self.contacts.clear();
         let contacts = physics.get_contacts_set(self.physics_handle, self.size);
         for contact in contacts {
@@ -667,26 +667,20 @@ impl Agent {
                 let mut rel_pos = pos2 - self.pos;
                 rel_pos = rel_pos.normalize_or_zero();
                 let target_angle = rel_pos.angle_between(Vec2::from_angle(self.rot));
-                match physics.get_key_for_body(&contact) {
-                    Some(key) => {
-                        self.contacts.push((contact, key, target_angle));
-                    },
-                    None => {},
-                }
+                self.contacts.push((contact, target_angle));
             }
-
         }
     }
 
-    fn watch(&mut self, physics: &PhysicsWorld) {
-        if let Some(tg) = physics.get_closesd_agent(self.physics_handle, self.vision_range) {
+    fn watch(&mut self, physics: &Physics) {
+        if let Some(tg) = physics.get_closest_agent(self.physics_handle, self.vision_range) {
             self.enemy = Some(tg);
         } else {
             self.enemy = None;
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(tg) = physics.get_closesd_resource(self.physics_handle, self.vision_range) {
+        if let Some(tg) = physics.get_closest_resource(self.physics_handle, self.vision_range) {
             self.resource = Some(tg);
             //self.update_enemy_position(physics);
         } else {
@@ -741,7 +735,7 @@ impl Agent {
         self.check_alife();
     }
 
-    pub fn replicate(&self, physics: &mut PhysicsWorld) -> Self {
+    pub fn replicate(&self, physics: &mut Physics) -> Self {
         let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let mut size = self.size;
@@ -754,7 +748,7 @@ impl Agent {
         let rot = random_rotation();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
-        let rbh = physics.add_dynamic(key, &pos, rot, shape.clone(), PhysicsProperities::default(), interactions);
+        let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), interactions);
         let network = self.network.replicate();
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();

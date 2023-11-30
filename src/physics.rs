@@ -3,49 +3,96 @@
 use crate::globals::get_settings;
 use crate::util::*;
 use macroquad::prelude::*;
-use rapier2d::na::Isometry2;
-use rapier2d::na::{Point2, Vector2};
+use rapier2d::na::*;
 use rapier2d::prelude::*;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::f32::consts::PI;
-
-pub struct PhysicsProperities {
-    pub friction: f32,
-    pub restitution: f32,
-    pub density: f32,
-    pub linear_damping: f32,
-    pub angular_damping: f32,
-}
-
-impl Default for PhysicsProperities {
+use std::collections::hash_set::{Iter};
+use std::collections::{HashMap, HashSet};
+use std::io;
+//use core::iter::traits::{Iterator, IteratorMut};
     
-    fn default() -> Self {
-        Self { friction: 0.5, restitution: 0.5, density: 0.5, linear_damping: 0.1, angular_damping: 0.9 }
-    }
+
+//use std::result::IterMut;
+
+
+pub struct Physics {
+    core: PhysicsCore,
 }
 
-impl PhysicsProperities {
+impl Physics {
     
-    pub fn new(friction: f32, restitution: f32, density: f32, linear_damping: f32, angular_damping: f32) -> Self {
-        Self { friction, restitution, density, linear_damping, angular_damping }
+    pub fn new() -> Physics {
+        Self { core: PhysicsCore::new(), }
     }
 
-    pub fn bounce() -> Self {
-        Self { friction: 0.0, restitution: 1.0, density: 1.0, linear_damping: 0.1, angular_damping: 0.1 }
+    pub fn step(&mut self) {
+        self.core.step_physics();
     }
 
-    pub fn high_inert() -> Self {
-        Self { friction: 2.0, restitution: 0.0, density: 2.0, linear_damping: 2.0, angular_damping: 0.3 }
+    pub fn remove_object(&mut self, rbh: RigidBodyHandle) {
+        self.core.remove_physics_object(rbh);
+    } 
+
+    pub fn get_bodies_num(&self) -> usize {
+        return self.core.get_physics_obj_num();
     }
 
-    pub fn free() -> Self {
-        Self { friction: 0.0, restitution: 1.0, density: 0.1, linear_damping: 0.01, angular_damping: 0.01 }
+    pub fn get_bodies_and_colliders_num(&self) -> (usize, usize) {
+        return self.core.get_numbers();
     }
+
+    pub fn add_dynamic_object(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups) -> RigidBodyHandle {
+        self.core.add_dynamic(position, rotation, shape, material, groups)
+    }
+
+    pub fn add_collider(&mut self, rbh: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups) -> ColliderHandle {
+        return self.core.add_collider(rbh, rel_position, rotation, shape, material, groups);
+    }
+
+    pub fn get_object_state(&self, rbh: RigidBodyHandle) -> PhysicState {
+        return self.core.get_physics_data(rbh);
+    }
+
+    pub fn get_object_position(&self, rbh: RigidBodyHandle) -> Option<Vec2> {
+        return self.core.get_object_position(rbh);
+    }
+
+    pub fn get_object_size(&self, rbh: RigidBodyHandle) -> Option<f32> {
+        return self.core.get_object_size(rbh);
+    }
+
+    pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
+        return self.core.get_closest_agent(agent_body_handle, detection_range);
+    }
+
+    pub fn get_closest_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
+        return self.core.get_closest_resource(agent_body_handle, detection_range);
+    }
+
+    pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        return self.core.get_contacts_set(agent_body_handle, radius);
+    }
+
+    pub fn get_object(&mut self, rbh: RigidBodyHandle) -> Option<&RigidBody> {
+        return self.core.rigid_bodies.get(rbh);
+    }
+
+    pub fn get_object_mut(&mut self, rbh: RigidBodyHandle) -> Option<&mut RigidBody> {
+        return self.core.rigid_bodies.get_mut(rbh);
+    }
+
+    pub fn get_objects_iter(&self) -> impl Iterator<Item = (RigidBodyHandle, &RigidBody)> {
+        return self.core.rigid_bodies.iter();
+    }
+
+    pub fn get_objects_iter_mut(&mut self) -> impl Iterator<Item = (RigidBodyHandle, &mut RigidBody)> {
+        return self.core.rigid_bodies.iter_mut();
+    }
+
 }
 
 
-pub struct PhysicsWorld {
+// struct PhysicsCore{...}
+pub struct PhysicsCore {
     pub attract_num: u32,
     pub rigid_bodies: RigidBodySet,
     pub colliders: ColliderSet,
@@ -64,7 +111,7 @@ pub struct PhysicsWorld {
     event_handler: (),
 }
 
-impl PhysicsWorld {
+impl PhysicsCore {
 
     pub fn new() -> Self {
         Self {
@@ -109,7 +156,7 @@ impl PhysicsWorld {
 
     pub fn remove_physics_object(&mut self, body_handle: RigidBodyHandle) {
         _ = self.rigid_bodies.remove(body_handle, &mut self.island_manager, &mut self.colliders, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
-        self.remove_body_key_relation(&body_handle);
+        //self.remove_body_key_relation(&body_handle);
     }
 
     pub fn get_physics_obj_num(&self) -> usize {
@@ -137,24 +184,18 @@ impl PhysicsWorld {
         }
     }
 
-/*     fn iso_to_vec2_rot(&self, isometry: &Isometry<Real>) -> (Vec2, f32) {
-        let pos = Vec2::new(isometry.translation.x, isometry.translation.y);
-        let rot = isometry.rotation.angle() + PI;
-        return (pos, rot);
-    } */
-
-    fn add_dynamic_rigidbody(&mut self, key: u64, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
+    fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
         let pos = Isometry2::new(Vector2::new(position.x, position.y), rotation);
         let dynamic_body = RigidBodyBuilder::dynamic().position(pos)
             .linear_damping(linear_damping).angular_damping(angular_damping).build();
         return self.rigid_bodies.insert(dynamic_body);
     }
 
-    pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities, groups: InteractionGroups) -> ColliderHandle {
+    pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups) -> ColliderHandle {
         let iso = make_isometry(rel_position.x, rel_position.y, rotation);
         let collider = match shape.shape_type() {
             ShapeType::Ball => {
-                let radius = shape.0.as_ball().unwrap().radius;
+                //let radius = shape.0.as_ball().unwrap().radius;
                 ColliderBuilder::new(shape).position(iso).density(physics_props.density).friction(physics_props.friction).restitution(physics_props.restitution)
                     .active_collision_types(ActiveCollisionTypes::DYNAMIC_DYNAMIC).active_events(ActiveEvents::COLLISION_EVENTS).collision_groups(groups)
                     .build()
@@ -170,22 +211,20 @@ impl PhysicsWorld {
         return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
     }
 
-    pub fn add_dynamic(&mut self, key: u64, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsProperities, groups: InteractionGroups) -> RigidBodyHandle {
-        let rbh = self.add_dynamic_rigidbody(key, position, rotation, physics_props.linear_damping, physics_props.angular_damping);
-        self.assign_body_with_key(rbh, key);
-        let ch = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props, groups);
-        //let col = self.colliders.get_mut(ch).unwrap();
-        //col.set_collision_groups(groups);
+    pub fn add_dynamic(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups) -> RigidBodyHandle {
+        let rbh = self.add_dynamic_rigidbody(position, rotation, physics_props.linear_damping, physics_props.angular_damping);
+        //self.assign_body_with_key(rbh, key);
+        let _ch = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props, groups);
         return rbh;
     }
 
-    pub fn get_physics_data(&self, handle: RigidBodyHandle) -> PhysicsData {
+    pub fn get_physics_data(&self, handle: RigidBodyHandle) -> PhysicState {
         let settings = get_settings();
         if let Some(rb) = self.rigid_bodies.get(handle) {
             let iso = rb.position();
             let (pos, rot) = iso_to_vec2_rot(iso);
             let force = Vec2::new(rb.user_force().data.0[0][0], rb.user_force().data.0[0][1]);
-            let data = PhysicsData {
+            let data = PhysicState {
                 position: pos,
                 rotation: rot,
                 mass: rb.mass(),
@@ -194,7 +233,7 @@ impl PhysicsWorld {
             };
             return data;
         } else {
-            return PhysicsData {
+            return PhysicState {
                 position: Vec2::new((settings.world_w / 2) as f32, (settings.world_h / 2) as f32 ),
                 rotation: 0.0,
                 mass: 0.0,
@@ -228,8 +267,8 @@ impl PhysicsWorld {
         match rb {
             Some(body) => {
                 match body.colliders().first() {
-                    Some(colh) => {
-                        match self.colliders.get(*colh) {
+                    Some(collider_handle) => {
+                        match self.colliders.get(*collider_handle) {
                             Some(collider) => {
                                 return Some(collider.shape().as_ball().unwrap().radius);
                             },
@@ -274,7 +313,7 @@ impl PhysicsWorld {
         return contacts;
     }
 
-    pub fn get_closesd_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
+    pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -307,7 +346,7 @@ impl PhysicsWorld {
         }
     }
 
-    pub fn get_closesd_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
+    pub fn get_closest_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -347,26 +386,56 @@ impl PhysicsWorld {
         }
     } */
 
-    fn assign_body_with_key(&mut self, body_handle: RigidBodyHandle, key: u64) {
+    /* fn assign_body_with_key(&mut self, body_handle: RigidBodyHandle, key: u64) {
         self.bodies_keys.insert(body_handle, key);
-    }
+    } */
 
-    fn remove_body_key_relation(&mut self, body_handle: &RigidBodyHandle) {
+    /* fn remove_body_key_relation(&mut self, body_handle: &RigidBodyHandle) {
         self.bodies_keys.remove(body_handle);
-    }
+    } */
 
-    pub fn get_key_for_body(&self, body_handle: &RigidBodyHandle) -> Option<u64> {
+    /* pub fn get_key_for_body(&self, body_handle: &RigidBodyHandle) -> Option<u64> {
         match self.bodies_keys.get(body_handle) {
             Some(key) => Some(*key),
             None => None,
         }
-    }
+    } */
 }
 
-pub struct PhysicsData {
+
+pub struct PhysicState {
     pub position: Vec2,
     pub rotation: f32,
     pub mass: f32,
     pub kin_eng: Option<f32>,
     pub force: Option<Vec2>,
 }
+
+
+pub struct PhysicsMaterial {
+    pub friction: f32,
+    pub restitution: f32,
+    pub density: f32,
+    pub linear_damping: f32,
+    pub angular_damping: f32,
+}
+
+impl Default for PhysicsMaterial {
+    
+    fn default() -> Self {
+        Self { friction: 0.5, restitution: 0.5, density: 0.5, linear_damping: 0.1, angular_damping: 0.9 }
+    }
+}
+
+impl PhysicsMaterial {
+    
+    pub fn new(friction: f32, restitution: f32, density: f32, linear_damping: f32, angular_damping: f32) -> Self {
+        Self { friction, restitution, density, linear_damping, angular_damping }
+    }
+
+    pub fn high_inert() -> Self {
+        Self { friction: 2.0, restitution: 0.0, density: 2.0, linear_damping: 2.0, angular_damping: 0.3 }
+    }
+
+}
+
