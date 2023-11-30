@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use std::fs;
-use std::fs::*;
 use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
@@ -11,9 +10,7 @@ use egui_macroquad::egui::Vec2 as UIVec2;
 use egui_macroquad::egui::FontFamily::Proportional;
 use egui_macroquad::egui::FontId;
 use egui_macroquad::egui::TextStyle::*;
-use egui_macroquad::egui::Label;
 use macroquad::prelude::*;
-use crate::sim;
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
@@ -38,7 +35,6 @@ impl UISystem {
             logo: None,
             big_logo: None,
             title: None,
-            //egui_extras::RetainedImage::from_color_image("mylogo.png", ColorImage::new([64, 256], Color32::WHITE)).
         }
     }
 
@@ -162,7 +158,7 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
                 
-                menu::menu_button(ui, RichText::new("TOOLS").strong(), |ui| {
+                menu::menu_button(ui, RichText::new("TOOLS").strong(), |_ui| {
                 });
 
                 ui.add_space(10.0);
@@ -210,10 +206,7 @@ impl UISystem {
 
     fn build_monit_window(&self, egui_ctx: &Context, sim_state: &SimState) {
         if self.state.performance {
-            let fps = sim_state.fps;
-            let delta = sim_state.dt;
             let time = sim_state.sim_time;
-            let physics_num = sim_state.physics_num;
             let agents_num = sim_state.agents_num;
             let sources_num = sim_state.sources_num;
             Window::new("MONITOR").default_pos((170.0, 0.0)).default_width(400.0).default_height(80.0).show(egui_ctx, |ui| {
@@ -248,7 +241,6 @@ impl UISystem {
     fn build_load_sim_window(&mut self, egui_ctx: &Context) {
         if self.state.load_sim {
             let mut signals = get_signals();
-            let mut close = false;
             let mut saved_sims: Vec<String> = vec![];
             let path = Path::new("saves\\simulations\\");
             let sims =  fs::read_dir(path).unwrap();
@@ -447,9 +439,6 @@ impl UISystem {
             let rot = agent.rot;
             let size = agent.size;
             let tg_pos = agent.enemy_position;
-            let tg_ang = agent.enemy_dir;
-            let res_pos = agent.resource_position;
-            let res_ang = agent.resource_dir;
             let pos = agent.pos;
             let name = agent.specie.to_owned();
             let contacts_num = agent.contacts.len();
@@ -515,21 +504,21 @@ impl UISystem {
                     let zero = rect.left_top().to_vec2();
                     //let center = rect.center();
                     //let sketch = network.get_visual_sketch();
-                    for (key, link) in network.links.iter() {
-                        let (coord0, coord1, coord_t) = link.get_coords(&network.nodes, 0.0);
+                    for (_, link) in network.links.iter() {
+                        let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
                         let w = link.get_width();
                         let p1 = vec2_to_pos2(coord0*resize)+zero;
                         let p2 = vec2_to_pos2(coord1*resize)+zero;
                         //let pt = vec2_to_pos2(link.loc_t*resize)+zero;
-                        let (color0, color1) = link.get_colors();
+                        let (_, color1) = link.get_colors();
                         let c1 = color_to_color32(color1);
-                        let c2 = color_to_color32(color0);
+                        //let c2 = color_to_color32(color0);
                         let points1 = [p1, p2];
                         //let points2 = [p1, pt];
                         painter.line_segment(points1, Stroke { color: c1, width: w });
                         //painter.line_segment(points2, Stroke { color: c2, width: 4.0 });
                     }
-                    for (key, node) in network.nodes.iter() {
+                    for (_, node) in network.nodes.iter() {
                         let (color0, color1) = node.get_colors();
                         let r = node.get_size();
                         let p1 = vec2_to_pos2(node.pos*resize)+zero;
@@ -910,7 +899,7 @@ impl UISystem {
     
 }
 
-struct LogoImage {
+/* struct LogoImage {
     texture: Option<TextureHandle>,
 }
 
@@ -922,4 +911,4 @@ impl LogoImage {
         ui.add(egui_macroquad::egui::Image::new(texture, texture.size_vec2()));
         ui.image(texture, texture.size_vec2());
     }
-}
+} */

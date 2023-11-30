@@ -1,4 +1,4 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use crate::agent::*;
 use crate::camera::*;
@@ -11,12 +11,9 @@ use crate::collector::*;
 use crate::globals::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
-use macroquad::experimental::collections::storage;
 use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
-use std::fmt::format;
-use std::fs::DirEntry;
 use serde::{Serialize, Deserialize};
 use serde_json;
 use std::fs;
@@ -117,11 +114,6 @@ impl Simulation {
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
     }
 
-    pub fn autorun_new_sim(&mut self) {
-        self.signals.new_sim = true;
-        self.signals.new_sim_name = "BioSynth".to_string();
-    }
-
     fn update_agents(&mut self) {
         for (_, agent) in self.agents.get_iter_mut() {
             if !agent.update(&mut self.physics) {
@@ -155,7 +147,6 @@ impl Simulation {
         if self.ranking.len() > settings.ranking_size {
             self.ranking.pop();
         }
-        let min_points = 0.0;
     }
 
     fn update_res(&mut self) {
@@ -192,13 +183,12 @@ impl Simulation {
     fn attacks(&mut self) {
         let settings = get_settings();
         let dt = get_frame_time();
-        //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, (f32, RigidBodyHandle)> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
             if !agent.attacking { continue; }
             let attacks = agent.attack();
             for tg in attacks.iter() {
-                if let Some(mut target) = self.agents.agents.get(tg) {
+                if let Some(target) = self.agents.agents.get(tg) {
                     let power1 = agent.size + agent.size*random_unit();
                     let power2 = target.size + target.size*random_unit();
                     if power1 > power2 {
@@ -224,9 +214,8 @@ impl Simulation {
         }
         let mut killers: Vec<RigidBodyHandle> = vec![];
         for (id1, (dmg, id2)) in hits.iter() {
-            let mut agent1 = self.agents.agents.get_mut(id1).unwrap();
-            //let mut agent2 = self.agents.agents.get(id2).unwrap();
-            let mut damage = *dmg;
+            let agent1 = self.agents.agents.get_mut(id1).unwrap();
+            let damage = *dmg;
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
                 agent1.add_energy(hp);
@@ -239,22 +228,20 @@ impl Simulation {
         }
 
         for killer_rbh in killers.iter() {
-            let mut killer = self.agents.agents.get_mut(killer_rbh).unwrap();
-            killer.points + 350.0;
+            let killer = self.agents.agents.get_mut(killer_rbh).unwrap();
+            killer.points += 350.0;
             killer.kills += 1;
         }
     }
 
     fn eat(&mut self) {
         let settings = get_settings();
-        //let eat_to_eng = settings.eat_to_eng;
         let dt = get_frame_time();
-        //let temp_units = self.units.agents.
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
             let attacks = agent.eat();
             for tg in attacks.iter() {
-                if let Some(mut target) = self.resources.resources.get(tg) {
+                if let Some(_target) = self.resources.resources.get(tg) {
                     let power1 = agent.size + agent.size*random_unit();
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
@@ -278,13 +265,13 @@ impl Simulation {
         for (id, dmg) in hits.iter() {
             if *dmg > 0.0 {
                 let eat = *dmg;
-                let mut agent = self.agents.agents.get_mut(id).unwrap();
+                let agent = self.agents.agents.get_mut(id).unwrap();
                 agent.add_energy(eat);
                 if eat > 0.0 {
                     agent.points += eat*0.1;
                 }
             } else {
-                let mut source = self.resources.resources.get_mut(id).unwrap();
+                let source = self.resources.resources.get_mut(id).unwrap();
                 let damage = *dmg;
                 source.drain_eng(damage.abs());
             }
@@ -302,7 +289,7 @@ impl Simulation {
     }
 
     fn draw_res(&self) {
-        for (id, res) in self.resources.get_iter() {
+        for (_, res) in self.resources.get_iter() {
             res.draw();
         }
     }
@@ -573,7 +560,7 @@ impl Simulation {
         let s = agent_sketch.to_owned();
         let agent = Agent::from_sketch(s, &mut self.physics);
         agent_sketch.points -= agent_sketch.points*0.35;
-        agent_sketch.points.round();
+        agent_sketch.points = agent_sketch.points.round();
         self.agents.add_agent(agent);
     }
 
@@ -600,9 +587,6 @@ impl Simulation {
         return self.running;
     }
 
-    pub fn to_serialize(&self) {
-
-    }
 }
 
 
