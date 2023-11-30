@@ -9,6 +9,7 @@ use crate::util::*;
 use crate::physics::*;
 use crate::collector::*;
 use crate::globals::*;
+use crate::terrain::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
@@ -40,6 +41,7 @@ pub struct Simulation {
     pub resources: ResBox,
     pub ranking: Vec<AgentSketch>,
     population_timer: Timer,
+    pub terrain: Terrain,
 }
 
 impl Simulation {
@@ -67,6 +69,7 @@ impl Simulation {
             ranking: vec![],
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
+            terrain: Terrain::new(0.0, 0.0, 0.0),
         }
     }
 
@@ -78,6 +81,7 @@ impl Simulation {
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
+        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, 25.0);
         self.agents.agents.clear();
         self.resources.resources.clear();
         self.sim_time = 0.0;
@@ -283,9 +287,14 @@ impl Simulation {
         set_camera(&self.camera);
         clear_background(color_u8!(35,35,35,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
+        self.draw_terrain();
         self.draw_grid();
         self.draw_agents();
         self.draw_res();
+    }
+
+    pub fn draw_terrain(&self) {
+        self.terrain.draw();
     }
 
     fn draw_res(&self) {

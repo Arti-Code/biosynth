@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use std::f32::consts::PI;
+use std::time::{UNIX_EPOCH, SystemTime};
 use crate::globals::*;
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
@@ -173,6 +174,13 @@ pub fn make_regular_poly_indices(n: usize, r: f32) -> (Vec<Vec2>, Vec<[u32; DIM]
         verts.push(v);
     }
     return (verts, indices);
+}
+
+pub fn generate_seed() -> u64 {
+    let t = SystemTime::now();
+    let s = t.duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let s2 = s / 1000000;
+    return s%s2;
 }
 
 pub fn create_name(num: usize) -> String {

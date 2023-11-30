@@ -14,14 +14,15 @@ mod food;
 mod globals;
 mod resource;
 mod neural;
+mod terrain;
 
 
-use std::time::{SystemTime, UNIX_EPOCH/* , Duration, Instant */};
 use crate::sim::*;
 use crate::globals::*;
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
 use util::MyIcon;
+use util::generate_seed;
 
 
 fn app_configuration() -> Conf {
@@ -50,11 +51,7 @@ fn setup() {
 #[macroquad::main(app_configuration)]
 async fn main() {
     setup();
-    let t = SystemTime::now();
-    let s = t.duration_since(UNIX_EPOCH).unwrap().as_secs();
-    let s2 = s / 1000000;
-    let seed = s%s2;
-    //println!("SEED: {}", seed); 
+    let seed = generate_seed();
     rand::srand(seed);
     let font = load_ttf_font("assets/fonts/firacode.ttf")
         .await
