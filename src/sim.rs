@@ -1,4 +1,4 @@
-//#![allow(unused)]
+#![allow(unused)]
 
 use crate::agent::*;
 use crate::camera::*;
@@ -12,6 +12,7 @@ use crate::globals::*;
 use crate::terrain::*;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
+//use rapier2d::na::coordinates;
 use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -42,6 +43,7 @@ pub struct Simulation {
     pub ranking: Vec<AgentSketch>,
     population_timer: Timer,
     pub terrain: Terrain,
+    coord_timer: Timer,
 }
 
 impl Simulation {
@@ -70,6 +72,7 @@ impl Simulation {
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, 0.0),
+            coord_timer: Timer::new(0.25, true, true, true),
         }
     }
 
@@ -81,7 +84,7 @@ impl Simulation {
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
-        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, 25.0);
+        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, 40.0);
         self.agents.agents.clear();
         self.resources.resources.clear();
         self.sim_time = 0.0;
@@ -127,6 +130,7 @@ impl Simulation {
             }
         }
         self.agents.agents.retain(|_, agent| agent.alife == true);
+        self.update_coordinates();
     }
 
     fn update_rank(&mut self) {
@@ -170,6 +174,17 @@ impl Simulation {
         }
     }
 
+    fn update_coordinates(&mut self) {
+        if self.coord_timer.update(get_frame_time()) {
+            let mut coords: Vec<[i32; 2]> = vec![];
+            for (_, agent) in self.agents.get_iter_mut() {
+                let coordinates = self.terrain.pos_to_coord(&agent.pos);
+                coords.push(coordinates);
+            }
+            self.terrain.set_occupied(coords);
+        }
+    }
+
     pub fn update(&mut self) {
         self.signals_check();
         self.update_sim_state();
@@ -193,8 +208,10 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 if let Some(target) = self.agents.agents.get(tg) {
-                    let power1 = agent.size + agent.size*random_unit();
-                    let power2 = target.size + target.size*random_unit();
+                    let pow1 = agent.size + agent.power as f32;
+                    let pow2 = target.size + target.power as f32;
+                    let power1 = pow1 + pow1*random_unit();
+                    let power2 = pow2 + pow2*random_unit();
                     if power1 > power2 {
                         let mut dmg = (power1 - power2) * dt * settings.damage;
                         if hits.contains_key(id) {
@@ -223,7 +240,7 @@ impl Simulation {
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
                 agent1.add_energy(hp);
-                agent1.points += hp*0.1;
+                agent1.points += hp*0.01;
             } else {
                 agent1.add_energy(damage);
                 agent1.pain = true;
@@ -288,7 +305,7 @@ impl Simulation {
         clear_background(color_u8!(35,35,35,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_terrain();
-        self.draw_grid();
+        //self.draw_grid();
         self.draw_agents();
         self.draw_res();
     }

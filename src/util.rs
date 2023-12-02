@@ -259,6 +259,7 @@ pub struct UIState {
     pub ranking: bool,
     pub set_agent: bool,
     pub load_sim: bool,
+    pub attributes: bool,
 }
 
 impl UIState {
@@ -282,6 +283,7 @@ impl UIState {
             ranking: false,
             set_agent: false,
             load_sim: false,
+            attributes: false,
         }
     }
 }

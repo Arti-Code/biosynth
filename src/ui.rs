@@ -85,6 +85,7 @@ impl UISystem {
                     self.build_inspect_window(egui_ctx, agent);
                     self.build_io_window(egui_ctx, agent.neuro_map.get_signal_list().clone(), agent.neuro_map.get_action_list().clone());
                     self.build_inspect_network(egui_ctx, &agent.network);
+                    self.build_attributes_window(egui_ctx, agent);
                 },
                 None => {},
             }
@@ -145,12 +146,19 @@ impl UISystem {
                     if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.inspect = !self.state.inspect;
                     }
+                    if ui.button(RichText::new("Attributes").strong().color(Color32::WHITE)).clicked() {
+                        self.state.attributes = !self.state.attributes;
+                    }
                     if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
                         self.state.mouse = !self.state.mouse;
                     }
                     if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
                         //signals.ranking = true;
                         self.state.ranking = !self.state.ranking;
+                    }
+                    if ui.button(RichText::new("Print Mutations Stats").strong().color(Color32::WHITE)).clicked() {
+                        let mutations = get_mutations();
+                        mutations.print_data();
                     }
                 });
 
@@ -211,9 +219,9 @@ impl UISystem {
             let sources_num = sim_state.sources_num;
             Window::new("MONITOR").default_pos((170.0, 0.0)).default_width(400.0).default_height(80.0).show(egui_ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(format!("TIME: {}", time.round()));
-                    ui.label(format!("AGENTS: {}", agents_num));
-                    ui.label(format!("SOURCES: {}", sources_num));
+                    ui.label(RichText::new(format!("TIME: {}", time.round())).small());
+                    ui.label(RichText::new(format!("AGENTS: {}", agents_num)).small());
+                    ui.label(RichText::new(format!("SOURCES: {}", sources_num)).small());
                 })
             });
         }
@@ -471,23 +479,40 @@ impl UISystem {
                 //ui.separator();
                 ui.horizontal(|row| {
 //                    row.separator();
-                    row.label(format!("GEN: [{}]", generation));
+                    row.label(RichText::new(format!("GEN: [{}]", generation)).small());
                     row.separator();
-                    row.label(format!("SIZE: [{}]", size));
+                    row.label(RichText::new(format!("SIZE: [{}]", size)).small());
                     row.separator();
-                    row.label(format!("TIME: [{}]", lifetime));
+                    row.label(RichText::new(format!("TIME: [{}]", lifetime)).small());
                     row.separator();
-                    row.label(format!("POINTS: [{}]", points.round()));
+                    row.label(RichText::new(format!("POINTS: [{}]", points.round())).small());
                 });
                 //ui.separator();
                 ui.horizontal(|row| {
-                    row.label(format!("CHILD: [{}]", childs));
+                    row.label(RichText::new(format!("CHILD: [{}]", childs)).small());
                     row.separator();
-                    row.label(format!("KILLS: [{}]", kills));
+                    row.label(RichText::new(format!("KILLS: [{}]", kills)).small());
                     row.separator();
-                    row.label(format!("ORIENT: [{}]", ((rot * 10.0).round()) / 10.0));
+                    row.label(RichText::new(format!("ORIENT: [{}]", ((rot * 10.0).round()) / 10.0)).small());
                     row.separator();
-                    row.label(format!("COORD: [X{}|Y{}]", pos.x.round(), pos.y.round()));
+                    row.label(RichText::new(format!("COORD: [X{}|Y{}]", pos.x.round(), pos.y.round())).small());
+                });
+            });
+        }
+    }
+
+    fn build_attributes_window(&self, egui_ctx: &Context, agent: &Agent) {
+        if self.state.attributes {
+            let size = agent.size as i32;
+            let power = agent.power;
+            let speed = agent.speed;
+            let shell = agent.shell;
+            let name = &agent.specie;
+            let attributes = format!("size: {} | speed: {} | power: {} | shell: {}", size, speed, power, shell);
+            let title_txt = format!("Attributes: {}", name.to_uppercase()); 
+            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((800.0, 0.0)).min_width(150.0).show(egui_ctx, |ui| {
+                ui.horizontal(|row| {
+                    row.label(RichText::new(attributes).strong());
                 });
             });
         }
@@ -608,7 +633,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut base_energy_cost: f32 = settings.base_energy_cost;
                 column[0].label(RichText::new("BASE ENG COST").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut base_energy_cost, 0.0..=5.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut base_energy_cost, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.base_energy_cost = base_energy_cost;
                     signals.new_settings = true;
                 }
@@ -618,7 +643,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut move_energy_cost: f32 = settings.move_energy_cost;
                 column[0].label(RichText::new("MOVE ENG COST").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut move_energy_cost, 0.0..=5.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut move_energy_cost, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.move_energy_cost = move_energy_cost;
                     signals.new_settings = true;
                 }
@@ -628,7 +653,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut attack_energy_cost: f32 = settings.attack_energy_cost;
                 column[0].label(RichText::new("ATTACK ENG COST").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut attack_energy_cost, 0.0..=5.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut attack_energy_cost, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.attack_energy_cost = attack_energy_cost;
                     signals.new_settings = true;
                 }
@@ -745,7 +770,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_num = settings.res_num;
                 column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_num, 0.0..=50.0).step_by(1.0)).changed() {
+                if column[1].add(Slider::new(&mut res_num, 0.0..=100.0).step_by(1.0)).changed() {
                     settings.res_num = res_num;
                     signals.new_settings = true;
                 }
@@ -868,11 +893,11 @@ impl UISystem {
             Window::new("RANKING").default_pos((0.0, 0.0)).title_bar(true).default_width(120.0).show(egui_ctx, |ui| {
                 let mut i = 0;
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new("NAME").strong().monospace());
+                    ui.label(RichText::new("NAME").strong());
                     ui.separator();
-                    ui.label(RichText::new("GEN").strong().monospace());
+                    ui.label(RichText::new("GEN").strong());
                     ui.separator();
-                    ui.label(RichText::new("PTS").strong().monospace());
+                    ui.label(RichText::new("PTS").strong());
                 });
                 ui.separator();
                 for rank in ranking.iter() {
@@ -881,11 +906,11 @@ impl UISystem {
                         let msg1 = format!("{}. {}",i, rank.specie.to_uppercase());
                         let msg2 = format!("{}", rank.generation);
                         let msg3 = format!("{}", rank.points.round());
-                        ui.label(RichText::new(msg1).small().monospace());
+                        ui.label(RichText::new(msg1).small());
                         ui.separator();
-                        ui.label(RichText::new(msg2).small().monospace());
+                        ui.label(RichText::new(msg2).small());
                         ui.separator();
-                        ui.label(RichText::new(msg3).small().monospace());
+                        ui.label(RichText::new(msg3).small());
                     });
                     ui.separator();
                 }

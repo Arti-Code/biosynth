@@ -213,7 +213,6 @@ impl PhysicsCore {
 
     pub fn add_dynamic(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups) -> RigidBodyHandle {
         let rbh = self.add_dynamic_rigidbody(position, rotation, physics_props.linear_damping, physics_props.angular_damping);
-        //self.assign_body_with_key(rbh, key);
         let _ch = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props, groups);
         return rbh;
     }
@@ -379,27 +378,6 @@ impl PhysicsCore {
         }
     }
 
-/*     pub fn get_key_by_body_handle(&self, body_handle: RigidBodyHandle) -> Option<u64> {
-        match self.rigid_bodies.get(body_handle) {
-            Some(body) => { Some(body.user_data as u64) },
-            None => { None },
-        }
-    } */
-
-    /* fn assign_body_with_key(&mut self, body_handle: RigidBodyHandle, key: u64) {
-        self.bodies_keys.insert(body_handle, key);
-    } */
-
-    /* fn remove_body_key_relation(&mut self, body_handle: &RigidBodyHandle) {
-        self.bodies_keys.remove(body_handle);
-    } */
-
-    /* pub fn get_key_for_body(&self, body_handle: &RigidBodyHandle) -> Option<u64> {
-        match self.bodies_keys.get(body_handle) {
-            Some(key) => Some(*key),
-            None => None,
-        }
-    } */
 }
 
 
@@ -434,7 +412,7 @@ impl PhysicsMaterial {
     }
 
     pub fn high_inert() -> Self {
-        Self { friction: 2.0, restitution: 0.0, density: 2.0, linear_damping: 2.0, angular_damping: 0.3 }
+        Self { friction: 2.0, restitution: 0.0, density: 10.0, linear_damping: 2.0, angular_damping: 1.0 }
     }
 
 }

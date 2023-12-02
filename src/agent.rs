@@ -140,9 +140,9 @@ pub struct Agent {
     pub points: f32,
     pub pain: bool,
     pub run: bool,
-    power: i32,
-    speed: i32,
-    shell: i32,
+    pub power: i32,
+    pub speed: i32,
+    pub shell: i32,
 }
 
 
@@ -308,7 +308,7 @@ impl Agent {
         self.draw_eyes();
         if selected {
             self.draw_info(&font);
-            self.draw_target();
+            self.draw_target(selected);
         } else if settings.show_specie {
             self.draw_info(&font);
         }
@@ -520,8 +520,11 @@ impl Agent {
         draw_circle(xr, yr, s, color);
     }
 
-    fn draw_target(&self) {
-        //if !self.enemy.is_none() {
+    fn draw_target(&self, selected: bool) {
+        if selected {
+            let range = self.vision_range;
+            draw_circle_lines(self.pos.x, self.pos.y, range, 1.5, SKYBLUE);
+        }
         if let Some(_rb) = self.enemy {
             if let Some(enemy_position) = self.enemy_position {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
@@ -585,7 +588,7 @@ impl Agent {
             Some(body) => {
                 let dt = get_frame_time();
                 let dir = Vec2::from_angle(self.rot);
-                let mut v = dir * self.vel * settings.agent_speed * dt *150.0;
+                let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
                 if self.run {
                     v *= 1.5;
                 }
@@ -696,8 +699,8 @@ impl Agent {
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
-        let basic_loss = self.size * base_cost;
-        let mut move_loss = self.vel * self.size * move_cost;
+        let basic_loss = (self.size + self.power as f32) * base_cost;
+        let mut move_loss = self.vel * (self.size + self.speed as f32) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
@@ -724,7 +727,7 @@ impl Agent {
     }
 
     pub fn is_death(&self) -> bool {
-        return self.alife;
+        return !self.alife;
     }
 
     pub fn add_energy(&mut self, e: f32) {
@@ -743,6 +746,21 @@ impl Agent {
             size += rand::gen_range(-1, 1) as f32;
         }
         size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32);
+        let mut power = self.power;
+        if rand::gen_range(0, 9) == 0 {
+            power += rand::gen_range(-1, 1);
+        }
+        power = clamp(power, 0, 10);
+        let mut speed = self.speed;
+        if rand::gen_range(0, 9) == 0 {
+            speed += rand::gen_range(-1, 1);
+        }
+        speed = clamp(speed, 0, 10);
+        let mut shell = self.shell;
+        if rand::gen_range(0, 9) == 0 {
+            shell += rand::gen_range(-1, 1);
+        }
+        shell = clamp(shell, 0, 10);
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
@@ -757,7 +775,7 @@ impl Agent {
         neuro_map.add_effectors(output_pairs);
         Self {
             key,
-            pos,
+            pos: pos + random_unit_vec2()*100.0,
             rot,
             mass: 0.0,
             vel: 0.0,
@@ -791,9 +809,9 @@ impl Agent {
             points: 0.0,
             pain: false,
             run: false,
-            power: self.power,
-            speed: self.speed,
-            shell: self.shell,
+            power,
+            speed,
+            shell,
         }
     }
 

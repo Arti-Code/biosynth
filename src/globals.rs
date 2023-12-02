@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 pub const SCREEN_WIDTH: f32 = 1600.0;
 pub const SCREEN_HEIGHT: f32 = 900.0;
-pub const WORLD_W: f32 = 2400.0;
-pub const WORLD_H: f32 = 1350.0;
+pub const WORLD_W: f32 = 3200.0;
+pub const WORLD_H: f32 = 1800.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
@@ -30,7 +30,14 @@ pub fn get_signals() -> Signals {
     return signals.clone();
 }
 
+pub fn set_mutations(stats: MutationStats) {
+    storage::store(stats);
+}
 
+pub fn get_mutations() -> MutationStats {
+    let stats = storage::get::<MutationStats>();
+    return stats.clone();
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
@@ -71,30 +78,30 @@ impl Default for Settings {
             world_w: WORLD_W as i32,
             world_h: WORLD_H as i32,
             agent_eng_bar: true,
-            agent_init_num: 0,
-            agent_min_num: 0,
-            agent_rotate: 0.8,
-            agent_speed: 14.0,
+            agent_init_num: 75,
+            agent_min_num: 13,
+            agent_rotate: 1.0,
+            agent_speed: 40.0,
             agent_size_min: 3,
             agent_size_max: 10,
             agent_vision_range: 300.0,
             show_network: true,
             show_specie: true,
-            mutations: 0.2,
+            mutations: 0.4,
             neurolink_rate: 0.2,
             damage: 40.0,
-            base_energy_cost: 0.6,
-            move_energy_cost: 0.3,
-            attack_energy_cost: 0.2,
+            base_energy_cost: 0.2,
+            move_energy_cost: 0.1,
+            attack_energy_cost: 0.1,
             res_num: 18.0,
-            hidden_nodes_num: 3,
+            hidden_nodes_num: 2,
             neuro_duration: 0.3,
-            atk_to_eng: 0.8,
-            eat_to_eng: 15.0,
-            ranking_size: 20,
+            atk_to_eng: 1.6,
+            eat_to_eng: 8.0,
+            ranking_size: 25,
             repro_points: 1000.0,
             repro_time: 75.0,
-            new_one_probability: 0.01,
+            new_one_probability: 0.03,
             grid_size: 50,
        }
     }
@@ -138,6 +145,51 @@ impl Signals {
             del_sim_name: None,
             load_sim_name: None,
         }
+    }
+
+}
+
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MutationStats {
+    pub interval: f32,
+    //temp_mutation_rates: Vec<f32>,
+    pub mutation_rate: f32,
+    pub nodes_added: i32,
+    pub nodes_deleted: i32,
+    pub links_added: i32,
+    pub links_deleted: i32,
+    pub biases_changed: i32,
+    pub weights_changed: i32,
+}
+
+impl MutationStats {
+
+    pub fn new(interval: f32, mutation_rate: f32) -> Self {
+        Self { interval, mutation_rate, nodes_added: 0, nodes_deleted: 0, links_added: 0, links_deleted: 0, biases_changed: 0, weights_changed: 0 }
+    }
+
+    pub fn add_values(&mut self, nodes_added: i32, nodes_deleted: i32, links_added: i32, links_deleted: i32, biases_changed: i32, weights_changed: i32) {
+        self.nodes_added += nodes_added;
+        self.nodes_deleted += nodes_deleted;
+        self.links_added += links_added;
+        self.links_deleted += links_deleted;
+        self.biases_changed += biases_changed;
+        self.weights_changed += weights_changed;
+    }
+
+    pub fn print_data(&self) {
+        println!("-------------------");
+        println!("Mutation stats");
+        //println!("Interval: {}", self.interval);
+        //println!("Mutation rate: {:?}", self.mutation_rate);
+        println!("nodes added:      {}", self.nodes_added);
+        println!("nodes deleted:    {}", self.nodes_deleted);
+        println!("links added:      {}", self.links_added);
+        println!("links deleted:    {}", self.links_deleted);
+        println!("biases changed:   {}", self.biases_changed);
+        println!("weights changed:  {}", self.weights_changed);
+        println!("-------------------");
     }
 
 }

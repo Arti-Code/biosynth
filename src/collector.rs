@@ -42,8 +42,8 @@ impl AgentBox {
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
             if agent.lifetime >= (settings.repro_time + settings.repro_time * agent.childs as f32) && (agent.eng/agent.max_eng) >= 0.75 {
-                let newone = agent.replicate(physics);
-                newborns.push(newone);
+                let newbie = agent.replicate(physics);
+                newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;
                 agent.eng -= 0.4*agent.max_eng;
@@ -51,9 +51,9 @@ impl AgentBox {
         }
         loop {
             match newborns.pop() {
-                Some(mut newone) => {
-                    newone.network.mutate(settings.mutations);
-                    self.add_agent(newone);
+                Some(mut newbie) => {
+                    newbie.network.mutate(settings.mutations);
+                    self.add_agent(newbie);
                 },
                 None => {
                     break;

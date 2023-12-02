@@ -11,6 +11,8 @@ use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use serde_json::{self, *};
 use std::fs;
+use crate::globals::get_mutations;
+use crate::globals::set_mutations;
 use crate::util::*;
 
 
@@ -629,13 +631,16 @@ impl Network {
         al = self.add_random_link(mutation_rate);
         w = self.mutate_link_weight(mutation_rate);
         (an, dn, al2, dl, b) = self.mutate_nodes(mutation_rate);
+        let mut stats = get_mutations();
+        stats.add_values(an as i32, dn as i32, (al+al2) as i32, dl as i32, b as i32, w as i32);
+        set_mutations(stats);
         //println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al+al2, dl, b, w);
     }
 
     fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize, usize) {
-        let (dn, dl) = self.del_random_node(mutation_rate);
-        let (an, al) = self.add_random_node(mutation_rate);
-        let b = self.mutate_nodes_bias(mutation_rate*1.5);
+        let (dn, dl) = self.del_random_node(mutation_rate/4.0);
+        let (an, al) = self.add_random_node(mutation_rate/4.0);
+        let b = self.mutate_nodes_bias(mutation_rate);
         return (an, dn, al, dl, b);
     }
 

@@ -7,14 +7,18 @@
 	"settings": {
 		"cSpell.ignoreWords": [
 			"childs",
+			"lacunarity",
 			"neurolink",
-			"resl"
+			"resl",
+			"xfactor"
 		],
 		"cSpell.words": [
 			"childs",
+			"lacunarity",
 			"neurolink",
 			"resl",
-			"unmultiplied"
+			"unmultiplied",
+			"xfactor"
 		]
 	}
 }
