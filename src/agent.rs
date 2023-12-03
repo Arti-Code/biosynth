@@ -103,6 +103,8 @@ impl NeuroMap {
 
 }
 
+
+#[derive(Clone)]
 pub struct Agent {
     pub key: u64,
     pub pos: Vec2,
@@ -214,33 +216,17 @@ impl Agent {
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
-        let mut size = sketch.size;
-        if rand::gen_range(0, 9) == 0 {
-            size += rand::gen_range(-1, 1) as f32;
-        }
-        size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32);
+        let mut size = Self::mutate_one(sketch.size as i32) as f32;
         
-        let mut power = sketch.power;
-        if rand::gen_range(0, 9) == 0 {
-            power += rand::gen_range(-1, 1);
-        }
-        power = clamp(power, 0, 10);
+        //let mut power = Self::mutate_one(sketch.power);
 
-        let mut speed = sketch.speed;
-        if rand::gen_range(0, 9) == 0 {
-            speed += rand::gen_range(-1, 1);
-        }
-        speed = clamp(speed, 0, 10);
+        //let mut speed = Self::mutate_one(sketch.speed);
 
-        let mut shell = sketch.shell;
-        if rand::gen_range(0, 9) == 0 {
-            shell += rand::gen_range(-1, 1);
-        }
-        shell = clamp(shell, 0, 10);
+        //let mut shell = Self::mutate_one(sketch.shell);
 
         let shape = match sketch.shape {
             MyShapeType::Ball => {
-                SharedShape::ball(sketch.size)
+                SharedShape::ball(size)
             },
             MyShapeType::Cuboid => {
                 SharedShape::cuboid(sketch.size, sketch.size)
@@ -289,9 +275,9 @@ impl Agent {
             points: 0.0,
             pain: false,
             run: false,
-            power: sketch.power,
-            speed: sketch.speed,
-            shell: sketch.shell,
+            power: Self::mutate_one(sketch.power),
+            speed: Self::mutate_one(sketch.speed),
+            shell: Self::mutate_one(sketch.shell),
         }
     }
 
@@ -738,29 +724,92 @@ impl Agent {
         self.check_alife();
     }
 
-    pub fn replicate(&self, physics: &mut Physics) -> Self {
+    fn mutate_one(v: i32) -> i32 {
+        let mut vm: i32 = v;
+        let mut r = rand::gen_range(0, 20);
+        if r == 1 {
+            vm += 1;
+            //println!("{} -> {}", v, vm);
+        } else if r == 2 {
+            vm -= 1;
+            //println!("{} -> {}", v, vm);
+        }
+        vm = clamp(vm, 1_i32, 10_i32);
+        return vm;
+    }
+
+    pub fn mutate(&mut self) {
+        println!("Mutate");
         let settings = get_settings();
-        let key = gen_range(u64::MIN, u64::MAX);
         let mut size = self.size;
-        if rand::gen_range(0, 9) == 0 {
+        let mut r = rand::gen_range(0, 9);
+        if r == 1 {
+            println!("r: {}", r);
             size += rand::gen_range(-1, 1) as f32;
         }
         size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32);
+        r = rand::gen_range(0, 9);
         let mut power = self.power;
-        if rand::gen_range(0, 9) == 0 {
+        if r == 1 {
+            println!("r: {}", r);
             power += rand::gen_range(-1, 1);
         }
         power = clamp(power, 0, 10);
+        r = rand::gen_range(0, 9);
         let mut speed = self.speed;
-        if rand::gen_range(0, 9) == 0 {
+        if r == 1 {
+            println!("r: {}", r);
             speed += rand::gen_range(-1, 1);
         }
         speed = clamp(speed, 0, 10);
+        r = rand::gen_range(0, 9);
         let mut shell = self.shell;
-        if rand::gen_range(0, 9) == 0 {
+        if r == 1 {
+            println!("r: {}", r);
             shell += rand::gen_range(-1, 1);
         }
         shell = clamp(shell, 0, 10);
+        if self.size != size {
+            println!("{} -> {}", self.size, size);
+        }
+        if self.power != power {
+            println!("{} -> {}", self.power, power);
+        }
+        if self.speed != speed {
+            println!("{} -> {}", self.speed, speed);
+        }
+        if self.shell != shell {
+            println!("{} -> {}", self.shell, shell);
+        }
+        self.size = size;
+        self.power = power;
+        self.speed = speed;
+        self.shell = shell;
+    }
+
+    pub fn replicate(&self, physics: &mut Physics) -> Agent {
+        let settings = get_settings();
+        let key = gen_range(u64::MIN, u64::MAX);
+        let mut size = Self::mutate_one(self.size as i32) as f32;
+        /* if rand::gen_range(0, 9) == 0 {
+            size += rand::gen_range(-1, 1) as f32;
+        }
+        size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32); */
+        let mut power = Self::mutate_one(self.power);
+        /* if rand::gen_range(0, 9) == 0 {
+            power += rand::gen_range(-1, 1);
+        }
+        power = clamp(power, 0, 10); */
+        let mut speed = Self::mutate_one(self.speed);
+        /* if rand::gen_range(0, 9) == 0 {
+            speed += rand::gen_range(-1, 1);
+        }
+        speed = clamp(speed, 0, 10); */
+        let mut shell = Self::mutate_one(self.shell);
+        /* if rand::gen_range(0, 9) == 0 {
+            shell += rand::gen_range(-1, 1);
+        }
+        shell = clamp(shell, 0, 10); */
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
@@ -773,7 +822,7 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        Self {
+        Agent {
             key,
             pos: pos + random_unit_vec2()*100.0,
             rot,
@@ -837,6 +886,7 @@ impl Agent {
 }
 
 
+#[derive(Clone)]
 pub struct Detected {
     pub target_handle: RigidBodyHandle,
     pub dist: f32,

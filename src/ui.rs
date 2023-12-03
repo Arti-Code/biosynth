@@ -553,12 +553,14 @@ impl UISystem {
                         painter.circle_filled(p1, r,  Color32::BLACK);
                         painter.circle_filled(p1, r,  c1);
                         painter.circle_stroke(p1, r, Stroke { color: c0, width: 1.0 });
+                        let mut font = FontId::default();
+                        font.size = 10.0;
                         match node.node_type {
                             NeuronTypes::INPUT => {
-                                painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, label, egui_macroquad::egui::FontId::default(), Color32::WHITE);
+                                painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, label, font, Color32::WHITE);
                             },
                             NeuronTypes::OUTPUT => {
-                                painter.text(p1+UIVec2{x: -40.0, y: 0.0}, Align2::LEFT_CENTER, label, egui_macroquad::egui::FontId::default(), Color32::WHITE);
+                                painter.text(p1+UIVec2{x: -40.0, y: 0.0}, Align2::LEFT_CENTER, label, font, Color32::WHITE);
                             },
                             _ => {},
                         }

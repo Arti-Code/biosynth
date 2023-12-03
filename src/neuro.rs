@@ -95,7 +95,7 @@ pub struct Link {
     signal: f32,
 }
 
-//#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
