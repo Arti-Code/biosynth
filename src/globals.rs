@@ -4,10 +4,10 @@ use macroquad::{experimental::collections::storage, prelude::Vec2};
 use serde::{Deserialize, Serialize};
 
 
-pub const SCREEN_WIDTH: f32 = 1600.0;
-pub const SCREEN_HEIGHT: f32 = 900.0;
-pub const WORLD_W: f32 = 3200.0;
-pub const WORLD_H: f32 = 1800.0;
+pub const SCREEN_WIDTH: f32 = 1200.0;
+pub const SCREEN_HEIGHT: f32 = 800.0;
+pub const WORLD_W: f32 = 3000.0;
+pub const WORLD_H: f32 = 2000.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
@@ -82,24 +82,24 @@ impl Default for Settings {
             agent_min_num: 12,
             agent_rotate: 1.0,
             agent_speed: 40.0,
-            agent_size_min: 3,
+            agent_size_min: 2,
             agent_size_max: 10,
-            agent_vision_range: 350.0,
+            agent_vision_range: 300.0,
             show_network: true,
             show_specie: true,
-            mutations: 0.5,
+            mutations: 0.4,
             neurolink_rate: 0.2,
             damage: 40.0,
-            base_energy_cost: 0.2,
-            move_energy_cost: 0.1,
-            attack_energy_cost: 0.1,
-            res_num: 18.0,
-            hidden_nodes_num: 2,
+            base_energy_cost: 0.4,
+            move_energy_cost: 0.3,
+            attack_energy_cost: 0.3,
+            res_num: 60.0,
+            hidden_nodes_num: 0,
             neuro_duration: 0.3,
-            atk_to_eng: 1.6,
-            eat_to_eng: 8.0,
-            ranking_size: 25,
-            repro_points: 1000.0,
+            atk_to_eng: 0.8,
+            eat_to_eng: 9.0,
+            ranking_size: 20,
+            repro_points: 250.0,
             repro_time: 75.0,
             new_one_probability: 0.03,
             grid_size: 50,

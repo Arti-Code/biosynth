@@ -1,14 +1,9 @@
-#![allow(unused)]
+//#![allow(unused)]
 
-use std::collections::HashMap;
-use std::collections::hash_map::Iter;
-use std::collections::hash_map::IterMut;
-use std::f32::consts::PI;
 use rapier2d::geometry::*;
 use macroquad::{prelude::*, color};
 use rapier2d::prelude::*;
 use crate::util::*;
-use crate::timer::*;
 use crate::physics::*;
 use crate::globals::*;
 
@@ -28,10 +23,10 @@ pub struct Resource {
 impl Resource {
     pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
-        let key = rand::gen_range(u64::MIN, u64::MAX);
+        //let key = rand::gen_range(u64::MIN, u64::MAX);
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
-        let color = random_color();
-        let size = rand::gen_range(4, 8) as f32;
+        //let color = random_color();
+        let size = rand::gen_range(8, 16) as f32;
         let shape = SharedShape::ball(size);
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::high_inert(), InteractionGroups::new(Group::GROUP_2, Group::GROUP_1 | Group::GROUP_2));
         Self {
@@ -68,7 +63,7 @@ impl Resource {
     }
 
     fn update_physics(&mut self, physics: &mut Physics) {
-        let settings = get_settings();
+        //let settings = get_settings();
         let physics_data = physics.get_object_state(self.physics_handle);
         self.pos = physics_data.position;
         self.rot = physics_data.rotation;

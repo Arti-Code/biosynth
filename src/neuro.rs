@@ -639,7 +639,7 @@ impl Network {
 
     fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize, usize) {
         let (dn, dl) = self.del_random_node(mutation_rate/4.0);
-        let (an, al) = self.add_random_node(mutation_rate/4.0);
+        let (an, al) = self.add_random_node(mutation_rate/8.0);
         let b = self.mutate_nodes_bias(mutation_rate);
         return (an, dn, al, dl, b);
     }

@@ -585,7 +585,7 @@ impl Simulation {
         let agent_sketch = self.ranking.get_mut(r).unwrap();
         let s = agent_sketch.to_owned();
         let agent = Agent::from_sketch(s, &mut self.physics);
-        agent_sketch.points -= agent_sketch.points*0.35;
+        agent_sketch.points -= agent_sketch.points*0.4;
         agent_sketch.points = agent_sketch.points.round();
         self.agents.add_agent(agent);
     }
