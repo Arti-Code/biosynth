@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use std::f32::consts::PI;
+
 use macroquad::prelude::*;
 use rapier2d::prelude::*;
 use crate::physics::*;
@@ -7,20 +9,66 @@ use crate::physics::*;
 
 trait Ability {
 
-    fn new(offset: Vec2) -> Self;
-    fn update(&mut self, physics: &mut PhysicsWorld);
-    fn draw(&self, position: Vec2);
-    fn get_input_num(&self) -> usize;
-    fn set_input_nodes(&mut self, node_keys: Vec<u64>);
-    fn get_output_num(&self) -> usize;
-    fn set_output_nodes(&mut self, node_keys: Vec<u64>);
-    fn situation(&self) -> Vec<(u64, f32)>;
-    fn reaction(&mut self, values: Vec<(u64, f32)>);
-    fn get_eng_cost(&self) -> f32;
+    fn create(offset: Vec2);
+    fn _update(&mut self, physics: &mut PhysicsWorld);
+    fn _draw(&self, position: Vec2);
+    //fn get_input_num(&self) -> usize;
+    //fn set_input_nodes(&mut self, node_keys: Vec<u64>);
+    //fn get_output_num(&self) -> usize;
+    //fn set_output_nodes(&mut self, node_keys: Vec<u64>);
+    //fn situation(&self) -> Vec<(u64, f32)>;
+    //fn reaction(&mut self, values: Vec<(u64, f32)>);
+    //fn get_eng_cost(&self) -> f32;
 }
 
 
-struct Movent {
+pub struct Tail {
+    phase: f32,
+    color: Color,
+    pub pos: Vec2,
+    rot: f32,
+    pub length: f32,
+    pub run: bool,
+}
+
+impl Tail {
+    pub fn new(pos: Vec2, length: f32, color: Color) -> Self {
+        Self { phase: 0.0, color, pos, rot: 0.0, length: 25.0, run: true }
+    }
+
+    pub fn draw(&self, position: Vec2) {
+        self._draw(position);
+    }
+
+    pub fn update(&mut self, physics: &mut PhysicsWorld) {
+        self._update(physics)
+    }
+
+}
+
+impl Ability for Tail {
+    
+    fn create(offset: Vec2) {
+        //Self { phase: 0.0, color, pos, rot: 0.0, length: 25.0, run: true }
+    }
+
+    fn _draw(&self, position: Vec2) {
+        let pos0 = position + self.pos;
+        let dir = Vec2::from_angle(self.phase);
+        let l = self.length;
+        let pos1 = pos0 + l*dir;
+        draw_line(pos0.x, pos0.y, pos1.x, pos1.y, 2.0, self.color);
+    }
+
+    fn _update(&mut self, physics: &mut PhysicsWorld) {
+        self.phase += get_frame_time();
+        self.phase = self.phase%(2.0*PI);
+    }
+
+}
+
+
+/* struct Movent {
     offset: Vec2,
     velocity: f32,
     rotation: f32,
@@ -74,7 +122,7 @@ impl Ability for Movent {
 
     
 
-}
+} */
 
 
 /* pub enum PartShapeType {

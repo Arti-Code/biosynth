@@ -153,7 +153,7 @@ impl Simulation {
     }
 
     pub fn update(&mut self) {
-        self.signals_check();
+        self.check_signals();
         self.update_sim_state();
         self.check_agents_num();
         self.update_res();
@@ -318,7 +318,7 @@ impl Simulation {
         }
     }
 
-    pub fn signals_check(&mut self) {
+    pub fn check_signals(&mut self) {
         let mut sign = mod_signals();
         if self.signals.spawn_agent {
             self.agents.add_many_agents(1, &mut self.physics);
@@ -415,17 +415,17 @@ impl Simulation {
                 let s = serde_json::to_string_pretty(&agent_sketch);
                 match s {
                     Ok(js) => {
-                        let path_str = format!("saves/agents/agent{}.json", agent.key);
+                        let path_str = format!("saves/agents/{}-{}.json", agent.specie, agent.generation);
                         let path = Path::new(&path_str);
                         match fs::write(path, js.clone()) {
                             Ok(_) => {},
-                            Err(_) => println!("ERROR: not saved"),
+                            Err(_) => println!("ERROR: during agent saving"),
                         }
                     },
-                    Err(_) => {},
+                    Err(_) => println!("ERROR: during agent serialize"),
                 }
             },
-            None => {},
+            None => println!("WARN: agent for save not selected"),
         }
     }
 
