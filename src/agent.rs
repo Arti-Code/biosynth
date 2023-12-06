@@ -8,6 +8,7 @@ use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
 use crate::globals::*;
+use crate::part::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
@@ -133,7 +134,6 @@ pub struct Agent {
     pub resource_position: Option<Vec2>,
     pub resource_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
-    //pub neuro_table: NeuroTable,
     pub neuro_map: NeuroMap,
     pub childs: usize,
     pub kills: usize,
@@ -145,6 +145,7 @@ pub struct Agent {
     pub power: i32,
     pub speed: i32,
     pub shell: i32,
+    parts: Vec<Box<dyn AgentPart>>,
 }
 
 
@@ -168,6 +169,10 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
+        let mut parts: Vec<Box<dyn AgentPart>> = vec![];
+        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        let tail = Box::new(tail);
+        //parts.push(tail);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
@@ -196,7 +201,6 @@ impl Agent {
             resource_dir: None,
             contacts: Vec::new(),
             physics_handle: rbh,
-            //neuro_table: NeuroTable { inputs: vec![], outputs: vec![] },
             neuro_map,
             childs: 0,
             kills: 0,
@@ -208,6 +212,7 @@ impl Agent {
             speed: gen_range(0, 10),
             power: gen_range(0, 10),
             shell: gen_range(0, 10),
+            parts,
         }
     }
 
@@ -238,6 +243,10 @@ impl Agent {
         let gen = sketch.generation + 1;
         let mut network = sketch.network.from_sketch();
         network.mutate(settings.mutations);
+        let mut parts: Vec<Box<dyn AgentPart>> = vec![];
+        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        let tail = Box::new(tail);
+        //parts.push(tail);
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent {
             key,
@@ -278,6 +287,7 @@ impl Agent {
             power: Self::mutate_one(sketch.power),
             speed: Self::mutate_one(sketch.speed),
             shell: Self::mutate_one(sketch.shell),
+            parts,
         }
     }
 
@@ -297,6 +307,9 @@ impl Agent {
             self.draw_target(selected);
         } else if settings.show_specie {
             self.draw_info(&font);
+        }
+        for part in self.parts.iter() {
+            part.draw_part(self.pos, self.rot);
         }
     }    
 
@@ -329,6 +342,9 @@ impl Agent {
     pub fn update(&mut self, physics: &mut Physics) -> bool {
         let dt = get_frame_time();
         self.lifetime += dt;
+        for part in self.parts.iter_mut() {
+            part.update_part();
+        }
         if self.analize_timer.update(dt) {
             self.watch(physics);
             self.update_contacts(physics);
@@ -822,6 +838,10 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
+        let mut parts: Vec<Box<dyn AgentPart>> = vec![];
+        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        let tail = Box::new(tail);
+        //parts.push(tail);
         Agent {
             key,
             pos: pos + random_unit_vec2()*40.0,
@@ -861,6 +881,7 @@ impl Agent {
             power,
             speed,
             shell,
+            parts,
         }
     }
 

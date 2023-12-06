@@ -102,7 +102,7 @@ impl Default for Settings {
             repro_points: 250.0,
             repro_time: 75.0,
             new_one_probability: 0.03,
-            grid_size: 50,
+            grid_size: 50, 
        }
     }
 
@@ -124,6 +124,10 @@ pub struct Signals {
     pub load_sim: bool,
     pub load_sim_name: Option<String>,
     pub del_sim_name: Option<String>,
+    pub save_agent: bool,
+    pub load_agent: bool,
+    pub load_agent_name: Option<String>,
+    pub del_agent_name: Option<String>,
 }
 
 impl Signals {
@@ -144,6 +148,10 @@ impl Signals {
             load_sim: false,
             del_sim_name: None,
             load_sim_name: None,
+            load_agent: false,
+            del_agent_name: None,
+            load_agent_name: None,
+            save_agent: false,
         }
     }
 

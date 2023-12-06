@@ -246,6 +246,54 @@ impl UISystem {
         }
     }
 
+    fn build_load_agent_window(&mut self, egui_ctx: &Context) {
+        if self.state.load_agent {
+            let mut signals = get_signals();
+            let mut saved_agents: Vec<String> = vec![];
+            let path = Path::new("saves\\agents\\");
+            let agents =  fs::read_dir(path).unwrap();
+            for entry in agents {
+                if let Ok(agent_dir) = entry {
+                    let path = agent_dir.path();
+                    if path.is_file() {
+                        let agent_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                        saved_agents.push(agent_name);
+                    }
+                }
+            }
+            Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
+                for agent in saved_agents {
+                    ui.vertical_centered(|row| {
+                        row.columns(2, |columns| {
+                            columns[0].label(RichText::new(agent.to_owned()).strong().color(Color32::WHITE));
+                            columns[1].horizontal(|col| {
+                                    if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
+                                        signals.load_agent_name = Some(String::from(&agent));
+                                        set_global_signals(signals.clone());
+                                        self.state.load_agent = false;
+                                    }
+                                    col.separator();
+                                    if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
+                                        signals.del_agent_name = Some(String::from(&agent));
+                                        set_global_signals(signals.clone());
+                                        self.state.load_agent = false;
+                                    }
+                            })
+                        })
+                    });
+                    ui.add_space(4.0);
+                }
+                ui.add_space(16.0);
+                
+                ui.vertical_centered(|ctn| {
+                    if ctn.button(RichText::new("CLOSE").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.load_agent = false;
+                    }
+                })
+            });
+        }
+    }
+
     fn build_load_sim_window(&mut self, egui_ctx: &Context) {
         if self.state.load_sim {
             let mut signals = get_signals();

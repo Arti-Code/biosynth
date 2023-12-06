@@ -18,6 +18,7 @@ use serde::{Serialize, Deserialize};
 use noise::{*, utils::{NoiseMap, PlaneMapBuilder, NoiseMapBuilder}};
 
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Cell {
     alt: u8,
 }
@@ -47,6 +48,8 @@ impl Cell {
 
 }
 
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Terrain {
     pub cells: Vec<Vec<Cell>>,
     width: usize,
@@ -74,6 +77,16 @@ impl Terrain {
             cells.push(row);
         }
         Self {cells, width: col_num, height: row_num, cell_size: s, occupied: vec![]}
+    }
+
+    pub fn from_serialized_terrain(serialized: &SerializedTerrain) -> Self {
+        Self { 
+            cells: serialized.cells.to_vec(), 
+            width: serialized.columns_num,
+            height: serialized.rows_num,
+            cell_size: serialized.cell_size,
+            occupied: vec![],
+        }
     }
 
     pub fn update(&mut self) {
@@ -135,6 +148,29 @@ impl Terrain {
         PlaneMapBuilder::<_, 2>::new(&basic_multi)
             .set_size(w, h).set_x_bounds(-5.0, 5.0)
             .set_y_bounds(-5.0, 5.0).build()
+    }
+
+}
+
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SerializedTerrain {
+    cell_size: f32,
+    columns_num: usize,
+    rows_num: usize,
+    cells: Vec<Vec<Cell>>,
+}
+
+impl SerializedTerrain {
+
+    pub fn new(terrain: &Terrain) -> Self {
+        let mut serialized_terrain = SerializedTerrain {
+            cell_size: terrain.cell_size,
+            columns_num: terrain.width,
+            rows_num: terrain.height,
+            cells: terrain.cells.to_vec(),
+        };
+        return serialized_terrain;
     }
 
 }

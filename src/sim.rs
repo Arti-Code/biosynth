@@ -186,7 +186,7 @@ impl Simulation {
     }
 
     pub fn update(&mut self) {
-        self.signals_check();
+        self.check_signals();
         self.update_sim_state();
         self.check_agents_num();
         self.update_res();
@@ -366,7 +366,7 @@ impl Simulation {
         }
     }
 
-    pub fn signals_check(&mut self) {
+    pub fn check_signals(&mut self) {
         let mut sign = get_signals();
         let mut sign2 = sign.clone();
         if self.signals.spawn_agent {
@@ -480,6 +480,7 @@ impl Simulation {
                         self.simulation_name = sim_state.simulation_name.to_owned();
                         self.sim_state.sim_name = sim_state.simulation_name.to_owned();
                         self.world_size = sim_state.world_size.to_vec2();
+                        self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
                         let mut settings = sim_state.settings.to_owned();
                         settings.world_h = sim_state.world_size.y as i32;
                         settings.world_w = sim_state.world_size.x as i32;
@@ -497,17 +498,17 @@ impl Simulation {
                 let s = serde_json::to_string_pretty(&agent_sketch);
                 match s {
                     Ok(js) => {
-                        let path_str = format!("saves/agents/agent{}.json", agent.key);
+                        let path_str = format!("saves/agents/{}-{}.json", agent.specie.to_uppercase(), agent.generation);
                         let path = Path::new(&path_str);
                         match fs::write(path, js.clone()) {
                             Ok(_) => {},
-                            Err(_) => println!("ERROR: not saved"),
+                            Err(_) => println!("ERROR: can't save agent"),
                         }
                     },
-                    Err(_) => {},
+                    Err(_) => println!("ERROR: can't serialize agent sketch"),
                 }
             },
-            None => {},
+            None => println!("WARN: agent not selected"),
         }
     }
 
@@ -625,6 +626,7 @@ pub struct SimulationSave {
     pub agents: Vec<AgentSketch>,
     pub ranking: Vec<AgentSketch>,
     settings: Settings,
+    terrain: SerializedTerrain,
 }
 
 impl SimulationSave {
@@ -649,6 +651,8 @@ impl SimulationSave {
             ranking: ranking.to_owned(),
             last_autosave: sim.sim_state.sim_time.round(),
             settings: settings.to_owned(),
+            terrain: SerializedTerrain::new(&sim.terrain),
+
         }
     }
 

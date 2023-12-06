@@ -67,7 +67,7 @@ async fn main() {
             sim.update();
             sim.draw();
         } else {
-            sim.signals_check();
+            sim.check_signals();
         }
         sim.draw_ui();
         next_frame().await;

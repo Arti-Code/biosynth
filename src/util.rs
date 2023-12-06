@@ -1,8 +1,13 @@
 #![allow(unused)]
 
+use std::error::Error;
 use std::f32::consts::PI;
+use std::{fs, io};
+use std::path::Path;
 use std::time::{UNIX_EPOCH, SystemTime};
+use crate::agent::AgentSketch;
 use crate::globals::*;
+use crate::sim::SimulationSave;
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
@@ -259,6 +264,7 @@ pub struct UIState {
     pub ranking: bool,
     pub set_agent: bool,
     pub load_sim: bool,
+    pub load_agent: bool,
     pub attributes: bool,
 }
 
@@ -283,6 +289,7 @@ impl UIState {
             ranking: false,
             set_agent: false,
             load_sim: false,
+            load_agent: false,
             attributes: false,
         }
     }
@@ -371,4 +378,42 @@ impl MyIcon {
             big: l,
         }
     }
+}
+
+pub fn saved_sim_to_sketch(path: &Path) -> Option<SimulationSave> {
+    let sim = match fs::read_to_string(path) {
+        Err(_) => { None },
+        Ok(save) => {
+            match serde_json::from_str::<SimulationSave>(&save) {
+                Err(_) => {
+                    println!("error during deserialization of saved sim...");
+                    return None;
+                },
+                Ok(sim_state) => {
+                    Some(sim_state)
+                },
+            }
+        },
+    };
+    return sim;
+}
+
+pub fn saved_agent_to_agent_sketch(file_name: &str) -> Option<AgentSketch> {
+    let path_str = format!("saves/agents/{}.json", file_name);
+    let path = Path::new(&path_str);
+    let agent = match fs::read_to_string(path) {
+        Err(_) => { None },
+        Ok(save) => {
+            match serde_json::from_str::<AgentSketch>(&save) {
+                Err(_) => {
+                    println!("error during deserialization of agent...");
+                    return None;
+                },
+                Ok(agent_state) => {
+                    Some(agent_state)
+                },
+            }
+        },
+    };
+    return agent;
 }

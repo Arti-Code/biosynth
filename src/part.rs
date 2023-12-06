@@ -1,112 +1,79 @@
 #![allow(unused)]
 
+use std::f32::consts::PI;
+
 use macroquad::prelude::*;
 use rapier2d::prelude::*;
 use crate::physics::*;
 
 
-trait Ability {
 
-    fn new(offset: Vec2) -> Self;
-    fn update(&mut self, physics: &mut Physics);
-    fn draw(&self, position: Vec2);
-    fn get_input_num(&self) -> usize;
-    fn set_input_nodes(&mut self, node_keys: Vec<u64>);
-    fn get_output_num(&self) -> usize;
-    fn set_output_nodes(&mut self, node_keys: Vec<u64>);
-    fn situation(&self) -> Vec<(u64, f32)>;
-    fn reaction(&mut self, values: Vec<(u64, f32)>);
-    fn get_eng_cost(&self) -> f32;
+pub trait AgentPart {
+
+    //fn create_part(offset: Vec2);
+    fn update_part(&mut self);
+    fn draw_part(&self, position: Vec2, rotation: f32);
 }
 
+impl Clone for Box<dyn AgentPart> {
+    fn clone(&self) -> Box<dyn AgentPart> {
+        let agent_part = self.to_owned();
+        let s = agent_part;
+        s
+        //Box::new(s)
+    }
 
-struct Movent {
-    offset: Vec2,
-    velocity: f32,
-    rotation: f32,
-    eng_cost: f32,
-    inputs: Vec<(u64, f32)>,
-    outputs: Vec<(u64, f32)>,
+    fn clone_from(&mut self, source: &Self) {
+        *self = source.clone()
+    }
 }
 
-
-impl Ability for Movent {
-    
-    fn new(offset: Vec2) -> Self {
-        Self { offset: offset, velocity: 0.0, rotation: 0.0, eng_cost: 0.0, inputs: vec![], outputs: vec![] }
-    }
-
-    fn draw(&self, position: Vec2) {
-        todo!()
-    }
-
-    fn update(&mut self, physics: &mut Physics) {
-        todo!()
-    }
-
-    fn get_eng_cost(&self) -> f32 {
-        todo!()
-    }
-
-    fn get_input_num(&self) -> usize {
-        todo!()
-    }
-
-    fn get_output_num(&self) -> usize {
-        todo!()
-    }
-
-    fn reaction(&mut self, values: Vec<(u64, f32)>) {
-        todo!()
-    }
-
-    fn set_input_nodes(&mut self, node_keys: Vec<u64>) {
-        todo!()
-    }
-
-    fn set_output_nodes(&mut self, node_keys: Vec<u64>) {
-        todo!()
-    }
-
-    fn situation(&self) -> Vec<(u64, f32)> {
-        todo!()
-    }
-
-    
-
-}
-
-
-/* pub enum PartShapeType {
-    Circle,
-    Triangle,
-    Hexagon,
-    Box,
-}
-
-pub struct Part {
-    rigid_handle: RigidBodyHandle,
-    collider_handle: ColliderHandle,
-    pub shape: SharedShape,
-    pub size: f32,
+#[derive(Clone)]
+pub struct Tail {
+    phase: f32,
+    color: Color,
     pub pos: Vec2,
+    rot: f32,
+    pub length: f32,
+    pub run: bool,
+    turn: f32,
 }
 
-impl Part {
-    pub fn new_circle(position: Vec2, radius: f32, rigid_handle: RigidBodyHandle, physics_world: &mut Physics, properties: PhysicsProperities) -> Self {
-        let shape = SharedShape::ball(radius);
-        let collider_handle = physics_world.add_ball_collider(rigid_handle, radius, properties.density, properties.restitution, properties.friction);
-        Self {
-            rigid_handle,
-            collider_handle,
-            shape,
-            size: radius,
-            pos: position,
-        }
+impl Tail {
+    pub fn new(pos: Vec2, length: f32, color: Color) -> Self {
+        Self { phase: 0.0, color, pos, rot: 0.0, length: 25.0, run: true, turn: 1.0 }
     }
 
-    pub fn draw(&self, base_pos: Vec2) {
-        todo!();
+    pub fn draw(&self, position: Vec2, rotation: f32) {
+        self.draw_part(position, rotation);
     }
 
-} */
+    pub fn update(&mut self, physics: &mut Physics) {
+        self.update_part()
+    }
+
+}
+
+impl AgentPart for Tail {
+    
+    //fn create_part(offset: Vec2) {
+        //Self { phase: 0.0, color, pos, rot: 0.0, length: 25.0, run: true }
+    //}
+
+    fn draw_part(&self, position: Vec2, rotation: f32) {
+        let rot = (rotation + PI + self.phase)%PI;
+        let pos0 = position + self.pos;
+        let dir = Vec2::from_angle(rot);
+        let l = self.length;
+        let pos1 = pos0 + l*dir;
+        draw_line(pos0.x, pos0.y, pos1.x, pos1.y, 2.0, self.color);
+    }
+
+    fn update_part(&mut self) {
+        self.phase += get_frame_time() * self.turn;
+        if self.phase >= PI/2.0 { self.turn = -1.0; }
+        else if self.phase <= -PI/2.0 { self.turn = 1.0; }
+        //self.phase = self.phase%(2.0*PI);
+    }
+
+}
