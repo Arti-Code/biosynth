@@ -15,7 +15,7 @@ mod globals;
 mod resource;
 mod neural;
 mod terrain;
-
+//mod agent2;
 
 use crate::sim::*;
 use crate::globals::*;
@@ -54,9 +54,8 @@ async fn main() {
     setup();
     let seed = generate_seed();
     rand::srand(seed);
-    let font = load_ttf_font("assets/fonts/firacode.ttf")
-        .await
-        .expect("can't load font resource!");
+    //let font = load_ttf_font("assets/fonts/firacode.ttf").await;
+    let font = Font::default();
     let mut sim = Simulation::new(font.clone());
     sim.ui.load_textures();
 

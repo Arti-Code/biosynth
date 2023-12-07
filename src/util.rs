@@ -266,6 +266,7 @@ pub struct UIState {
     pub load_sim: bool,
     pub load_agent: bool,
     pub attributes: bool,
+    pub main_menu: bool,
 }
 
 impl UIState {
@@ -278,7 +279,7 @@ impl UIState {
             mouse: false,
             quit: false,
             agents_num: 0,
-            new_sim: true,
+            new_sim: false,
             credits: false,
             docs: false,
             net: false,
@@ -291,6 +292,7 @@ impl UIState {
             load_sim: false,
             load_agent: false,
             attributes: false,
+            main_menu: true,
         }
     }
 }

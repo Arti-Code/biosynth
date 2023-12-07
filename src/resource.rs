@@ -26,7 +26,7 @@ impl Resource {
         //let key = rand::gen_range(u64::MIN, u64::MAX);
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         //let color = random_color();
-        let size = rand::gen_range(8, 16) as f32;
+        let size = rand::gen_range(8, 12) as f32;
         let shape = SharedShape::ball(size);
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::high_inert(), InteractionGroups::new(Group::GROUP_2, Group::GROUP_1 | Group::GROUP_2));
         Self {

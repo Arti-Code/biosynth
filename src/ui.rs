@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 use egui_macroquad;
 use egui_macroquad::egui::*;
-use egui_macroquad::egui::widgets::Slider;
+use egui_macroquad::egui::widgets::{Slider, Button};
 use egui_macroquad::egui::Checkbox;
 use egui_macroquad::egui::Vec2 as UIVec2;
 use egui_macroquad::egui::FontFamily::Proportional;
@@ -94,6 +94,7 @@ impl UISystem {
             self.build_agent_settings_window(egui_ctx, signals);
             self.build_ranking_window(egui_ctx, ranking);
             self.build_load_sim_window(egui_ctx);
+            self.build_main_menu_win(egui_ctx);
         });
     }
 
@@ -211,6 +212,54 @@ impl UISystem {
             });
         });
     }
+
+    fn build_main_menu_win(&mut self, egui_ctx: &Context) {
+        if self.state.main_menu {
+            Window::new("EVOLVE 2").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
+                
+                //let mut font = FontId::default();
+                //font.size = 20.0;
+                ui.vertical_centered(|row| {
+                    row.heading(RichText::new("MAIN MENU").strong());
+                });
+                ui.add_space(16.0);
+                ui.vertical_centered(|row| {
+                    row.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::GREEN);
+                    row.style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::GREEN);
+                    row.style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_GREEN;
+                    row.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_GREEN;
+                    if row.add(Button::new(RichText::new("NEW SIMULATION").strong()).min_size(UIVec2::new(160., 50.))).clicked() {
+                        self.state.main_menu = false;
+                        self.state.new_sim = true;
+                    }
+                });
+                ui.add_space(16.0);
+                ui.vertical_centered(|row| {
+                    row.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::BLUE);
+                    row.style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::BLUE);
+                    row.style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_BLUE;
+                    row.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_BLUE;
+                    if row.add(Button::new(RichText::new("LOAD SIMULATION").strong()).min_size(UIVec2::new(160., 50.))).clicked() {
+                        self.state.main_menu = false;
+                        self.state.load_sim = true;
+                    }
+                });
+                ui.add_space(16.0);
+                ui.vertical_centered(|row| {
+                    row.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::RED);
+                    row.style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::RED);
+                    row.style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_RED;
+                    row.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_RED;
+                    if row.add(Button::new(RichText::new("QUIT").strong()).min_size(UIVec2::new(160., 50.))).clicked() {
+                        self.state.main_menu = false;
+                        self.state.quit = true;
+                    }
+                });
+                ui.add_space(4.0);
+            });
+        }
+    }
+
 
     fn build_monit_window(&self, egui_ctx: &Context, sim_state: &SimState) {
         if self.state.performance {
@@ -673,7 +722,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut agent_rotate = settings.agent_rotate;
                 column[0].label(RichText::new("AGILITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut agent_rotate, 0.0..=5.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut agent_rotate, 0.0..=50.0).step_by(1.0)).changed() {
                     settings.agent_rotate = agent_rotate;
                     signals.new_settings = true;
                 }

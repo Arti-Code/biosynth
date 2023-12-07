@@ -20,6 +20,7 @@ use serde::{Serialize, Deserialize};
 use serde_json;
 use std::fs;
 use std::path::Path;
+use bincode;
 
 
 
@@ -122,7 +123,21 @@ impl Simulation {
     }
 
     fn update_agents(&mut self) {
+        let cloned_agents = self.agents.agents.clone();
         for (_, agent) in self.agents.get_iter_mut() {
+            if agent.enemy.is_some() {
+                let enemy = cloned_agents.get(&agent.enemy.unwrap());
+                match enemy {
+                    None => {},
+                    Some(enemy) => {
+                        if agent.specie == enemy.specie {
+                            agent.enemy_family = Some(true);
+                        } else {
+                            agent.enemy_family = Some(false);
+                        }
+                    }
+                }
+            }
             if !agent.update(&mut self.physics) {
                 let sketch = agent.get_sketch();
                 self.ranking.push(sketch);
@@ -213,21 +228,29 @@ impl Simulation {
                     let power1 = pow1 + pow1*random_unit();
                     let power2 = pow2 + pow2*random_unit();
                     if power1 > power2 {
-                        let mut dmg = (power1 - power2) * dt * settings.damage;
-                        if hits.contains_key(id) {
-                            let (old_dmg, _) = *hits.get_mut(id).unwrap();
-                            dmg = dmg + old_dmg;
-                            hits.insert(*id, (dmg, *tg));
-                        } else {
-                            hits.insert(*id, (dmg, *tg));
-                        }
-                        if hits.contains_key(tg) {
-                            let (old_dmg, _) = *hits.get_mut(tg).unwrap();
-                            let hit = -dmg + old_dmg;
-                            hits.insert(*tg, (hit, *id));
-                        } else {
-                            let hit = -dmg;
-                            hits.insert(*tg, (hit, *id));
+                        let mut a = (agent.power as f32 + agent.size)/2.0;
+                        a = a + a*random_unit();
+                        let mut d = (target.shell as f32 + target.size)/2.0;
+                        d = d + d*random_unit();
+                        let mut dmg = (a - d) * dt * settings.damage;
+                        //let def = 1.3-(target.shell as f32/10.0);
+                        //dmg = dmg * def;
+                        if dmg > 0.0 {
+                            if hits.contains_key(id) {
+                                let (old_dmg, _) = *hits.get_mut(id).unwrap();
+                                dmg = dmg + old_dmg;
+                                hits.insert(*id, (dmg, *tg));
+                            } else {
+                                hits.insert(*id, (dmg, *tg));
+                            }
+                            if hits.contains_key(tg) {
+                                let (old_dmg, _) = *hits.get_mut(tg).unwrap();
+                                let hit = -dmg + old_dmg;
+                                hits.insert(*tg, (hit, *id));
+                            } else {
+                                let hit = -dmg;
+                                hits.insert(*tg, (hit, *id));
+                            }
                         }
                     }
                 }
@@ -292,9 +315,13 @@ impl Simulation {
                     agent.points += eat*0.1;
                 }
             } else {
-                let source = self.resources.resources.get_mut(id).unwrap();
-                let damage = *dmg;
-                source.drain_eng(damage.abs());
+                match self.resources.resources.get_mut(id) {
+                    None => println!("[WARN]: resource not exist"),
+                    Some(source) => {
+                        let damage = *dmg;
+                        source.drain_eng(damage.abs());
+                    },
+                }
             }
         }
     }
@@ -421,7 +448,28 @@ impl Simulation {
     fn save_sim(&self) {
         let data = SimulationSave::from_sim(self);
         let s = serde_json::to_string_pretty(&data);
+        let s2 = serde_json::to_string(&data);
+
         let p = format!("saves/simulations/{}/", self.simulation_name);
+        match s2 {
+            Ok(serial) => {
+                let encoded = bincode::serialize(&serial);
+                match encoded {
+                    Err(_e) => println!("Error encoding simulation"),
+                    Ok(encoded) => {
+                        let mut path = Path::new(&p).join(format!("{}.sim", self.simulation_name));
+                        match fs::write(path, &encoded) {
+                            Ok(_) => {},
+                            Err(_) => {
+                                println!("Could not write bin file");
+                            },
+                        }
+
+                    }
+                }
+            },
+            Err(_) => {},
+        }
         match s {
             Ok(save) => {
                 match fs::DirBuilder::new().recursive(true).create(p) {
@@ -586,7 +634,7 @@ impl Simulation {
         let agent_sketch = self.ranking.get_mut(r).unwrap();
         let s = agent_sketch.to_owned();
         let agent = Agent::from_sketch(s, &mut self.physics);
-        agent_sketch.points -= agent_sketch.points*0.4;
+        agent_sketch.points -= agent_sketch.points*0.5;
         agent_sketch.points = agent_sketch.points.round();
         self.agents.add_agent(agent);
     }

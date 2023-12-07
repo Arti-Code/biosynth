@@ -109,7 +109,8 @@ impl Terrain {
     pub fn draw(&self) {
         for r in 0..self.cells.len() {
             for c in 0..self.cells[r].len() {
-                let color = self.get_color(c, r);
+                let mut color = self.get_color(c, r);
+                color.a = 0.35;
                 let x0 = c as f32 * self.cell_size;
                 let y0 = r as f32 * self.cell_size;
                 draw_rectangle(x0, y0, self.cell_size, self.cell_size, color);
