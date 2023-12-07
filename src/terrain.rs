@@ -106,7 +106,7 @@ impl Terrain {
         return self.cells[y][x].get_color();
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, show_occupied: bool) {
         for r in 0..self.cells.len() {
             for c in 0..self.cells[r].len() {
                 let mut color = self.get_color(c, r);
@@ -116,10 +116,12 @@ impl Terrain {
                 draw_rectangle(x0, y0, self.cell_size, self.cell_size, color);
             }
         }
-        for occupied in self.occupied.iter() {
-            let x0 = occupied[0] as f32 * self.cell_size;
-            let y0 = occupied[1] as f32 * self.cell_size;
-            draw_rectangle_lines(x0, y0, self.cell_size, self.cell_size, 2.0, color_u8!(255, 0, 0, 255));
+        if show_occupied {
+            for occupied in self.occupied.iter() {
+                let x0 = occupied[0] as f32 * self.cell_size;
+                let y0 = occupied[1] as f32 * self.cell_size;
+                draw_rectangle_lines(x0, y0, self.cell_size, self.cell_size, 2.0, color_u8!(255, 0, 0, 255));
+            }
         }
     }
 

@@ -338,7 +338,8 @@ impl Simulation {
     }
 
     pub fn draw_terrain(&self) {
-        self.terrain.draw();
+        let settings = get_settings();
+        self.terrain.draw(settings.show_cells);
     }
 
     fn draw_res(&self) {

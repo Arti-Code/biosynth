@@ -267,6 +267,7 @@ pub struct UIState {
     pub load_agent: bool,
     pub attributes: bool,
     pub main_menu: bool,
+    pub energy_cost: bool,
 }
 
 impl UIState {
@@ -293,6 +294,7 @@ impl UIState {
             load_agent: false,
             attributes: false,
             main_menu: true,
+            energy_cost: false,
         }
     }
 }

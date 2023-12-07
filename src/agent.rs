@@ -106,6 +106,19 @@ impl NeuroMap {
 
 
 #[derive(Clone)]
+pub struct EnergyCost {
+    pub basic: f32,
+    pub movement: f32,
+    pub attack: f32,
+}
+
+impl Default for EnergyCost {
+    fn default() -> Self {
+        EnergyCost{basic: 0., movement: 0., attack: 0.}
+    }
+}
+
+#[derive(Clone)]
 pub struct Agent {
     pub key: u64,
     pub pos: Vec2,
@@ -147,6 +160,7 @@ pub struct Agent {
     pub speed: i32,
     pub shell: i32,
     parts: Vec<Box<dyn AgentPart>>,
+    pub eng_cost: EnergyCost,
 }
 
 
@@ -215,6 +229,7 @@ impl Agent {
             power: gen_range(0, 10),
             shell: gen_range(0, 10),
             parts,
+            eng_cost: EnergyCost::default(),
         }
     }
 
@@ -284,6 +299,7 @@ impl Agent {
             speed: Self::mutate_one(sketch.speed),
             shell: Self::mutate_one(sketch.shell),
             parts,
+            eng_cost: EnergyCost::default(),
         }
     }
 
@@ -713,15 +729,18 @@ impl Agent {
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
-        let basic_loss = (self.power as f32 + self.shell as f32) * base_cost * (self.size*0.2);
-        let mut move_loss = self.vel * (self.size + self.speed as f32) * move_cost;
+        let basic_loss = (self.shell as f32 + self.size) * base_cost;
+        let mut move_loss = self.vel * self.speed as f32 * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
         let attack_loss = match self.attacking {
-            true => attack_cost * self.size,
+            true => attack_cost * self.power as f32,
             false => 0.0,
         };
+        self.eng_cost.basic = basic_loss;
+        self.eng_cost.movement = move_loss;
+        self.eng_cost.attack = attack_loss;
         let loss = (basic_loss + move_loss + attack_loss) * dt;
         if self.eng > 0.0 {
             self.eng -= loss;
@@ -879,6 +898,7 @@ impl Agent {
             speed,
             shell,
             parts,
+            eng_cost: EnergyCost::default(),
         }
     }
 
