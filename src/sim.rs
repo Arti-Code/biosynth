@@ -283,8 +283,9 @@ impl Simulation {
         let dt = get_frame_time();
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
-            let attacks = agent.eat();
-            for tg in attacks.iter() {
+            if agent.eating && !agent.attacking {
+                let attacks = agent.eat();
+                for tg in attacks.iter() {
                 if let Some(_target) = self.resources.resources.get(tg) {
                     let power1 = agent.size + agent.size*random_unit();
                         let mut food = settings.eat_to_eng * power1 * dt;
@@ -303,6 +304,7 @@ impl Simulation {
                         } else {
                             hits.insert(*tg, bite);
                         }
+                    }
                 }
             }
         }
@@ -450,8 +452,8 @@ impl Simulation {
         let data = SimulationSave::from_sim(self);
         let s = serde_json::to_string_pretty(&data);
         let s2 = serde_json::to_string(&data);
-
         let p = format!("saves/simulations/{}/", self.simulation_name);
+        //let de = bincode::encode();
         match s2 {
             Ok(serial) => {
                 let encoded = bincode::serialize(&serial);

@@ -189,20 +189,6 @@ impl Node {
         return self.label.to_owned();
     }
 
-/*     pub fn draw(&self) {
-        let (color0, color) = self.get_colors();
-        let r = 3.0;
-        draw_circle(self.pos.x, self.pos.y, r, BLACK);
-        draw_circle(self.pos.x, self.pos.y, r, color);
-        draw_circle_lines(self.pos.x, self.pos.y, r, 3.0, color0);
-        if self.selected {
-            let mark = r + r*(PI*t).sin()*1.5;
-            draw_circle_lines(self.pos.x, self.pos.y, mark, 2.0, YELLOW);
-        }
-        let value = format!("{}", (self.val*100.0).round()/100.0);
-        draw_text(&value, self.pos.x-8.0, self.pos.y+18.0, 18.0, WHITE);
-    } */
-
     pub fn send_impulse(&self) -> f32 {
         return self.val;
     }
@@ -255,9 +241,7 @@ impl Link {
         let s = clamp(self.signal, 0.0, 1.0);
         let (color0, color1) = self.get_colors();
         let (p0, p1, _pt) = self.get_coords(nodes, 1.0);
-        //let flow2 = l*(timer/2.0)*dir*0.96;
         draw_line(p0.x, p0.y, p1.x, p1.y, 1.0+4.0*w.abs(), color1);
-        //draw_line(p0.x, p0.y, pt.x, pt.y, 2.0+4.0*s.abs(), color1);
         
     }
 
@@ -463,11 +447,6 @@ impl Network {
                         }
                     },
                     _ => {
-                        /* if id != id2 {
-                            if rand::gen_range(0.0, 1.0) <= links {
-                                self.add_link(id, id2)
-                            }
-                        } */
                     },
                 }  
             }
@@ -476,8 +455,6 @@ impl Network {
         
     pub fn add_link(&mut self, node_from: u64, node_to: u64) {
         let link = Link::new(node_from, node_to);
-        //let node = self.nodes.get_mut(&node_to).unwrap();
-        //node.add_link_to(link.id);
         self.links.insert(link.id, link);
     }
 
@@ -486,7 +463,6 @@ impl Network {
         let id = node.id;
         self.nodes.insert(id, node);
         return id;
-        //println!("[NODE CREATE] id: {}", id);
     }
 
     pub fn add_node_with_id(&mut self, id: u64, position: Vec2) -> u64 {
@@ -495,24 +471,6 @@ impl Network {
         self.nodes.insert(id, node);
         return id;
     }
-
-/*     pub fn draw(&self) {
-        //let t = self.timer/self.duration;
-        for (_, link) in self.links.iter() {
-            link.draw(&self.nodes);
-        }
-        for (_, node) in self.nodes.iter() {
-            node.draw();
-        }
-    } */
-
-/*     pub fn update(&mut self) {
-        self.timer += get_frame_time();
-        if self.timer > self.duration {
-            self.timer -= self.duration;
-            self.calc();
-        }
-    } */
 
     pub fn calc(&mut self) {
         for (_id, link) in self.links.iter_mut() {
@@ -638,8 +596,8 @@ impl Network {
     }
 
     fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize, usize) {
-        let (dn, dl) = self.del_random_node(mutation_rate/4.0);
-        let (an, al) = self.add_random_node(mutation_rate/8.0);
+        let (dn, dl) = self.del_random_node(mutation_rate/1.5);
+        let (an, al) = self.add_random_node(mutation_rate/3.0);
         let b = self.mutate_nodes_bias(mutation_rate);
         return (an, dn, al, dl, b);
     }
@@ -674,14 +632,12 @@ impl Network {
     fn add_random_node(&mut self, mutation_rate: f32) -> (usize, usize) {
         let link_keys: Vec<u64> = self.links.keys().copied().collect();
         let num = link_keys.len();
-        //let n0: u64; let n1: u64; let nx: u64; let mut link: &Link;
         if random_unit_unsigned() <= mutation_rate {
             let rand_key = rand::gen_range(0, num);
             let link_key = link_keys[rand_key];
             let link = self.links.get_mut(&link_key).unwrap();
             let n0 = link.node_from;
             let n1 = link.node_to;
-
             let node0 = self.nodes.get(&n0).unwrap();
             let pos0 = node0.pos;
             let node1 = self.nodes.get(&n1).unwrap();
@@ -874,11 +830,9 @@ impl NetworkSketch {
         let mut net = Network { 
             nodes: nodes.to_owned(), 
             links: links.to_owned(), 
-            //timer: random_unit().abs(), 
             margins: self.margins.to_owned(), 
             input_keys: vec![], 
             output_keys: vec![], 
-            //duration: self.duration 
         };
 
         let (mut i, _, mut o) = net.get_node_keys_by_type();

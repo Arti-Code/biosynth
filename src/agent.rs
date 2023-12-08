@@ -153,12 +153,14 @@ pub struct Agent {
     pub kills: usize,
     pub specie: String,
     pub attacking: bool,
+    pub eating: bool,
     pub points: f32,
     pub pain: bool,
     pub run: bool,
     pub power: i32,
     pub speed: i32,
     pub shell: i32,
+    pub mutations: i32,
     parts: Vec<Box<dyn AgentPart>>,
     pub eng_cost: EnergyCost,
 }
@@ -177,7 +179,7 @@ impl Agent {
         let color = random_color();
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI"];
-        let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "RUN"];
+        let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN"];
         network.build(inp_labs.len(), inp_labs, settings.hidden_nodes_num, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
@@ -222,12 +224,14 @@ impl Agent {
             kills: 0,
             specie: create_name(4),
             attacking: false,
+            eating: false,
             points: 0.0,
             pain: false,
             run: false,
             speed: gen_range(0, 10),
             power: gen_range(0, 10),
             shell: gen_range(0, 10),
+            mutations: gen_range(0, 10),
             parts,
             eng_cost: EnergyCost::default(),
         }
@@ -252,6 +256,7 @@ impl Agent {
         };
         let gen = sketch.generation + 1;
         let mut network = sketch.network.from_sketch();
+        let m = settings.mutations + settings.mutations * ((sketch.mutations as f32 - 5.0)/10.0);
         network.mutate(settings.mutations);
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
@@ -292,12 +297,14 @@ impl Agent {
             kills: 0,
             specie: sketch.specie.to_owned(),
             attacking: false,
+            eating: false,
             points: 0.0,
             pain: false,
             run: false,
             power: Self::mutate_one(sketch.power),
             speed: Self::mutate_one(sketch.speed),
             shell: Self::mutate_one(sketch.shell),
+            mutations: Self::mutate_one(sketch.mutations),
             parts,
             eng_cost: EnergyCost::default(),
         }
@@ -499,15 +506,22 @@ impl Agent {
             self.vel = 0.0;
         }
         
-        if self.neuro_map.get_action("RUN") > 0.75 {
+        if self.neuro_map.get_action("RUN") >= 0.9 {
             self.run = true;
         }
 
         self.ang_vel = -self.neuro_map.get_action("LFT")+self.neuro_map.get_action("RGT");
-        if self.neuro_map.get_action("ATK") >= 0.5 {
+        
+        if self.neuro_map.get_action("ATK") >= 0.75 {
             self.attacking = true;
         } else {
             self.attacking = false;
+        }
+
+        if self.neuro_map.get_action("EAT") >= 0.6 {
+            self.eating = true;
+        } else {
+            self.eating = false;
         }
     }
 
@@ -522,20 +536,16 @@ impl Agent {
         let mut yaw_color = LIGHTGRAY;
         if self.attacking {
             yaw_color = RED;
+        } else if self.eating {
+            yaw_color = BLUE;
         }
         draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
         draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
     }
 
-/*     fn draw_circle(&self) {
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
-        draw_circle_lines(x0, y0, self.size, 4.0, self.color);
-        //self.draw_front();
-    } */
-
     fn draw_eyes(&self) {
-        let mut color = SKYBLUE;
+        let mut color = LIGHTGRAY;
+        if self.eating { color = BLUE; }
         if self.attacking { color = RED; }
         let eye_l = Vec2::from_angle(self.rot - PI / 3.0) * self.size*0.66;
         let eye_r = Vec2::from_angle(self.rot + PI / 3.0) * self.size*0.66;
@@ -729,7 +739,10 @@ impl Agent {
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
-        let basic_loss = (self.shell as f32 + self.size) * base_cost;
+        let mut basic_loss = (self.shell as f32 + self.size) * base_cost;
+        if self.eating {
+            basic_loss += 1.0 * base_cost;
+        }
         let mut move_loss = self.vel * self.speed as f32 * move_cost;
         if self.run {
             move_loss *= 2.0;
@@ -841,6 +854,7 @@ impl Agent {
         let mut power = Self::mutate_one(self.power);
         let mut speed = Self::mutate_one(self.speed);
         let mut shell = Self::mutate_one(self.shell);
+        let mut mutations = Self::mutate_one(self.mutations);
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
@@ -891,12 +905,14 @@ impl Agent {
             kills: 0,
             specie: self.specie.to_owned(),
             attacking: false,
+            eating: false,
             points: 0.0,
             pain: false,
             run: false,
             power,
             speed,
             shell,
+            mutations,
             parts,
             eng_cost: EnergyCost::default(),
         }
@@ -919,6 +935,7 @@ impl Agent {
             power: self.power,
             speed: self.speed,
             shell: self.shell,
+            mutations: self.mutations,
         }
     }
 }
@@ -954,5 +971,10 @@ pub struct AgentSketch {
     pub power: i32,
     pub speed: i32,
     pub shell: i32,
+    #[serde(default = "default_mutation")]
+    pub mutations: i32,
 }
 
+pub fn default_mutation() -> i32 {
+    return gen_range(0, 10);
+}

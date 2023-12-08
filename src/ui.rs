@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-use std::fs;
-use std::path::Path;
+use std::fs::{self, File};
+use std::path::{Path, PathBuf};
 use egui_macroquad;
 use egui_macroquad::egui::*;
 use egui_macroquad::egui::widgets::{Slider, Button};
@@ -96,6 +96,7 @@ impl UISystem {
             self.build_ranking_window(egui_ctx, ranking);
             self.build_load_sim_window(egui_ctx);
             self.build_main_menu_win(egui_ctx);
+            self.build_load_agent_window(egui_ctx);
         });
     }
 
@@ -125,8 +126,8 @@ impl UISystem {
                     if ui.button(RichText::new("Save Simulation").weak().color(Color32::GREEN)).clicked() {
                         signals.save_sim = true;
                     }
-                    if ui.button(RichText::new("Load Agent").weak().color(Color32::from_gray(100))).clicked() {
-
+                    if ui.button(RichText::new("Load Agent").weak().color(Color32::BLUE)).clicked() {
+                        self.state.load_agent = true;
                     }
                     if ui.button(RichText::new("Save Agent").strong().color(Color32::BLUE),).clicked() {
                         //let mut signals = mod_signals();
@@ -314,20 +315,45 @@ impl UISystem {
                     }
                 }
             }
-            Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
-                for agent in saved_agents {
+            let mut list_of_files: Vec<PathBuf> = vec![];
+            for agent_name in saved_agents.iter() {
+                let p = format!("saves\\agents\\{}", &agent_name);
+                let mut path_to_agent = Path::new(&p);
+                list_of_files.push(path_to_agent.to_path_buf());
+            }
+
+            let mut sketches: Vec<AgentSketch> = vec![];
+            for f in list_of_files {
+                match fs::read_to_string(f) {
+                    Ok(file) => {
+                        match serde_json::from_str::<AgentSketch>(&file) {
+                            Ok(sketch) => {
+                                sketches.push(sketch.clone());
+                            },
+                            Err(_) => {},
+                        }
+                    },
+                    Err(_) => {
+
+                    },
+                }
+            }
+
+            Window::new("LOAD AGENT").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
+                for agent in sketches {
                     ui.vertical_centered(|row| {
                         row.columns(2, |columns| {
-                            columns[0].label(RichText::new(agent.to_owned()).strong().color(Color32::WHITE));
+                            let txt = format!("{} | G:{} ", agent.specie, agent.generation);
+                            columns[0].label(RichText::new(txt).strong().color(Color32::WHITE));
                             columns[1].horizontal(|col| {
                                     if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
-                                        signals.load_agent_name = Some(String::from(&agent));
+                                        signals.load_agent_name = Some(String::from(&agent.specie));
                                         set_global_signals(signals.clone());
                                         self.state.load_agent = false;
                                     }
                                     col.separator();
                                     if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
-                                        signals.del_agent_name = Some(String::from(&agent));
+                                        signals.del_agent_name = Some(String::from(&agent.specie));
                                         set_global_signals(signals.clone());
                                         self.state.load_agent = false;
                                     }
@@ -630,8 +656,9 @@ impl UISystem {
             let power = agent.power;
             let speed = agent.speed;
             let shell = agent.shell;
+            let mutations = agent.mutations;
             let name = &agent.specie;
-            let attributes = format!("size: {} | speed: {} | power: {} | shell: {}", size, speed, power, shell);
+            let attributes = format!("size: {} | speed: {} | power: {} | shell: {} | mutation: {}", size, speed, power, shell, mutations);
             let title_txt = format!("Attributes: {}", name.to_uppercase()); 
             Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((800.0, 0.0)).min_width(150.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
