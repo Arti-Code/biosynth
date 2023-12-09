@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use crate::agent::*;
+use crate::part::*;
 use crate::camera::*;
 use crate::neuro::MyPos2;
 use crate::timer::Timer;
@@ -45,6 +46,7 @@ pub struct Simulation {
     population_timer: Timer,
     pub terrain: Terrain,
     coord_timer: Timer,
+    //tail: Tail,
 }
 
 impl Simulation {
@@ -74,6 +76,7 @@ impl Simulation {
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, 0.0),
             coord_timer: Timer::new(0.25, true, true, true),
+            //tail: Tail::new(vec2(400., 400.), 50., RED),
         }
     }
 
@@ -201,7 +204,9 @@ impl Simulation {
     }
 
     pub fn update(&mut self) {
+        //self.tail.update(&mut self.physics);
         self.check_signals();
+        self.check_settings();
         self.update_sim_state();
         self.check_agents_num();
         self.update_res();
@@ -337,6 +342,7 @@ impl Simulation {
         //self.draw_grid();
         self.draw_agents();
         self.draw_res();
+        //self.tail.draw(Vec2::ZERO, PI/4.0);
     }
 
     pub fn draw_terrain(&self) {
@@ -397,8 +403,9 @@ impl Simulation {
     }
 
     pub fn check_signals(&mut self) {
-        let mut sign = get_signals();
-        let mut sign2 = sign.clone();
+        let sign = get_signals();
+        let sign2 = sign.clone();
+        let sign3 = sign.clone();
         if self.signals.spawn_agent {
             self.agents.add_many_agents(1, &mut self.physics);
             self.signals.spawn_agent = false;
@@ -429,8 +436,9 @@ impl Simulation {
                 None => {},
                 Some(name) => {
                     let sim_name = name.to_owned();
-                    sign.load_sim_name = None;
-                    set_global_signals(sign);
+                    let mut signals = get_signals();
+                    signals.load_sim_name = None;
+                    set_global_signals(signals);
                     self.load_sim(&sim_name);
                 },
             }
@@ -440,10 +448,22 @@ impl Simulation {
                 None => {},
                 Some(name) => {
                     let sim_name = name.to_owned();
-                    sign2.del_sim_name = None;
-                    set_global_signals(sign2);
+                    let mut signals = get_signals();
                     self.delete_sim(&sim_name);
+                    signals.del_sim_name = None;
+                    set_global_signals(signals);
                 },
+            }
+        }
+        if sign3.load_agent_name.is_some() {
+            match sign3.load_agent_name {
+                Some(agent_file_name) => {
+                    self.load_agent(&agent_file_name);
+                    let mut signals = get_signals();
+                    signals.load_agent_name = None;
+                    set_global_signals(signals);
+                },
+                None => {},
             }
         }
     }
@@ -542,6 +562,25 @@ impl Simulation {
         }
     }
 
+    fn load_agent(&mut self, file_name: &str) {
+        let f = format!("saves/agents/{}", file_name);
+        let path = Path::new(&f);
+        match fs::read_to_string(path) {
+            Err(_) => { println!("ERROR: can't load saved agent"); },
+            Ok(save) => {
+                match serde_json::from_str::<AgentSketch>(&save) {
+                    Err(_) => println!("ERROR: can't deserialize saved agent"),
+                    Ok(agent_sketch) => {
+                        let mut agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
+                        let settings = get_settings();
+                        agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
+                        self.agents.add_agent(agent);
+                    },
+                }
+            }
+        }
+    }
+
     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
         match self.agents.get(handle) {
             Some(agent) => {
@@ -583,6 +622,25 @@ impl Simulation {
                 }
             }
         }
+    }
+
+    fn check_settings(&mut self) {
+        let mut settings = get_settings();
+        if settings.follow_mode && self.selected.is_some() {
+            match self.selected {
+                None => {},
+                Some(sel) => {
+                    match self.agents.get(sel) {
+                        None => {},
+                        Some(agent) => {
+                            let pos = agent.pos;
+                            self.camera.target = pos;
+                        },
+                    }
+                }
+            }
+        }
+
     }
 
     fn update_sim_state(&mut self) {

@@ -179,6 +179,18 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
 
+                menu::menu_button(ui, RichText::new("CAMERA").strong(), |ui| {
+                    if ui.button(RichText::new("Follow Mode").strong().color(Color32::GOLD)).clicked() {
+                        let mut settings = get_settings();
+                        settings.follow_mode = !settings.follow_mode;
+                        set_global_settings(settings);
+                    }
+                });
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
                 menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
                     if ui.button(RichText::new("Network Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.neuro_lab = !self.state.neuro_lab;
@@ -220,12 +232,26 @@ impl UISystem {
 
     fn build_main_menu_win(&mut self, egui_ctx: &Context) {
         if self.state.main_menu {
-            Window::new("EVOLVE 2").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
-                
-                //let mut font = FontId::default();
-                //font.size = 20.0;
+            Window::new("EVOLVE 2").default_pos((SCREEN_WIDTH / 2.0 - 180.0, SCREEN_HEIGHT / 4.0)).default_width(360.0).show(egui_ctx, |ui| {
+                let big_logo = self.big_logo.clone().unwrap();
+                ui.vertical_centered(|pic| {
+                    pic.image(big_logo.id(), big_logo.size_vec2());
+                });
+                ui.add_space(10.0);
+                ui.vertical_centered(|title| {
+                    title.heading(RichText::new("EVOLUTION 2").strong().color(Color32::GREEN).strong());
+                });
+                ui.add_space(6.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new("Artur Gwoździowski 2023").color(Color32::BLUE).strong());
+                });
+                ui.add_space(6.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new(format!("version {}", env!("CARGO_PKG_VERSION"))).color(Color32::YELLOW).italics());
+                });
+                ui.add_space(10.0);
                 ui.vertical_centered(|row| {
-                    row.heading(RichText::new("MAIN MENU").strong());
+                    row.heading(RichText::new("MAIN MENU").strong().color(Color32::LIGHT_GRAY));
                 });
                 ui.add_space(16.0);
                 ui.vertical_centered(|row| {
@@ -233,7 +259,7 @@ impl UISystem {
                     row.style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::GREEN);
                     row.style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_GREEN;
                     row.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_GREEN;
-                    if row.add(Button::new(RichText::new("NEW SIMULATION").strong()).min_size(UIVec2::new(160., 50.))).clicked() {
+                    if row.add(Button::new(RichText::new("NEW SIMULATION").strong()).min_size(UIVec2::new(160., 35.))).clicked() {
                         self.state.main_menu = false;
                         self.state.new_sim = true;
                     }
@@ -244,7 +270,7 @@ impl UISystem {
                     row.style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::BLUE);
                     row.style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_BLUE;
                     row.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_BLUE;
-                    if row.add(Button::new(RichText::new("LOAD SIMULATION").strong()).min_size(UIVec2::new(160., 50.))).clicked() {
+                    if row.add(Button::new(RichText::new("LOAD SIMULATION").strong()).min_size(UIVec2::new(160., 35.))).clicked() {
                         self.state.main_menu = false;
                         self.state.load_sim = true;
                     }
@@ -255,7 +281,7 @@ impl UISystem {
                     row.style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::RED);
                     row.style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_RED;
                     row.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_RED;
-                    if row.add(Button::new(RichText::new("QUIT").strong()).min_size(UIVec2::new(160., 50.))).clicked() {
+                    if row.add(Button::new(RichText::new("QUIT").strong()).min_size(UIVec2::new(160., 35.))).clicked() {
                         self.state.main_menu = false;
                         self.state.quit = true;
                     }
@@ -318,7 +344,7 @@ impl UISystem {
             let mut list_of_files: Vec<PathBuf> = vec![];
             for agent_name in saved_agents.iter() {
                 let p = format!("saves\\agents\\{}", &agent_name);
-                let mut path_to_agent = Path::new(&p);
+                let path_to_agent = Path::new(&p);
                 list_of_files.push(path_to_agent.to_path_buf());
             }
 
@@ -343,22 +369,23 @@ impl UISystem {
                 for agent in sketches {
                     ui.vertical_centered(|row| {
                         row.columns(2, |columns| {
-                            let txt = format!("{} | G:{} ", agent.specie, agent.generation);
+                            let txt = format!("{} | G:{} ", agent.specie.to_uppercase(), agent.generation);
+                            let filename = format!("{}-{}.json", agent.specie, agent.generation);
                             columns[0].label(RichText::new(txt).strong().color(Color32::WHITE));
                             columns[1].horizontal(|col| {
-                                    if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
-                                        signals.load_agent_name = Some(String::from(&agent.specie));
-                                        set_global_signals(signals.clone());
-                                        self.state.load_agent = false;
-                                    }
-                                    col.separator();
-                                    if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
-                                        signals.del_agent_name = Some(String::from(&agent.specie));
-                                        set_global_signals(signals.clone());
-                                        self.state.load_agent = false;
-                                    }
-                            })
-                        })
+                                if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
+                                    signals.load_agent_name = Some(filename.clone());
+                                    set_global_signals(signals.clone());
+                                    //self.state.load_agent = false;
+                                }
+                                col.separator();
+                                if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
+                                    signals.del_agent_name = Some(String::from(filename.clone()));
+                                    set_global_signals(signals.clone());
+                                    self.state.load_agent = false;
+                                }
+                            });
+                        });
                     });
                     ui.add_space(4.0);
                 }

@@ -41,7 +41,7 @@ impl Cell {
 
     pub fn get_color(&self) -> Color {
         let alt = self.alt as f32;
-        let c = (alt * 10.0 + 50.0) as u8;
+        let c = (alt * 15.0 + 50.0) as u8;
         let mut color = color_u8!(c, c, c, 255);
         return color;
     }

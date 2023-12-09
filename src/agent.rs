@@ -189,6 +189,7 @@ impl Agent {
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
         let tail = Box::new(tail);
+        let eng = size * 75.0 + 300.0;
         //parts.push(tail);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
@@ -199,8 +200,8 @@ impl Agent {
             ang_vel: 0.0,
             size,
             vision_range:  settings.agent_vision_range + size*0.05*settings.agent_vision_range,
-            max_eng: size.powi(2) * 10.0 + 200.0,
-            eng: size.powi(2) * 10.0 + 200.0,
+            max_eng: eng,
+            eng: eng * 0.5,
             color,
             shape,
             analize_timer: Timer::new(settings.neuro_duration, true, true, true),
@@ -262,6 +263,7 @@ impl Agent {
         let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
         let tail = Box::new(tail);
         //parts.push(tail);
+        let eng = sketch.size * 75.0 + 300.0;
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent {
             key,
@@ -272,8 +274,8 @@ impl Agent {
             ang_vel: 0.0,
             size,
             vision_range: sketch.vision_range,
-            max_eng: sketch.size.powi(2) * 10.0 +200.0,
-            eng: sketch.size.powi(2) * 10.0 + 200.0,
+            max_eng: eng,
+            eng: eng * 0.5,
             color,
             shape,
             analize_timer: Timer::new(settings.neuro_duration, true, true, true),
@@ -598,8 +600,8 @@ impl Agent {
         let y0 = self.pos.y;
         let text_cfg = TextParams {
             font: *font,
-            font_size: 10,
-            color: LIGHTGRAY,
+            font_size: 16,
+            color: WHITE,
             ..Default::default()
         };
         let info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
@@ -858,7 +860,8 @@ impl Agent {
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
-        let pos = random_position(settings.world_w as f32, settings.world_h as f32);
+        //let pos = random_position(settings.world_w as f32, settings.world_h as f32);
+        let pos = self.pos;
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
         let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), interactions);
         let network = self.network.replicate();
@@ -870,18 +873,19 @@ impl Agent {
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
         let tail = Box::new(tail);
+        let eng = size * 75.0 + 300.0;
         //parts.push(tail);
         Agent {
             key,
-            pos: pos + random_unit_vec2()*40.0,
+            pos: pos + random_unit_vec2()*30.0,
             rot,
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
             size,
             vision_range: self.vision_range,
-            max_eng: self.max_eng,
-            eng: self.max_eng,
+            max_eng: eng,
+            eng: eng * 0.5,
             color,
             shape,
             analize_timer: self.analize_timer.to_owned(),

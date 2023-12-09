@@ -70,6 +70,7 @@ pub struct Settings {
     pub repro_time: f32,
     pub new_one_probability: f32,
     pub grid_size: u32,
+    pub follow_mode: bool,
 }
 
 impl Default for Settings {
@@ -104,7 +105,8 @@ impl Default for Settings {
             repro_points: 200.0,
             repro_time: 75.0,
             new_one_probability: 0.04,
-            grid_size: 50, 
+            grid_size: 50,
+            follow_mode: false, 
        }
     }
 

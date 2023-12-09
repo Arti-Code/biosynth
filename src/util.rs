@@ -73,14 +73,14 @@ pub fn wrap_around(v: &Vec2) -> Vec2 {
     let tolerance = 5.0;
     let mut vr = Vec2::new(v.x, v.y);
     if vr.x > WORLD_W + tolerance {
-        vr.x = 0.0 - tolerance;
+        vr.x = WORLD_W - tolerance
     } else if vr.x < 0.0 - tolerance {
-        vr.x = WORLD_W + tolerance;
+        vr.x = 0.0 + tolerance;
     }
     if vr.y > WORLD_H + tolerance {
-        vr.y = 0.0 - tolerance;
+        vr.y = WORLD_W - tolerance;
     } else if vr.y < 0.0 - tolerance {
-        vr.y = WORLD_H + tolerance;
+        vr.y = 0.0 + tolerance;
     }
     return vr;
 }

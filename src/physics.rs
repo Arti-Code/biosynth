@@ -72,6 +72,14 @@ impl Physics {
         return self.core.get_contacts_set(agent_body_handle, radius);
     }
 
+    pub fn get_contacted_agent_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        return self.core.get_contacted_agent_set(agent_body_handle, radius);
+    }
+
+    pub fn get_contacted_resource_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        return self.core.get_contacted_resource_set(agent_body_handle, radius);
+    }
+
     pub fn get_object(&mut self, rbh: RigidBodyHandle) -> Option<&RigidBody> {
         return self.core.rigid_bodies.get(rbh);
     }
@@ -293,6 +301,56 @@ impl PhysicsCore {
         let filter = QueryFilter {
             flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
             groups: None,
+            exclude_rigid_body: Some(agent_body_handle),
+            ..Default::default()
+        };
+        for c in rb.colliders() {
+            let collider = self.colliders.get(*c).unwrap();
+            if collider.is_sensor() {
+                continue;
+            }
+            self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), &rapier2d::geometry::Ball::new(radius), filter,
+                |collided| {
+                    let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
+                    contacts.insert(rb2_handle);
+                    return true;
+                },
+            );
+        }
+        return contacts;
+    }
+
+    pub fn get_contacted_agent_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
+        let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
+        let filter = QueryFilter {
+            flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
+            groups: Some(InteractionGroups::new(Group::GROUP_1, Group::GROUP_1)),
+            exclude_rigid_body: Some(agent_body_handle),
+            ..Default::default()
+        };
+        for c in rb.colliders() {
+            let collider = self.colliders.get(*c).unwrap();
+            if collider.is_sensor() {
+                continue;
+            }
+            self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), &rapier2d::geometry::Ball::new(radius), filter,
+                |collided| {
+                    let rb2_handle = self.get_body_handle_from_collider(collided).unwrap();
+                    contacts.insert(rb2_handle);
+                    return true;
+                },
+            );
+        }
+        return contacts;
+    }
+
+    pub fn get_contacted_resource_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
+        let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
+        let filter = QueryFilter {
+            flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
+            groups: Some(InteractionGroups::new(Group::GROUP_2, Group::GROUP_2)),
             exclude_rigid_body: Some(agent_body_handle),
             ..Default::default()
         };
