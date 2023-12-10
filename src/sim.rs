@@ -126,6 +126,7 @@ impl Simulation {
     }
 
     fn update_agents(&mut self) {
+        let agents = self.agents.agents.clone();
         let cloned_agents = self.agents.agents.clone();
         for (_, agent) in self.agents.get_iter_mut() {
             if agent.enemy.is_some() {
@@ -141,7 +142,7 @@ impl Simulation {
                     }
                 }
             }
-            if !agent.update(&mut self.physics) {
+            if !agent.update(&agents, &mut self.physics) {
                 let sketch = agent.get_sketch();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
@@ -466,6 +467,17 @@ impl Simulation {
                 None => {},
             }
         }
+        if sign3.del_agent_name.is_some() {
+            match sign3.del_agent_name {
+                Some(agent_file_name) => {
+                    self.delete_agent(&agent_file_name);
+                    let mut signals = get_signals();
+                    signals.del_agent_name = None;
+                    set_global_signals(signals);
+                },
+                None => {},
+            }
+        }
     }
 
     fn save_sim(&self) {
@@ -578,6 +590,17 @@ impl Simulation {
                     },
                 }
             }
+        }
+    }
+
+    fn delete_agent(&mut self, file_name: &str) {
+        let f = format!("saves/agents/{}", file_name);
+        let path = Path::new(&f);
+        match fs::remove_file(path) {
+            Err(_) => {
+                println!("error during removing agent");
+            },
+            Ok(_) => {},
         }
     }
 

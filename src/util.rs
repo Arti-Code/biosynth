@@ -268,6 +268,7 @@ pub struct UIState {
     pub attributes: bool,
     pub main_menu: bool,
     pub energy_cost: bool,
+    pub neuro_settings: bool,
 }
 
 impl UIState {
@@ -295,6 +296,7 @@ impl UIState {
             attributes: false,
             main_menu: true,
             energy_cost: false,
+            neuro_settings: false,
         }
     }
 }
@@ -420,4 +422,37 @@ pub fn saved_agent_to_agent_sketch(file_name: &str) -> Option<AgentSketch> {
         },
     };
     return agent;
+}
+
+pub fn draw_smooth_circle(r: f32, center: Vec2, detail: f32, width: f32, color: Color) {
+    let o = PI * r * 2.0;
+    let s = o / detail;
+    let a = 2.0 * PI / s;
+    let mut angle = 0.0;
+    while angle <= 2.0*PI {
+        let p0 = center + Vec2::from_angle(angle) * r;
+        angle += a;
+        let p1 = center + Vec2::from_angle(angle) * r;
+        draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
+    }
+    let p0 = center + Vec2::from_angle(angle) * r;
+    let p1 = center + Vec2::from_angle(0.0) * r;
+    draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
+}
+
+pub fn draw_smooth_arc(r: f32, center: Vec2, rotation: f32, half_angle: f32, detail: f32, width: f32, color: Color) {
+    let rel_peri = (2.0*half_angle) / (2.0*PI);
+    let o = PI * r * 2.0 * rel_peri;
+    let s = o / (detail*rel_peri);
+    let a = 2.0 * half_angle / s;
+    let mut angle = rotation - half_angle;
+    while angle <= rotation + half_angle {
+        let p0 = center + Vec2::from_angle(angle) * r;
+        angle += a;
+        let p1 = center + Vec2::from_angle(angle) * r;
+        draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
+    }
+    let p0 = center + Vec2::from_angle(angle) * r;
+    let p1 = center + Vec2::from_angle(rotation + half_angle) * r;
+    draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
 }

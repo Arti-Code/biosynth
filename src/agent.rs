@@ -2,6 +2,8 @@
 
 
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::collections::hash_map::Iter;
 use std::f32::consts::PI;
 use crate::neuro::*;
 use crate::timer::*;
@@ -138,6 +140,8 @@ pub struct Agent {
     pub lifetime: f32,
     pub generation: u32,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
+    pub contact_agent: bool,
+    pub contact_resource: bool,
     pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_family: Option<bool>,
@@ -178,7 +182,7 @@ impl Agent {
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI"];
+        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN"];
         network.build(inp_labs.len(), inp_labs, settings.hidden_nodes_num, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
@@ -219,6 +223,8 @@ impl Agent {
             resource_position: None,
             resource_dir: None,
             contacts: Vec::new(),
+            contact_agent: false,
+            contact_resource: false,
             physics_handle: rbh,
             neuro_map,
             childs: 0,
@@ -293,6 +299,8 @@ impl Agent {
             resource_position: None,
             resource_dir: None,
             contacts: Vec::new(),
+            contact_agent: false,
+            contact_resource: false,
             physics_handle: rbh,
             neuro_map: sketch.neuro_map.clone(),
             childs: 0,
@@ -360,7 +368,7 @@ impl Agent {
         }
     }
 
-    pub fn update(&mut self, physics: &mut Physics) -> bool {
+    pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
         let dt = get_frame_time();
         self.lifetime += dt;
         for part in self.parts.iter_mut() {
@@ -368,7 +376,7 @@ impl Agent {
         }
         if self.analize_timer.update(dt) {
             self.watch(physics);
-            self.update_contacts(physics);
+            self.update_contacts(other, physics);
             self.analize();
         }
 
@@ -403,6 +411,8 @@ impl Agent {
 
     fn prep_input(&mut self) {
         let contact: f32;
+        let contact_agent = self.contact_agent as i32 as f32;
+        let contact_resource = self.contact_resource as i32 as f32;
         if self.contacts.len() > 0 {
             contact = 1.0; 
         } else {
@@ -475,12 +485,13 @@ impl Agent {
         let hp = self.eng/self.max_eng;
         //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
         //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
-        //let input_values: [f32; 8] = [contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
         let mut pain = 0.0;
         if self.pain { pain = 1.0; }
         self.pain = false;
         self.pain = false;
         self.neuro_map.set_signal("CON", contact);
+        self.neuro_map.set_signal("ENY", contact_agent);
+        self.neuro_map.set_signal("RES", contact_resource);
         self.neuro_map.set_signal("ENG", hp);
         self.neuro_map.set_signal("TGL", tgl);
         self.neuro_map.set_signal("TGR", tgr);
@@ -512,7 +523,13 @@ impl Agent {
             self.run = true;
         }
 
-        self.ang_vel = -self.neuro_map.get_action("LFT")+self.neuro_map.get_action("RGT");
+        if self.neuro_map.get_action("LFT") > self.neuro_map.get_action("RGT") {
+            self.ang_vel = -self.neuro_map.get_action("LFT");
+        } else if self.neuro_map.get_action("LFT") < self.neuro_map.get_action("RGT") {
+            self.ang_vel = self.neuro_map.get_action("RGT");
+        } else {
+            self.ang_vel = 0.0;
+        }
         
         if self.neuro_map.get_action("ATK") >= 0.75 {
             self.attacking = true;
@@ -528,7 +545,6 @@ impl Agent {
     }
 
     fn draw_front(&self) {
-        //let dir = Vec2::from_angle(self.rot);
         let left = Vec2::from_angle(self.rot-PI/10.0);
         let right = Vec2::from_angle(self.rot+PI/10.0);
         let l0 = self.pos + left*self.size;
@@ -563,7 +579,8 @@ impl Agent {
     fn draw_target(&self, selected: bool) {
         if selected {
             let range = self.vision_range;
-            draw_circle_lines(self.pos.x, self.pos.y, range, 1.5, SKYBLUE);
+            draw_smooth_circle(range, self.pos, 10.0, 0.8, SKYBLUE);
+            draw_smooth_arc(range*0.2, self.pos, self.rot, PI/6.0, 3.0, 1.6, RED);
         }
         if let Some(_rb) = self.enemy {
             if let Some(enemy_position) = self.enemy_position {
@@ -703,10 +720,17 @@ impl Agent {
         }
     }
 
-    fn update_contacts(&mut self, physics: &mut Physics) {
+    fn update_contacts(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) {
         self.contacts.clear();
+        self.contact_agent = false;
+        self.contact_resource = false;
         let contacts = physics.get_contacts_set(self.physics_handle, self.size);
         for contact in contacts {
+            if other.contains_key(&contact) {
+                self.contact_agent = true;
+            } else {
+                self.contact_resource = true;
+            }
             if let Some(pos2) = physics.get_object_position(contact) {
                 let mut rel_pos = pos2 - self.pos;
                 rel_pos = rel_pos.normalize_or_zero();
@@ -727,7 +751,6 @@ impl Agent {
         }
         if let Some(tg) = physics.get_closest_resource(self.physics_handle, self.vision_range) {
             self.resource = Some(tg);
-            //self.update_enemy_position(physics);
         } else {
             self.resource = None;
             self.resource_position = None;
@@ -761,7 +784,6 @@ impl Agent {
             self.eng -= loss;
         } else {
             self.eng = 0.0;
-            //self.alife = false;
         }
         self.check_alife();
     }
@@ -791,10 +813,8 @@ impl Agent {
         let mut r = rand::gen_range(0, 20);
         if r == 1 {
             vm += 1;
-            //println!("{} -> {}", v, vm);
         } else if r == 2 {
             vm -= 1;
-            //println!("{} -> {}", v, vm);
         }
         vm = clamp(vm, 1_i32, 10_i32);
         return vm;
@@ -860,7 +880,6 @@ impl Agent {
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
-        //let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let pos = self.pos;
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
         let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), interactions);
@@ -903,6 +922,8 @@ impl Agent {
             resource_position: None,
             resource_dir: None,
             contacts: Vec::new(),
+            contact_agent: false,
+            contact_resource: false,
             physics_handle: rbh,
             neuro_map,
             childs: 0,
@@ -981,4 +1002,28 @@ pub struct AgentSketch {
 
 pub fn default_mutation() -> i32 {
     return gen_range(0, 10);
+}
+
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+pub struct Ancestor {
+    pub name: String,
+    pub generation: u32,
+}
+
+pub struct Ancestors {
+    list: HashSet<Ancestor>,
+}
+
+impl Ancestors {
+    
+    pub fn new() -> Self {
+        Ancestors {
+            list: HashSet::new(),
+        }
+    }
+
+    pub fn insert_ancestor(&mut self, ancestor: Ancestor) {
+        self.list.insert(ancestor);
+    }
+
 }

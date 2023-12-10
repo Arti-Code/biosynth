@@ -43,7 +43,6 @@ impl AgentBox {
         for (_, agent) in self.get_iter_mut() {
             if agent.lifetime >= (settings.repro_time + settings.repro_time * agent.childs as f32) && (agent.eng/agent.max_eng) >= 0.75 {
                 let mut newbie = agent.replicate(physics).to_owned();
-                //newbie.mutate();
                 newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;
@@ -64,16 +63,14 @@ impl AgentBox {
     }
 
     pub fn add_agent(&mut self, agent: Agent) {
-        //let key = agent.key;
         self.agents.insert(agent.physics_handle, agent);
-        //return key;
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Agent> {
         return self.agents.get(&id);
     }
 
-    pub fn _remove(&mut self, id: RigidBodyHandle) {
+    pub fn remove(&mut self, id: RigidBodyHandle) {
         self.agents.remove(&id);
     }
 
@@ -85,7 +82,7 @@ impl AgentBox {
         return self.agents.iter_mut();
     }
 
-    pub fn _count(&self) -> usize {
+    pub fn count(&self) -> usize {
         return self.agents.len();
     }
 
@@ -121,7 +118,7 @@ impl ResBox {
         return self.resources.get(&id);
     }
 
-    pub fn _remove(&mut self, id: RigidBodyHandle) {
+    pub fn remove(&mut self, id: RigidBodyHandle) {
         self.resources.remove(&id);
     }
 

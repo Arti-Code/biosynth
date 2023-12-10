@@ -97,6 +97,7 @@ impl UISystem {
             self.build_load_sim_window(egui_ctx);
             self.build_main_menu_win(egui_ctx);
             self.build_load_agent_window(egui_ctx);
+            self.build_neuro_settings_window(egui_ctx, signals);
         });
     }
 
@@ -211,6 +212,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Sim Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.environment = !self.state.environment;
+                    }
+                    if ui.button(RichText::new("Neuro Settings").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.neuro_settings = !self.state.neuro_settings;
                     }
                 });
 
@@ -382,7 +386,7 @@ impl UISystem {
                                 if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
                                     signals.del_agent_name = Some(String::from(filename.clone()));
                                     set_global_signals(signals.clone());
-                                    self.state.load_agent = false;
+                                    //self.state.load_agent = false;
                                 }
                             });
                         });
@@ -879,7 +883,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut atk_to_eng = settings.atk_to_eng;
                 column[0].label(RichText::new("ATACK TO ENG").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut atk_to_eng, 0.1..=5.0).step_by(0.1)).changed() {
+                if column[1].add(Slider::new(&mut atk_to_eng, 0.1..=2.0).step_by(0.05)).changed() {
                     settings.atk_to_eng = atk_to_eng;
                     signals.new_settings = true;
                 }
@@ -889,7 +893,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut eat_to_eng = settings.eat_to_eng;
                 column[0].label(RichText::new("EAT TO ENG").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut eat_to_eng, 1.0..=30.0).step_by(0.5)).changed() {
+                if column[1].add(Slider::new(&mut eat_to_eng, 0.0..=15.0).step_by(0.1)).changed() {
                     settings.eat_to_eng = eat_to_eng;
                     signals.new_settings = true;
                 }
@@ -949,7 +953,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_num = settings.res_num;
                 column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_num, 0.0..=100.0).step_by(1.0)).changed() {
+                if column[1].add(Slider::new(&mut res_num, 0.0..=150.0).step_by(1.0)).changed() {
                     settings.res_num = res_num;
                     signals.new_settings = true;
                 }
@@ -961,36 +965,6 @@ impl UISystem {
                 column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut mutations, 0.0..=1.0).step_by(0.05)).changed() {
                     settings.mutations = mutations;
-                    signals.new_settings = true;
-                }
-            });
-            ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut neurolink_rate: f32 = settings.neurolink_rate;
-                column[0].label(RichText::new("NEURON LINKS RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=1.0).step_by(0.05)).changed() {
-                    settings.neurolink_rate = neurolink_rate;
-                    signals.new_settings = true;
-                }
-            });
-            ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut neuro_duration: f32 = settings.neuro_duration;
-                column[0].label(RichText::new("NEUROANALIZE DURATION").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut neuro_duration, 0.05..=2.0).step_by(0.05)).changed() {
-                    settings.neuro_duration = neuro_duration;
-                    signals.new_settings = true;
-                }
-            });
-            ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut hidden_nodes_num = settings.hidden_nodes_num as i32;
-                column[0].label(RichText::new("DEEP NEURONS NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<i32>(&mut hidden_nodes_num, 0..=20).step_by(1.0)).changed() {
-                    settings.hidden_nodes_num = hidden_nodes_num as usize;
                     signals.new_settings = true;
                 }
             });
@@ -1021,16 +995,6 @@ impl UISystem {
                 column[0].label(RichText::new("SHOW ENG BAR").color(Color32::WHITE).strong());
                 if column[1].add(Checkbox::without_text(&mut agent_eng_bar)).changed() {
                     settings.agent_eng_bar = agent_eng_bar;
-                    signals.new_settings = true;
-                }
-            });
-            ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(120., 75.));
-                column[1].set_max_size(UIVec2::new(120., 75.));
-                let mut show_network: bool = settings.show_network;
-                column[0].label(RichText::new("SHOW NETWORK").color(Color32::WHITE).strong());
-                if column[1].add(Checkbox::without_text(&mut show_network)).changed() {
-                    settings.show_network = show_network;
                     signals.new_settings = true;
                 }
             });
@@ -1070,6 +1034,65 @@ impl UISystem {
                 //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.environment = false;
+                    set_global_settings(settings.clone());
+                }
+            });
+        });
+        set_global_settings(settings.clone());
+    }
+
+    fn build_neuro_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+        if !self.state.neuro_settings {
+            return;
+        }
+        let mut settings = get_settings();
+        Window::new("NEURO SETTINGS").id("neuro_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
+        .title_bar(true).show(egui_ctx, |ui| {
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut neurolink_rate: f32 = settings.neurolink_rate;
+                column[0].label(RichText::new("NEURON LINKS RATE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=0.5).step_by(0.05)).changed() {
+                    settings.neurolink_rate = neurolink_rate;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut neuro_duration: f32 = settings.neuro_duration;
+                column[0].label(RichText::new("ANALIZE PERIOD").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut neuro_duration, 0.05..=1.0).step_by(0.05)).changed() {
+                    settings.neuro_duration = neuro_duration;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut hidden_nodes_num = settings.hidden_nodes_num as i32;
+                column[0].label(RichText::new("DEEP NEURONS NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<i32>(&mut hidden_nodes_num, 0..=10).step_by(1.0)).changed() {
+                    settings.hidden_nodes_num = hidden_nodes_num as usize;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(120., 75.));
+                column[1].set_max_size(UIVec2::new(120., 75.));
+                let mut show_network: bool = settings.show_network;
+                column[0].label(RichText::new("SHOW NETWORK").color(Color32::WHITE).strong());
+                if column[1].add(Checkbox::without_text(&mut show_network)).changed() {
+                    settings.show_network = show_network;
+                    signals.new_settings = true;
+                }
+            });
+            ui.add_space(2.0);
+            ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::DARK_GREEN);
+            ui.vertical_centered(|closer| {
+                if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
+                    self.state.neuro_settings = false;
                     set_global_settings(settings.clone());
                 }
             });
