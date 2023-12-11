@@ -60,8 +60,8 @@ impl Physics {
         return self.core.get_object_size(rbh);
     }
 
-    pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
-        return self.core.get_closest_agent(agent_body_handle, detection_range);
+    pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
+        return self.core.get_closest_agent(agent_body_handle, detection_range, detection_angle, direction);
     }
 
     pub fn get_closest_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
@@ -370,7 +370,7 @@ impl PhysicsCore {
         return contacts;
     }
 
-    pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32) -> Option<RigidBodyHandle> {
+    pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -389,7 +389,9 @@ impl PhysicsCore {
                 let rb2 = self.rigid_bodies.get(rb2_handle).unwrap();
                 let pos2 = matrix_to_vec2(rb2.position().translation);
                 let new_dist = pos1.distance(pos2);
-                if new_dist < dist {
+                let local_pos = pos2 - pos1;
+                let ang = direction.angle_between((local_pos).normalize_or_zero());
+                if new_dist < dist && ang.abs() <= detection_angle/2.0 {
                     dist = new_dist;
                     target = rb2_handle;
                 }

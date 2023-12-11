@@ -130,6 +130,7 @@ pub struct Agent {
     ang_vel: f32,
     pub size: f32,
     pub vision_range: f32,
+    vision_angle: f32,
     pub max_eng: f32,
     pub eng: f32,
     color: color::Color,
@@ -204,6 +205,7 @@ impl Agent {
             ang_vel: 0.0,
             size,
             vision_range:  settings.agent_vision_range + size*0.05*settings.agent_vision_range,
+            vision_angle: PI*1.3,
             max_eng: eng,
             eng: eng * 0.5,
             color,
@@ -280,6 +282,7 @@ impl Agent {
             ang_vel: 0.0,
             size,
             vision_range: sketch.vision_range,
+            vision_angle: PI*1.3,
             max_eng: eng,
             eng: eng * 0.5,
             color,
@@ -330,7 +333,7 @@ impl Agent {
         }
         self.draw_body();
         self.draw_front();
-        self.draw_eyes();
+        self.draw_eyes(selected);
         if selected {
             self.draw_info(&font);
             self.draw_target(selected);
@@ -561,7 +564,11 @@ impl Agent {
         draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
     }
 
-    fn draw_eyes(&self) {
+    fn draw_eyes(&self, selected: bool) {
+        let ang = self.vision_angle/2.0;
+        let range = self.vision_range;
+        let left_vision_border = Vec2::from_angle(self.rot - ang);
+        let right_vision_border = Vec2::from_angle(self.rot + ang);
         let mut color = LIGHTGRAY;
         if self.eating { color = BLUE; }
         if self.attacking { color = RED; }
@@ -572,16 +579,22 @@ impl Agent {
         let xr = self.pos.x + eye_r.x;
         let yr = self.pos.y + eye_r.y;
         let s = self.size*0.33;
+        let vl = self.pos + left_vision_border*range;
+        let vr = self.pos + right_vision_border*range;
         draw_circle(xl, yl, s, color);
         draw_circle(xr, yr, s, color);
+        if selected {
+            draw_line(self.pos.x, self.pos.y, vl.x, vl.y, 1.0, SKYBLUE);
+            draw_line(self.pos.x, self.pos.y, vr.x, vr.y, 1.0, SKYBLUE);
+            draw_smooth_arc(range, self.pos, self.rot, self.vision_angle/2.0, 3.0, 1.0, SKYBLUE);
+        }
     }
 
     fn draw_target(&self, selected: bool) {
-        if selected {
-            let range = self.vision_range;
-            draw_smooth_circle(range, self.pos, 10.0, 0.8, SKYBLUE);
-            draw_smooth_arc(range*0.2, self.pos, self.rot, PI/6.0, 3.0, 1.6, RED);
-        }
+        //if selected {
+            //let range = self.vision_range;
+            //draw_smooth_circle(range, self.pos, 10.0, 0.8, SKYBLUE);
+        //}
         if let Some(_rb) = self.enemy {
             if let Some(enemy_position) = self.enemy_position {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
@@ -741,7 +754,8 @@ impl Agent {
     }
 
     fn watch(&mut self, physics: &Physics) {
-        if let Some(tg) = physics.get_closest_agent(self.physics_handle, self.vision_range) {
+        let direction = Vec2::from_angle(self.rot);
+        if let Some(tg) = physics.get_closest_agent(self.physics_handle, self.vision_range, self.vision_angle, direction) {
             self.enemy = Some(tg);
         } else {
             self.enemy_family = None;
@@ -903,6 +917,7 @@ impl Agent {
             ang_vel: 0.0,
             size,
             vision_range: self.vision_range,
+            vision_angle: PI*1.3,
             max_eng: eng,
             eng: eng * 0.5,
             color,
