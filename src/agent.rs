@@ -129,7 +129,7 @@ pub struct Agent {
     ang_vel: f32,
     pub size: f32,
     pub vision_range: f32,
-    vision_angle: f32,
+    pub vision_angle: f32,
     pub max_eng: f32,
     pub eng: f32,
     color: color::Color,
@@ -441,11 +441,11 @@ impl Agent {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
-                1.0-(dist/self.vision_range)
+                dist/self.vision_range
             },
         };
         let mut tg_ang = match self.enemy_dir {
-            None => PI,
+            None => 0.0,
             Some(dir) => {
                 dir
             },
@@ -457,7 +457,7 @@ impl Agent {
             },
         };
 
-        tg_ang = tg_ang/PI;
+        //tg_ang = tg_ang;
         let mut tgr: f32=0.0; let mut tgl: f32=0.0;
         if tg_ang > 0.0 {
             tgr = 1.0 - clamp(tg_ang, 0.0, 1.0);
@@ -469,16 +469,16 @@ impl Agent {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
-                1.0-(dist/self.vision_range)
+                dist/self.vision_range
             },
         };
         let mut res_ang = match self.resource_dir {
-            None => PI,
+            None => 0.0,
             Some(dir) => {
                 dir
             },
         };
-        res_ang = res_ang/PI;
+        //res_ang = res_ang/PI;
         let mut resr: f32=0.0; let mut resl: f32=0.0;
         if res_ang > 0.0 {
             resr = 1.0 - clamp(res_ang, 0.0, 1.0);
@@ -716,7 +716,7 @@ impl Agent {
             if let Some(enemy_position) = physics.get_object_position(rb) {
                 self.enemy_position = Some(enemy_position);
                 let rel_pos = enemy_position - self.pos;
-                let enemy_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(self.vision_angle/2.0);
+                let enemy_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(1.0*PI);
                 self.enemy_dir = Some(enemy_dir);
                 if let Some(enemy_size) = physics.get_object_size(rb) {
                     self.enemy_size = Some(enemy_size);
@@ -734,7 +734,7 @@ impl Agent {
             if let Some(resource_position) = physics.get_object_position(rb) {
                 self.resource_position = Some(resource_position);
                 let rel_pos = resource_position - self.pos;
-                let resource_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(self.vision_angle/2.0);
+                let resource_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(1.0*PI);
                 self.resource_dir = Some(resource_dir);
             } else {
                 self.resource = None;

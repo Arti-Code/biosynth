@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use std::f32::consts::PI;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use egui_macroquad;
@@ -78,7 +79,7 @@ impl UISystem {
             self.build_top_menu(egui_ctx, &sim_state.sim_name, signals);
             self.build_quit_window(egui_ctx);
             self.build_monit_window(egui_ctx, &sim_state);
-            self.build_debug_window(egui_ctx, camera2d, &sim_state);
+            self.build_debug_window(egui_ctx, camera2d, &sim_state, agent);
             self.build_new_sim_window(egui_ctx, signals);
             match agent {
                 Some(agent) => {
@@ -452,7 +453,7 @@ impl UISystem {
         }
     }
 
-    fn build_debug_window(&self, egui_ctx: &Context, camera2d: &Camera2D, sim_state: &SimState) {
+    fn build_debug_window(&self, egui_ctx: &Context, camera2d: &Camera2D, sim_state: &SimState, agent: Option<&Agent>) {
         if self.state.mouse {
             let (mouse_x, mouse_y) = mouse_position();
             Window::new("DEBUG INFO").default_pos((375.0, 5.0)).default_width(175.0).show(egui_ctx, |ui| {
@@ -473,6 +474,39 @@ impl UISystem {
                 ui.label(RichText::new("PHYSICS CORE").strong().color(Color32::RED));
                 ui.label(format!("RIGID: {}", sim_state.rigid_num));
                 ui.label(format!("COLLIDERS: {}", sim_state.colliders_num));
+                match agent {
+                    None => {},
+                    Some(agent) => {
+                        ui.separator();
+                        ui.label(RichText::new("AGENT").strong().color(Color32::LIGHT_BLUE));
+                        match agent.enemy_dir {
+                            None => {},
+                            Some(enemy_dir) => {
+                                ui.label(format!("target angle: {:.2}", enemy_dir));
+                            },
+                        }
+                        match agent.enemy_position {
+                            None => {},
+                            Some(enemy_pos) => {
+                                let rel_pos = enemy_pos - agent.pos;
+                                ui.label(format!("target pos: [x: {} | y: {}]", rel_pos.x.round(), rel_pos.y.round()));
+                            },
+                        }
+                        match agent.resource_dir {
+                            None => {},
+                            Some(res_dir) => {
+                                ui.label(format!("resource angle: {:.2}", res_dir));
+                            },
+                        }
+                        match agent.resource_position {
+                            None => {},
+                            Some(res_pos) => {
+                                let rel_pos = res_pos - agent.pos;
+                                ui.label(format!("resource pos: [x: {} | y: {}]", rel_pos.x.round(), rel_pos.y.round()));
+                            },
+                        }
+                    },
+                }
             });
         }
     }

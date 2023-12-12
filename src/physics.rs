@@ -391,11 +391,9 @@ impl PhysicsCore {
                 let new_dist = pos1.distance(pos2);
                 let local_pos = pos2 - pos1;
                 let ang = direction.angle_between((local_pos).normalize_or_zero());
-                if new_dist <= detection_range*0.1 {
-                    if new_dist < dist {
-                        dist = new_dist;
-                        target = rb2_handle;
-                    }
+                if new_dist <= detection_range*0.1 && new_dist < dist {
+                    dist = new_dist;
+                    target = rb2_handle;
                 } else if new_dist < dist && ang.abs() <= detection_angle/2.0 {
                     dist = new_dist;
                     target = rb2_handle;
@@ -431,11 +429,9 @@ impl PhysicsCore {
                 let new_dist = pos1.distance(pos2);
                 let local_pos = pos2 - pos1;
                 let ang = direction.angle_between((local_pos).normalize_or_zero());
-                if new_dist <= detection_range*0.1 {
-                    if new_dist < dist {
-                        dist = new_dist;
-                        target = rb2_handle;
-                    }
+                if new_dist <= detection_range*0.1 && new_dist < dist {
+                    dist = new_dist;
+                    target = rb2_handle;
                 } else if new_dist < dist && ang.abs() <= detection_angle/2.0 {
                     dist = new_dist;
                     target = rb2_handle;
