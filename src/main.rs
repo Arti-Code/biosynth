@@ -15,7 +15,7 @@ mod globals;
 mod resource;
 mod neural;
 mod terrain;
-//mod agent2;
+mod agent2;
 
 use crate::sim::*;
 use crate::globals::*;

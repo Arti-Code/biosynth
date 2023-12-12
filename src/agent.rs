@@ -3,7 +3,6 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::hash_map::Iter;
 use std::f32::consts::PI;
 use crate::neuro::*;
 use crate::timer::*;
@@ -18,8 +17,8 @@ use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
-use serde_json;
-use std::fs;
+//use serde_json;
+//use std::fs;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -166,6 +165,7 @@ pub struct Agent {
     pub speed: i32,
     pub shell: i32,
     pub mutations: i32,
+    pub eyes: i32,
     parts: Vec<Box<dyn AgentPart>>,
     pub eng_cost: EnergyCost,
 }
@@ -176,11 +176,13 @@ impl Agent {
     
     pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
-        let key = gen_range(u64::MIN, u64::MAX);
+        //let key = gen_range(u64::MIN, u64::MAX);
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
+        let rot = random_rotation();
+        let eyes = gen_range(0, 10);
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
+        let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI"];
@@ -191,21 +193,21 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        let mut parts: Vec<Box<dyn AgentPart>> = vec![];
-        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        let tail = Box::new(tail);
+        let parts: Vec<Box<dyn AgentPart>> = vec![];
+        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        //let tail = Box::new(tail);
         let eng = size * 75.0 + 300.0;
         //parts.push(tail);
         Self {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
-            rot: random_rotation(),
+            rot,
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
             size,
-            vision_range:  settings.agent_vision_range + size*0.05*settings.agent_vision_range,
-            vision_angle: PI*1.3,
+            vision_range:  Self::calc_vision_range(eyes),
+            vision_angle: Self::calc_vision_angle(eyes),
             max_eng: eng,
             eng: eng * 0.5,
             color,
@@ -241,9 +243,19 @@ impl Agent {
             power: gen_range(0, 10),
             shell: gen_range(0, 10),
             mutations: gen_range(0, 10),
+            eyes,
             parts,
             eng_cost: EnergyCost::default(),
         }
+    }
+
+    pub fn calc_vision_range(eyes: i32) -> f32 {
+        let settings = get_settings();
+        return 50.0 + settings.agent_vision_range*(eyes as f32)/10.0;
+    }
+
+    pub fn calc_vision_angle(eyes: i32) -> f32 {
+        return 1.8*PI * ((11.0 - eyes as f32)/11.0);
     }
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
@@ -251,7 +263,8 @@ impl Agent {
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
-        let mut size = Self::mutate_one(sketch.size as i32) as f32;
+        let size = Self::mutate_one(sketch.size as i32) as f32;
+        let eyes = Self::mutate_one(sketch.eyes);
         let shape = match sketch.shape {
             MyShapeType::Ball => {
                 SharedShape::ball(size)
@@ -265,11 +278,11 @@ impl Agent {
         };
         let gen = sketch.generation + 1;
         let mut network = sketch.network.from_sketch();
-        let m = settings.mutations + settings.mutations * ((sketch.mutations as f32 - 5.0)/10.0);
+        //let m = settings.mutations + settings.mutations * ((sketch.mutations as f32 - 5.0)/10.0);
         network.mutate(settings.mutations);
-        let mut parts: Vec<Box<dyn AgentPart>> = vec![];
-        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        let tail = Box::new(tail);
+        let parts: Vec<Box<dyn AgentPart>> = vec![];
+        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        //let tail = Box::new(tail);
         //parts.push(tail);
         let eng = sketch.size * 75.0 + 300.0;
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
@@ -281,8 +294,8 @@ impl Agent {
             vel: 0.0,
             ang_vel: 0.0,
             size,
-            vision_range: sketch.vision_range,
-            vision_angle: PI*1.3,
+            vision_range: Self::calc_vision_range(eyes),
+            vision_angle: Self::calc_vision_angle(eyes),
             max_eng: eng,
             eng: eng * 0.5,
             color,
@@ -318,6 +331,7 @@ impl Agent {
             speed: Self::mutate_one(sketch.speed),
             shell: Self::mutate_one(sketch.shell),
             mutations: Self::mutate_one(sketch.mutations),
+            eyes,
             parts,
             eng_cost: EnergyCost::default(),
         }
@@ -325,8 +339,8 @@ impl Agent {
 
     pub fn draw(&self, selected: bool, font: &Font) {
         let settings = get_settings();
-        let x0 = self.pos.x;
-        let y0 = self.pos.y;
+        //let x0 = self.pos.x;
+        //let y0 = self.pos.y;
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
             self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
@@ -436,7 +450,7 @@ impl Agent {
                 dir
             },
         };
-        let mut tg_dng = match self.enemy_size {
+        let tg_dng = match self.enemy_size {
             None => 0.0,
             Some(size2) => {
                 ((size2/(size2+self.size))-0.5)/0.5
@@ -579,22 +593,22 @@ impl Agent {
         let xr = self.pos.x + eye_r.x;
         let yr = self.pos.y + eye_r.y;
         let s = self.size*0.33;
-        let vl = self.pos + left_vision_border*range;
-        let vr = self.pos + right_vision_border*range;
+        let vl0 = self.pos + left_vision_border*range*0.1;
+        let vr0 = self.pos + right_vision_border*range*0.1;
+        let vl1 = self.pos + left_vision_border*range;
+        let vr1 = self.pos + right_vision_border*range;
         draw_circle(xl, yl, s, color);
         draw_circle(xr, yr, s, color);
         if selected {
-            draw_line(self.pos.x, self.pos.y, vl.x, vl.y, 1.0, SKYBLUE);
-            draw_line(self.pos.x, self.pos.y, vr.x, vr.y, 1.0, SKYBLUE);
-            draw_smooth_arc(range, self.pos, self.rot, self.vision_angle/2.0, 3.0, 1.0, SKYBLUE);
+            draw_line(vl0.x, vl0.y, vl1.x, vl1.y, 0.5, SKYBLUE);
+            draw_line(vr0.x, vr0.y, vr1.x, vr1.y, 0.5, SKYBLUE);
+            draw_smooth_arc(range, self.pos, self.rot, self.vision_angle/2.0, 10.0, 0.5, SKYBLUE);
+            draw_smooth_arc(range*0.1, self.pos, self.rot+PI, PI-ang, 10.0, 0.5, ORANGE);
+            //draw_smooth_circle(range*0.1, self.pos, 3.0, 0.5, SKYBLUE);
         }
     }
 
     fn draw_target(&self, selected: bool) {
-        //if selected {
-            //let range = self.vision_range;
-            //draw_smooth_circle(range, self.pos, 10.0, 0.8, SKYBLUE);
-        //}
         if let Some(_rb) = self.enemy {
             if let Some(enemy_position) = self.enemy_position {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
@@ -676,22 +690,22 @@ impl Agent {
         let settings = get_settings();
         let (mut raw_pos, rot ) = iso_to_vec2_rot(body.position());
         let mut out_of_edge = false;
-        if raw_pos.x < -5.0 {
+        if raw_pos.x < -0.0 {
             raw_pos.x = 0.0;
             out_of_edge = true;
-        } else if raw_pos.x > settings.world_w as f32 + 5.0 {
+        } else if raw_pos.x > settings.world_w as f32 + 0.0 {
             raw_pos.x = settings.world_w as f32;
             out_of_edge = true;
         }
-        if raw_pos.y < -5.0 {
+        if raw_pos.y < -0.0 {
             raw_pos.y = 0.0;
             out_of_edge = true;
-        } else if raw_pos.y > settings.world_h as f32 + 5.0 {
+        } else if raw_pos.y > settings.world_h as f32 + 0.0 {
             raw_pos.y = settings.world_h as f32;
             out_of_edge = true;
         }
         if out_of_edge {
-            body.set_position(make_isometry(raw_pos.x, raw_pos.y, rot), true);
+            body.set_position(make_isometry(raw_pos.x, raw_pos.y, rot+PI), true);
             //body.set_linvel([0.0, 0.0].into(), true);
             //self.vel = 0.0;
         }
@@ -702,7 +716,7 @@ impl Agent {
             if let Some(enemy_position) = physics.get_object_position(rb) {
                 self.enemy_position = Some(enemy_position);
                 let rel_pos = enemy_position - self.pos;
-                let enemy_dir = rel_pos.angle_between(Vec2::from_angle(self.rot));
+                let enemy_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(self.vision_angle/2.0);
                 self.enemy_dir = Some(enemy_dir);
                 if let Some(enemy_size) = physics.get_object_size(rb) {
                     self.enemy_size = Some(enemy_size);
@@ -720,7 +734,7 @@ impl Agent {
             if let Some(resource_position) = physics.get_object_position(rb) {
                 self.resource_position = Some(resource_position);
                 let rel_pos = resource_position - self.pos;
-                let resource_dir = rel_pos.angle_between(Vec2::from_angle(self.rot));
+                let resource_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(self.vision_angle/2.0);
                 self.resource_dir = Some(resource_dir);
             } else {
                 self.resource = None;
@@ -763,7 +777,7 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(tg) = physics.get_closest_resource(self.physics_handle, self.vision_range) {
+        if let Some(tg) = physics.get_closest_resource(self.physics_handle, self.vision_range, self.vision_angle, direction) {
             self.resource = Some(tg);
         } else {
             self.resource = None;
@@ -891,6 +905,7 @@ impl Agent {
         let mut speed = Self::mutate_one(self.speed);
         let mut shell = Self::mutate_one(self.shell);
         let mut mutations = Self::mutate_one(self.mutations);
+        let mut eyes = Self::mutate_one(self.eyes);
         let color = self.color.to_owned();
         let shape = SharedShape::ball(size);
         let rot = random_rotation();
@@ -916,8 +931,8 @@ impl Agent {
             vel: 0.0,
             ang_vel: 0.0,
             size,
-            vision_range: self.vision_range,
-            vision_angle: PI*1.3,
+            vision_range: Self::calc_vision_range(eyes),
+            vision_angle: Self::calc_vision_angle(eyes),
             max_eng: eng,
             eng: eng * 0.5,
             color,
@@ -953,6 +968,7 @@ impl Agent {
             speed,
             shell,
             mutations,
+            eyes,
             parts,
             eng_cost: EnergyCost::default(),
         }
@@ -968,7 +984,6 @@ impl Agent {
                 _ => MyShapeType::Cuboid,
             },
             color: self.color.to_vec().to_array(), 
-            vision_range: self.vision_range, 
             network: self.network.get_sketch(),
             points: self.points, 
             neuro_map: self.neuro_map.clone(),
@@ -976,6 +991,7 @@ impl Agent {
             speed: self.speed,
             shell: self.shell,
             mutations: self.mutations,
+            eyes: self.eyes,
         }
     }
 }
@@ -1004,7 +1020,6 @@ pub struct AgentSketch {
     pub size: f32,
     pub shape: MyShapeType,
     pub color: [f32; 4],
-    pub vision_range: f32,
     pub network: NetworkSketch,
     pub points: f32,
     pub neuro_map: NeuroMap,
@@ -1013,6 +1028,8 @@ pub struct AgentSketch {
     pub shell: i32,
     #[serde(default = "default_mutation")]
     pub mutations: i32,
+    #[serde(default = "default_mutation")]
+    pub eyes: i32,
 }
 
 pub fn default_mutation() -> i32 {

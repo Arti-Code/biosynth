@@ -70,7 +70,7 @@ pub fn angle2vec2(angle: f32) -> Vec2 {
 }
 
 pub fn wrap_around(v: &Vec2) -> Vec2 {
-    let tolerance = 5.0;
+    let tolerance = 0.0;
     let mut vr = Vec2::new(v.x, v.y);
     if vr.x > WORLD_W + tolerance {
         vr.x = WORLD_W - tolerance
@@ -446,12 +446,13 @@ pub fn draw_smooth_arc(r: f32, center: Vec2, rotation: f32, half_angle: f32, det
     let s = o / (detail*rel_peri);
     let a = 2.0 * half_angle / s;
     let mut angle = rotation - half_angle;
-    while angle <= rotation + half_angle {
+    while angle + a <= rotation + half_angle {
         let p0 = center + Vec2::from_angle(angle) * r;
         angle += a;
         let p1 = center + Vec2::from_angle(angle) * r;
         draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
     }
+    angle = clamp(angle, rotation - half_angle, rotation + half_angle);
     let p0 = center + Vec2::from_angle(angle) * r;
     let p1 = center + Vec2::from_angle(rotation + half_angle) * r;
     draw_line(p0.x, p0.y, p1.x, p1.y, width, color);

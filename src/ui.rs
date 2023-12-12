@@ -688,8 +688,9 @@ impl UISystem {
             let speed = agent.speed;
             let shell = agent.shell;
             let mutations = agent.mutations;
+            let eyes = agent.eyes;
             let name = &agent.specie;
-            let attributes = format!("size: {} | speed: {} | power: {} | shell: {} | mutation: {}", size, speed, power, shell, mutations);
+            let attributes = format!("size: {} | speed: {} | power: {} | shell: {} | mutation: {} | eyes: {}", size, speed, power, shell, mutations, eyes);
             let title_txt = format!("Attributes: {}", name.to_uppercase()); 
             Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((800.0, 0.0)).min_width(150.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
