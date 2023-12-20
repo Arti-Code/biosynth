@@ -76,7 +76,7 @@ impl Simulation {
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, 0.0),
             coord_timer: Timer::new(0.25, true, true, true),
-            //tail: Tail::new(vec2(400., 400.), 50., RED),
+            //tail: Tail::new(vec2(400., 400.), 7., PI/2.0, RED),
         }
     }
 
@@ -205,7 +205,7 @@ impl Simulation {
     }
 
     pub fn update(&mut self) {
-        //self.tail.update(&mut self.physics);
+        //self.tail.update(PI/2.5, &mut self.physics);
         self.check_signals();
         self.check_settings();
         self.update_sim_state();
@@ -343,7 +343,7 @@ impl Simulation {
         //self.draw_grid();
         self.draw_agents();
         self.draw_res();
-        //self.tail.draw(Vec2::ZERO, PI/4.0);
+        //self.tail.draw(Vec2::ZERO, PI/2.0);
     }
 
     pub fn draw_terrain(&self) {

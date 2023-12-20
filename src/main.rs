@@ -1,4 +1,5 @@
 //#![allow(unused)]
+#![windows_subsystem = "windows"]
 
 mod camera;
 mod neuro;

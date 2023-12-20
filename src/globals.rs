@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 
 
 pub const SCREEN_WIDTH: f32 = 1800.0;
-pub const SCREEN_HEIGHT: f32 = 1000.0;
-pub const WORLD_W: f32 = 3000.0;
-pub const WORLD_H: f32 = 2000.0;
+pub const SCREEN_HEIGHT: f32 = 900.0;
+pub const WORLD_W: f32 = 1800.0;
+pub const WORLD_H: f32 = 900.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
@@ -39,6 +39,10 @@ pub fn get_mutations() -> MutationStats {
     return stats.clone();
 }
 
+fn default_size_cost() -> f32 {
+    return 1.0;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -60,6 +64,8 @@ pub struct Settings {
     pub base_energy_cost: f32,
     pub move_energy_cost: f32,
     pub attack_energy_cost: f32,
+    #[serde(default = "default_size_cost")]
+    pub size_cost: f32,
     pub res_num: f32,
     pub neuro_duration: f32,
     pub hidden_nodes_num: usize,
@@ -86,23 +92,24 @@ impl Default for Settings {
             agent_speed: 40.0,
             agent_size_min: 2,
             agent_size_max: 10,
-            agent_vision_range: 350.0,
+            agent_vision_range: 450.0,
             show_network: true,
             show_specie: true,
-            show_cells: true,
+            show_cells: false,
             mutations: 0.5,
             neurolink_rate: 0.2,
-            damage: 40.0,
-            base_energy_cost: 0.4,
-            move_energy_cost: 0.4,
-            attack_energy_cost: 0.4,
+            damage: 50.0,
+            base_energy_cost: 0.2,
+            move_energy_cost: 0.5,
+            attack_energy_cost: 0.2,
+            size_cost: 1.5,
             res_num: 70.0,
             hidden_nodes_num: 0,
             neuro_duration: 0.15,
-            atk_to_eng: 0.8,
-            eat_to_eng: 8.0,
+            atk_to_eng: 0.7,
+            eat_to_eng: 6.0,
             ranking_size: 20,
-            repro_points: 200.0,
+            repro_points: 300.0,
             repro_time: 75.0,
             new_one_probability: 0.04,
             grid_size: 50,

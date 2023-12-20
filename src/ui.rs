@@ -84,7 +84,6 @@ impl UISystem {
             match agent {
                 Some(agent) => {
                     self.build_inspect_window(egui_ctx, agent);
-                    self.build_io_window(egui_ctx, agent.neuro_map.get_signal_list().clone(), agent.neuro_map.get_action_list().clone());
                     self.build_inspect_network(egui_ctx, &agent.network);
                     self.build_attributes_window(egui_ctx, agent);
                     self.build_eng_cost_window(egui_ctx, agent);
@@ -99,6 +98,7 @@ impl UISystem {
             self.build_main_menu_win(egui_ctx);
             self.build_load_agent_window(egui_ctx);
             self.build_neuro_settings_window(egui_ctx, signals);
+            self.build_info_window(egui_ctx);
         });
     }
 
@@ -161,12 +161,10 @@ impl UISystem {
                         self.state.mouse = !self.state.mouse;
                     }
                     if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
-                        //signals.ranking = true;
                         self.state.ranking = !self.state.ranking;
                     }
                     if ui.button(RichText::new("Print Mutations Stats").strong().color(Color32::WHITE)).clicked() {
-                        let mutations = get_mutations();
-                        mutations.print_data();
+                        self.state.info = !self.state.info;
                     }
                 });
 
@@ -196,9 +194,6 @@ impl UISystem {
                 menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
                     if ui.button(RichText::new("Network Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.neuro_lab = !self.state.neuro_lab;
-                    }
-                    if ui.button(RichText::new("I/O").strong().color(Color32::WHITE)).clicked() {
-                        self.state.io = !self.state.io;
                     }
                 });
 
@@ -312,25 +307,6 @@ impl UISystem {
         }
     }
 
-    fn build_io_window(&self, egui_ctx: &Context, inputs: Vec<(String, f32)>, outputs: Vec<(String, f32)>) {
-        if self.state.io {
-            Window::new("INPUT&OUTPUT").default_pos((5.0, 5.0)).default_width(120.0).show(egui_ctx, |ui| {
-                ui.horizontal(|horizont| {
-                    horizont.columns(2, |col| {
-                        for (lab, val) in inputs.iter() {
-                            let i = (val*100.0).round()/100.0;
-                            col[0].label(format!("{lab}:{}", i));
-                        }
-                        for (lab, val) in outputs.iter() {
-                            let o = (val*100.0).round()/100.0;
-                            col[1].label(format!("{lab}:{o}"));
-                        }
-                    })
-                });
-            });
-        }
-    }
-
     fn build_load_agent_window(&mut self, egui_ctx: &Context) {
         if self.state.load_agent {
             let mut signals = get_signals();
@@ -381,13 +357,11 @@ impl UISystem {
                                 if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
                                     signals.load_agent_name = Some(filename.clone());
                                     set_global_signals(signals.clone());
-                                    //self.state.load_agent = false;
                                 }
                                 col.separator();
                                 if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
                                     signals.del_agent_name = Some(String::from(filename.clone()));
                                     set_global_signals(signals.clone());
-                                    //self.state.load_agent = false;
                                 }
                             });
                         });
@@ -548,11 +522,13 @@ impl UISystem {
             let names0 = vec![
                 "NEW", "IDEAL", "DANGER", "DARK", "FIRST", "EXPERIMENTAL", 
                 "RANDOM", "STRANGE", "CRAZY", "FANTASTIC", "ALTERNATIVE",
-                "DEEP", "DIGITAL", "FIRST", "GREAT"
+                "DEEP", "DIGITAL", "FIRST", "GREAT", "LAST", "BROKEN", 
+                "ANOTHER", "MIRROR", "BYTE", "NEXT", "TOXIC", "FLUENT"
             ];
             let names1 = vec![
                 "SIMULATION", "UNIVERSE", "WORLD", "LAND", "LAB", "PLANET", "SIM",
-                "REALITY", "BIOME", "LABOLATORY", "ROCK", "ISLAND", "NATURE", "ECOSYSTEM"
+                "REALITY", "BIOME", "LABOLATORY", "ROCK", "ISLAND", "NATURE", "ECOSYSTEM",
+                "SYSTEM", "EXPERIMENT", "TERRAIN", "GLOBE", "SPHERE", "SANDBOX"
             ];
 
             let mut settings = get_settings();
@@ -649,7 +625,6 @@ impl UISystem {
             Window::new(RichText::new("ENERGY COST").strong().color(Color32::GREEN)).default_pos((170.0, 100.0)).min_width(380.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
                     let txt = format!("[ BASE: {} | MOVE {} | ATTACK {} ]", agent.eng_cost.basic.round(), agent.eng_cost.movement.round(), agent.eng_cost.attack.round());
-                    //vert.label(RichText::new(name.to_uppercase()).strong().color(Color32::BLUE));
                     row.label(RichText::new(txt).strong().color(Color32::RED));
                 });
             });
@@ -660,7 +635,7 @@ impl UISystem {
         if self.state.inspect {
             let rot = agent.rot;
             let size = agent.size;
-            let tg_pos = agent.enemy_position;
+            //let tg_pos = agent.enemy_position;
             let pos = agent.pos;
             let name = agent.specie.to_owned();
             let contacts_num = agent.contacts.len();
@@ -669,12 +644,16 @@ impl UISystem {
             let childs = agent.childs;
             let kills = agent.kills;
             let attack = agent.attacking;
+            let eat = agent.eating;
             let points = agent.points;
-            let is_resource: bool = agent.resource.is_some();
+            let run = agent.run;
+            //let is_resource: bool = agent.resource.is_some();
             let mut states: Vec<String> = vec![];
             if attack { states.push("ATTK".to_string()) }
-            if is_resource { states.push("SOUR".to_string()) }
-            if tg_pos.is_some() { states.push("TARG".to_string()) }
+            if eat { states.push("EAT".to_string()) }
+            if run { states.push("RUN".to_string()) }
+            //if is_resource { states.push("SOUR".to_string()) }
+            //if tg_pos.is_some() { states.push("TARG".to_string()) }
             if contacts_num > 0 { states.push(format!("CONT({})", contacts_num)) }
             let mut status_txt = String::from("| ");
             if states.len() == 0 { status_txt.push_str("... |"); }
@@ -685,14 +664,11 @@ impl UISystem {
             let title_txt = format!("{}", name.to_uppercase()); 
             Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((435.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
-                    //vert.label(RichText::new(name.to_uppercase()).strong().color(Color32::BLUE));
                     row.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::RED));
                     row.separator();
-                    row.label(RichText::new(status_txt).strong().color(Color32::BLUE));
+                    row.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
                 });
-                //ui.separator();
                 ui.horizontal(|row| {
-//                    row.separator();
                     row.label(RichText::new(format!("GEN: [{}]", generation)).small());
                     row.separator();
                     row.label(RichText::new(format!("SIZE: [{}]", size)).small());
@@ -701,7 +677,6 @@ impl UISystem {
                     row.separator();
                     row.label(RichText::new(format!("POINTS: [{}]", points.round())).small());
                 });
-                //ui.separator();
                 ui.horizontal(|row| {
                     row.label(RichText::new(format!("CHILD: [{}]", childs)).small());
                     row.separator();
@@ -736,47 +711,47 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            let w = 270.0; let h = 250.0; let resize = 240.0;
+            let w = 360.0; let h = 360.0; let resize = macroquad::prelude::Vec2::new(360.0, 360.0);
+            let offset = UIVec2::new(0.0, 0.0);
             Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w).resizable(true)
                 .title_bar(true).show(egui_ctx, |ui| {
                     
                     let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
                     let rect = response.rect;
-                    let zero = rect.left_top().to_vec2();
-                    //let center = rect.center();
-                    //let sketch = network.get_visual_sketch();
+                    let zero = rect.left_top().to_vec2()+offset;
                     for (_, link) in network.links.iter() {
                         let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
                         let w = link.get_width();
                         let p1 = vec2_to_pos2(coord0*resize)+zero;
                         let p2 = vec2_to_pos2(coord1*resize)+zero;
-                        //let pt = vec2_to_pos2(link.loc_t*resize)+zero;
                         let (_, color1) = link.get_colors();
                         let c1 = color_to_color32(color1);
-                        //let c2 = color_to_color32(color0);
                         let points1 = [p1, p2];
-                        //let points2 = [p1, pt];
                         painter.line_segment(points1, Stroke { color: c1, width: w });
-                        //painter.line_segment(points2, Stroke { color: c2, width: 4.0 });
                     }
-                    for (_, node) in network.nodes.iter() {
+                    for (key, node) in network.nodes.iter() {
                         let (color0, color1) = node.get_colors();
                         let r = node.get_size();
                         let p1 = vec2_to_pos2(node.pos*resize)+zero;
                         let c0 = color_to_color32(color1);
                         let c1 = color_to_color32(color0);
                         let label = node.get_label();
+                        let v = match network.get_node_value(key) {
+                            None => 0.0,
+                            Some(v) => v,
+                        };
                         painter.circle_filled(p1, r,  Color32::BLACK);
                         painter.circle_filled(p1, r,  c1);
                         painter.circle_stroke(p1, r, Stroke { color: c0, width: 1.0 });
                         let mut font = FontId::default();
                         font.size = 10.0;
+                        let txt = format!("{}: {:.1}", label, v);
                         match node.node_type {
                             NeuronTypes::INPUT => {
-                                painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, label, font, Color32::WHITE);
+                                painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
                             },
                             NeuronTypes::OUTPUT => {
-                                painter.text(p1+UIVec2{x: -40.0, y: 0.0}, Align2::LEFT_CENTER, label, font, Color32::WHITE);
+                                painter.text(p1+UIVec2{x: -40.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
                             },
                             _ => {},
                         }
@@ -808,10 +783,29 @@ impl UISystem {
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|closer| {
-                    //let mut stylus = closer.style();
                     if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_BLUE).strong()).clicked() {
                         self.state.about = false;
-                        //self.state.new_sim = true;
+                    }
+                });
+            });
+        }
+    }
+
+    fn build_info_window(&mut self, egui_ctx: &Context) {
+        if self.state.info {
+            let mutations = get_mutations();
+            let na = mutations.nodes_added; let nd = mutations.nodes_deleted; let la = mutations.links_added; let ld = mutations.links_deleted;
+            let w = mutations.weights_changed; let b = mutations.biases_changed;
+            let text = format!("NODES: [added: {na} | del: {nd}] LINKS: [added: {la} | del: {ld}] MOD: [w: {w} | b: {b}]");
+            Window::new("INFO").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/3.)).min_height(380.).min_width(300.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                ui.vertical_centered(|row| {
+                    row.label(RichText::new(text).color(Color32::LIGHT_BLUE).strong());
+                });
+                ui.add_space(10.0);
+                ui.vertical_centered(|closer| {
+                    if closer.button(RichText::new("OK").color(Color32::GREEN).strong()).clicked() {
+                        self.state.info = false;
                     }
                 });
             });
@@ -879,6 +873,16 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut size_cost: f32 = settings.size_cost;
+                column[0].label(RichText::new("SIZE COST").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut size_cost, 0.0..=5.0).step_by(0.1)).changed() {
+                    settings.size_cost = size_cost;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut damage: i32 = settings.damage as i32;
                 column[0].label(RichText::new("DAMAGE").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut damage, 0..=100).step_by(1.0)).changed() {
@@ -936,7 +940,6 @@ impl UISystem {
             ui.add_space(2.0);
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::DARK_GREEN);
             ui.vertical_centered(|closer| {
-                //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.set_agent = false;
                     set_global_settings(settings.clone());
@@ -988,7 +991,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_num = settings.res_num;
                 column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_num, 0.0..=150.0).step_by(1.0)).changed() {
+                if column[1].add(Slider::new(&mut res_num, 0.0..=300.0).step_by(5.0)).changed() {
                     settings.res_num = res_num;
                     signals.new_settings = true;
                 }
@@ -1018,7 +1021,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut new_one_probability = settings.new_one_probability;
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.1).step_by(0.005)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.3).step_by(0.01)).changed() {
                     settings.new_one_probability = new_one_probability;
                     signals.new_settings = true;
                 }
@@ -1098,7 +1101,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut neuro_duration: f32 = settings.neuro_duration;
                 column[0].label(RichText::new("ANALIZE PERIOD").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut neuro_duration, 0.05..=1.0).step_by(0.05)).changed() {
+                if column[1].add(Slider::new(&mut neuro_duration, 0.01..=0.5).step_by(0.01)).changed() {
                     settings.neuro_duration = neuro_duration;
                     signals.new_settings = true;
                 }

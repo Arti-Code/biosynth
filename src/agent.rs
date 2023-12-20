@@ -251,7 +251,7 @@ impl Agent {
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
         let settings = get_settings();
-        return 50.0 + settings.agent_vision_range*(eyes as f32)/10.0;
+        return 100.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
     pub fn calc_vision_angle(eyes: i32) -> f32 {
@@ -389,7 +389,7 @@ impl Agent {
         let dt = get_frame_time();
         self.lifetime += dt;
         for part in self.parts.iter_mut() {
-            part.update_part();
+            //part.update_part();
         }
         if self.analize_timer.update(dt) {
             self.watch(physics);
@@ -792,11 +792,12 @@ impl Agent {
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
-        let mut basic_loss = (self.shell as f32 + self.size) * base_cost;
+        let size_cost = self.size * settings.size_cost;
+        let mut basic_loss = (self.shell as f32 + size_cost) * base_cost;
         if self.eating {
-            basic_loss += 1.0 * base_cost;
+            basic_loss += size_cost;
         }
-        let mut move_loss = self.vel * self.speed as f32 * move_cost;
+        let mut move_loss = self.vel * (self.speed as f32 + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
@@ -919,8 +920,8 @@ impl Agent {
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
-        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        let tail = Box::new(tail);
+        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        //let tail = Box::new(tail);
         let eng = size * 75.0 + 300.0;
         //parts.push(tail);
         Agent {

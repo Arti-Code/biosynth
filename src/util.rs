@@ -70,15 +70,18 @@ pub fn angle2vec2(angle: f32) -> Vec2 {
 }
 
 pub fn wrap_around(v: &Vec2) -> Vec2 {
+    let settings = get_settings();
+    let world_w = settings.world_w as f32;
+    let world_h = settings.world_h as f32;
     let tolerance = 0.0;
     let mut vr = Vec2::new(v.x, v.y);
-    if vr.x > WORLD_W + tolerance {
-        vr.x = WORLD_W - tolerance
+    if vr.x > world_w + tolerance {
+        vr.x = world_w - tolerance
     } else if vr.x < 0.0 - tolerance {
         vr.x = 0.0 + tolerance;
     }
-    if vr.y > WORLD_H + tolerance {
-        vr.y = WORLD_W - tolerance;
+    if vr.y > world_h + tolerance {
+        vr.y = world_h - tolerance;
     } else if vr.y < 0.0 - tolerance {
         vr.y = 0.0 + tolerance;
     }
@@ -260,7 +263,7 @@ pub struct UIState {
     pub about: bool,
     pub environment: bool,
     pub neuro_lab: bool,
-    pub io: bool,
+    //pub io: bool,
     pub ranking: bool,
     pub set_agent: bool,
     pub load_sim: bool,
@@ -269,6 +272,7 @@ pub struct UIState {
     pub main_menu: bool,
     pub energy_cost: bool,
     pub neuro_settings: bool,
+    pub info: bool,
 }
 
 impl UIState {
@@ -288,7 +292,7 @@ impl UIState {
             about: false,
             environment: false,
             neuro_lab: false,
-            io: false,
+            //io: false,
             ranking: false,
             set_agent: false,
             load_sim: false,
@@ -297,6 +301,7 @@ impl UIState {
             main_menu: true,
             energy_cost: false,
             neuro_settings: false,
+            info: false,
         }
     }
 }

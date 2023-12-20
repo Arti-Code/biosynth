@@ -74,8 +74,8 @@ impl Agent2 {
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
-        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        let tail = Box::new(tail);
+        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        //let tail = Box::new(tail);
         //parts.push(tail);
         Self {
             pos,
@@ -127,8 +127,8 @@ impl Agent2 {
         let mut network = sketch.network.from_sketch();
         network.mutate(settings.mutations);
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
-        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        let tail = Box::new(tail);
+        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        //let tail = Box::new(tail);
         //parts.push(tail);
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         Agent2 {
@@ -489,8 +489,8 @@ impl Agent2 {
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
-        let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        let tail = Box::new(tail);
+        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
+        //let tail = Box::new(tail);
         //parts.push(tail);
         Agent2 {
             pos: pos + random_unit_vec2()*40.0,
