@@ -18,6 +18,9 @@ mod neural;
 mod terrain;
 mod agent2;
 
+use std::env;
+//use std::path::Path;
+//use std::path::PathBuf;
 use crate::sim::*;
 use crate::globals::*;
 use macroquad::miniquad::conf::Icon;
@@ -55,10 +58,18 @@ async fn main() {
     setup();
     let seed = generate_seed();
     rand::srand(seed);
-    //let font = load_ttf_font("assets/fonts/firacode.ttf").await;
     let font = Font::default();
     let mut sim = Simulation::new(font.clone());
     sim.ui.load_textures();
+    let mut args = env::args();
+    match args.nth(1) {
+        Some(save_path) => {
+            sim.running = true;
+            sim.load_sim(&save_path, true);
+        },
+        None => {},
+        //let font = load_ttf_font("assets/fonts/firacode.ttf").await;
+    }
 
     loop {
         sim.input();

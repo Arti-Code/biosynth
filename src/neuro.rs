@@ -113,7 +113,7 @@ impl Node {
             id: generate_id(),
             pos: (position*100.0).round()/100.0,
             //links_to: vec![],
-            bias: rand::gen_range(0.0, 1.0)*rand::gen_range(0.0, 1.0),
+            bias: rand::gen_range(-1.0, 1.0),
             val: rand::gen_range(0.0, 0.0),
             sum: 0.0,
             selected: false,
@@ -231,7 +231,7 @@ impl Link {
             id: generate_id(),
             node_from,
             node_to,
-            w: rand::gen_range(0.0, 1.0),
+            w: rand::gen_range(-1.0, 1.0),
             signal: 0.0,
         }
     }
@@ -260,8 +260,8 @@ impl Link {
 
     pub fn get_colors(&self) -> (Color, Color) {
         let s = clamp(self.signal, -1.0, 1.0);
-        let mut color0: Color = LIGHTGRAY;
-        let mut color1: Color = GRAY;
+        let mut color0: Color = Color::new(0.78, 0.78, 0.78, 0.50); //LIGHTGRAY;
+        let mut color1: Color = Color::new(0.15, 0.15, 0.15, 1.00); //GRAY;
         if s == 0.0 {
             return (color0, color1);
         }
@@ -596,7 +596,7 @@ impl Network {
     }
 
     fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize, usize) {
-        let (dn, dl) = self.del_random_node(mutation_rate/1.5);
+        let (dn, dl) = self.del_random_node(mutation_rate*1.5);
         let (an, al) = self.add_random_node(mutation_rate/3.0);
         let b = self.mutate_nodes_bias(mutation_rate);
         return (an, dn, al, dl, b);
@@ -608,7 +608,7 @@ impl Network {
         let xfactor = mutation_rate/n_num as f32;
         for (id, node) in self.nodes.iter_mut() {
             if random_unit_unsigned() < xfactor {
-                node.bias = rand::gen_range(-1.0, 1.0)*rand::gen_range(-1.0, 1.0);
+                node.bias = rand::gen_range(1.0, 1.0);
                 counter += 1;
             }
         }

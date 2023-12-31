@@ -12,6 +12,7 @@ use egui_macroquad::egui::FontFamily::Proportional;
 use egui_macroquad::egui::FontId;
 use egui_macroquad::egui::TextStyle::*;
 use macroquad::prelude::*;
+use crate::resource::Resource;
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
@@ -72,7 +73,7 @@ impl UISystem {
         egui_ctx.set_style(style);
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, ranking: &Vec<AgentSketch>) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Resource>, ranking: &Vec<AgentSketch>) {
         egui_macroquad::ui(|egui_ctx| {
             self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
@@ -87,6 +88,12 @@ impl UISystem {
                     self.build_inspect_network(egui_ctx, &agent.network);
                     self.build_attributes_window(egui_ctx, agent);
                     self.build_eng_cost_window(egui_ctx, agent);
+                },
+                None => {},
+            }
+            match res {
+                Some(res) => {
+                    self.build_res_window(egui_ctx, res);
                 },
                 None => {},
             }
@@ -162,6 +169,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
                         self.state.ranking = !self.state.ranking;
+                    }
+                    if ui.button(RichText::new("Resource").strong().color(Color32::WHITE)).clicked() {
+                        self.state.resource = !self.state.resource;
                     }
                     if ui.button(RichText::new("Print Mutations Stats").strong().color(Color32::WHITE)).clicked() {
                         self.state.info = !self.state.info;
@@ -398,7 +408,7 @@ impl UISystem {
                 for sim in saved_sims {
                     ui.vertical_centered(|row| {
                         row.columns(2, |columns| {
-                            columns[0].label(RichText::new(sim.to_owned()).strong().color(Color32::WHITE));
+                            columns[0].label(RichText::new(sim.to_owned().to_uppercase()).strong().color(Color32::WHITE));
                             columns[1].horizontal(|col| {
                                     if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
                                         signals.load_sim_name = Some(String::from(&sim));
@@ -649,12 +659,12 @@ impl UISystem {
             let run = agent.run;
             //let is_resource: bool = agent.resource.is_some();
             let mut states: Vec<String> = vec![];
-            if attack { states.push("ATTK".to_string()) }
+            if attack { states.push("ATK".to_string()) }
             if eat { states.push("EAT".to_string()) }
             if run { states.push("RUN".to_string()) }
             //if is_resource { states.push("SOUR".to_string()) }
             //if tg_pos.is_some() { states.push("TARG".to_string()) }
-            if contacts_num > 0 { states.push(format!("CONT({})", contacts_num)) }
+            if contacts_num > 0 { states.push(format!("CON({})", contacts_num)) }
             let mut status_txt = String::from("| ");
             if states.len() == 0 { status_txt.push_str("... |"); }
             for s in states {
@@ -662,11 +672,13 @@ impl UISystem {
                 status_txt.push_str(" |");
             }
             let title_txt = format!("{}", name.to_uppercase()); 
-            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((435.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
+            Window::new(RichText::new(title_txt).strong().color(Color32::WHITE)).default_pos((435.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
                     row.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::RED));
                     row.separator();
                     row.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
+                    row.separator();
+                    row.label(RichText::new("■■■").strong().color(color_to_color32(agent.mood)).monospace())
                 });
                 ui.horizontal(|row| {
                     row.label(RichText::new(format!("GEN: [{}]", generation)).small());
@@ -689,6 +701,23 @@ impl UISystem {
             });
         }
     }
+
+
+    fn build_res_window(&self, egui_ctx: &Context, res: &Resource) {
+        if self.state.resource {
+            let size = res.size as i32;
+            let max_eng = res.max_eng;
+            let eng = res.eng;
+            let attributes = format!("ENG: {:.0}/{:.0} | SIZE: {}",eng, max_eng, size);
+            let title_txt = format!("Resource"); 
+            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((800.0, 0.0)).min_width(100.0).show(egui_ctx, |ui| {
+                ui.horizontal(|row| {
+                    row.label(RichText::new(attributes).strong());
+                });
+            });
+        }
+    }
+
 
     fn build_attributes_window(&self, egui_ctx: &Context, agent: &Agent) {
         if self.state.attributes {
@@ -721,7 +750,7 @@ impl UISystem {
                     let zero = rect.left_top().to_vec2()+offset;
                     for (_, link) in network.links.iter() {
                         let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
-                        let w = link.get_width();
+                        let w = link.get_width()*1.5;
                         let p1 = vec2_to_pos2(coord0*resize)+zero;
                         let p2 = vec2_to_pos2(coord1*resize)+zero;
                         let (_, color1) = link.get_colors();
@@ -731,7 +760,7 @@ impl UISystem {
                     }
                     for (key, node) in network.nodes.iter() {
                         let (color0, color1) = node.get_colors();
-                        let r = node.get_size();
+                        let r = node.get_size()*1.5;
                         let p1 = vec2_to_pos2(node.pos*resize)+zero;
                         let c0 = color_to_color32(color1);
                         let c1 = color_to_color32(color0);
@@ -741,8 +770,9 @@ impl UISystem {
                             Some(v) => v,
                         };
                         painter.circle_filled(p1, r,  Color32::BLACK);
-                        painter.circle_filled(p1, r,  c1);
-                        painter.circle_stroke(p1, r, Stroke { color: c0, width: 1.0 });
+                        //painter.circle_filled(p1, r,  c1);
+                        let w = 0.75 + 0.24*r;
+                        painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
                         let mut font = FontId::default();
                         font.size = 10.0;
                         let txt = format!("{}: {:.1}", label, v);
@@ -751,7 +781,7 @@ impl UISystem {
                                 painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
                             },
                             NeuronTypes::OUTPUT => {
-                                painter.text(p1+UIVec2{x: -40.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
+                                painter.text(p1+UIVec2{x: -60.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
                             },
                             _ => {},
                         }
@@ -883,6 +913,26 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut base_hp: i32 = settings.base_hp;
+                column[0].label(RichText::new("BASE HP").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut base_hp, 0..=1000).step_by(10.0)).changed() {
+                    settings.base_hp = base_hp;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut size_to_hp: f32 = settings.size_to_hp;
+                column[0].label(RichText::new("SIZE TO HP").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut size_to_hp, 0.0..=200.0).step_by(5.0)).changed() {
+                    settings.size_to_hp = size_to_hp;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut damage: i32 = settings.damage as i32;
                 column[0].label(RichText::new("DAMAGE").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut damage, 0..=100).step_by(1.0)).changed() {
@@ -970,7 +1020,7 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut agents_num: i32 = settings.agent_min_num as i32;
-                column[0].label(RichText::new("MIN NUMBER").color(Color32::WHITE).strong());
+                column[0].label(RichText::new("AGENT MIN NUMBER").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut agents_num, 0..=100)).changed() {
                     settings.agent_min_num = agents_num as usize;
                     signals.new_settings = true;
@@ -980,7 +1030,7 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut agent_init_num: i32 = settings.agent_init_num as i32;
-                column[0].label(RichText::new("INIT NUMBER").color(Color32::WHITE).strong());
+                column[0].label(RichText::new("AGENT INIT NUMBER").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut agent_init_num, 0..=100)).changed() {
                     settings.agent_init_num = agent_init_num as usize;
                     signals.new_settings = true;
@@ -989,10 +1039,60 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_num = settings.res_num;
+                let mut res_init_num: i32 = settings.res_init_num as i32;
+                column[0].label(RichText::new("RES INIT NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut res_init_num, 0..=250)).changed() {
+                    settings.res_init_num = res_init_num as usize;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut res_min_num: i32 = settings.res_min_num as i32;
+                column[0].label(RichText::new("RES MIN NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut res_min_num, 0..=20)).changed() {
+                    settings.res_min_num = res_min_num as usize;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut res_detection_radius: f32 = settings.res_detection_radius;
+                column[0].label(RichText::new("RES DETECTION RANGE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut res_detection_radius, 0.0..=500.0).step_by(5.0)).changed() {
+                    settings.res_detection_radius = res_detection_radius;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut res_balance: i32 = settings.res_balance as i32;
+                column[0].label(RichText::new("RES BALANCE NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut res_balance, 0..=50)).changed() {
+                    settings.res_balance = res_balance as usize;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut growth: f32 = settings.growth;
+                column[0].label(RichText::new("GROWTH").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut growth, 0.0..=10.0).step_by(0.5)).changed() {
+                    settings.growth = growth;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut resource_probability = settings.resource_probability;
                 column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_num, 0.0..=300.0).step_by(5.0)).changed() {
-                    settings.res_num = res_num;
+                if column[1].add(Slider::new(&mut resource_probability, 0.0..=1.0).step_by(0.01)).changed() {
+                    settings.resource_probability = resource_probability;
                     signals.new_settings = true;
                 }
             });
@@ -1027,6 +1127,16 @@ impl UISystem {
                 }
             });
             ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut water_lvl = settings.water_lvl as i32;
+                column[0].label(RichText::new("WATER LEVEL").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<i32>(&mut water_lvl, 0..=10)).changed() {
+                    settings.water_lvl = water_lvl as u8;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(120., 75.));
                 column[1].set_max_size(UIVec2::new(120., 75.));
                 let mut agent_eng_bar: bool = settings.agent_eng_bar;
@@ -1054,6 +1164,16 @@ impl UISystem {
                 if column[1].add(Checkbox::without_text(&mut show_cells)).changed() {
                     settings.show_cells = show_cells;
                     signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(120., 75.));
+                column[1].set_max_size(UIVec2::new(120., 75.));
+                let mut show_res_rad: bool = settings.show_res_rad;
+                column[0].label(RichText::new("SHOW RES RADIUS").color(Color32::WHITE).strong());
+                if column[1].add(Checkbox::without_text(&mut show_res_rad)).changed() {
+                    settings.show_res_rad = show_res_rad;
+                    //signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {

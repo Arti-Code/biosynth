@@ -39,7 +39,11 @@ impl Cell {
         return self.alt as f32;
     }
 
-    pub fn get_color(&self) -> Color {
+    pub fn get_color(&self, water_level: u8) -> Color {
+        if self.alt < water_level {
+            let a = 1.0 - (water_level as f32 / 10.0) * 0.5;
+            return Color::new(0.0, 0.0, 1.0, a);
+        }
         let alt = self.alt as f32;
         let c = (alt * 15.0 + 50.0) as u8;
         let mut color = color_u8!(c, c, c, 255);
@@ -55,13 +59,14 @@ pub struct Terrain {
     width: usize,
     height: usize,
     cell_size: f32,
-    occupied: Vec<[i32; 2]>
+    occupied: Vec<[i32; 2]>,
+    water_lvl: u8,
 }
 
 impl Terrain {
 
-    pub fn new(w: f32, h: f32, s: f32) -> Self {
-        let row_num = (h / s) as usize;
+    pub fn new(w: f32, h: f32, s: f32, water_lvl: u8) -> Self {
+        let row_num = (h / s) as usize + 1;
         let col_num = (w / s) as usize;
         let map = Self::generate_noise_map(col_num, row_num);
         let mut cells: Vec<Vec<Cell>> = vec![];
@@ -76,7 +81,7 @@ impl Terrain {
             }
             cells.push(row);
         }
-        Self {cells, width: col_num, height: row_num, cell_size: s, occupied: vec![]}
+        Self {cells, width: col_num, height: row_num, cell_size: s, occupied: vec![], water_lvl}
     }
 
     pub fn from_serialized_terrain(serialized: &SerializedTerrain) -> Self {
@@ -86,6 +91,7 @@ impl Terrain {
             height: serialized.rows_num,
             cell_size: serialized.cell_size,
             occupied: vec![],
+            water_lvl: serialized.water_lvl,
         }
     }
 
@@ -103,7 +109,7 @@ impl Terrain {
     }
 
     pub fn get_color(&self, x: usize, y: usize) -> Color {
-        return self.cells[y][x].get_color();
+        return self.cells[y][x].get_color(self.water_lvl);
     }
 
     pub fn draw(&self, show_occupied: bool) {
@@ -153,6 +159,14 @@ impl Terrain {
             .set_y_bounds(-5.0, 5.0).build()
     }
 
+    pub fn water_level(&self) -> u8 {
+        return self.water_lvl;
+    }
+
+    pub fn set_water_level(&mut self, new_level: u8) {
+        self.water_lvl = clamp(new_level, 0, 10);
+    }
+
 }
 
 
@@ -162,6 +176,7 @@ pub struct SerializedTerrain {
     columns_num: usize,
     rows_num: usize,
     cells: Vec<Vec<Cell>>,
+    water_lvl: u8,
 }
 
 impl SerializedTerrain {
@@ -172,6 +187,7 @@ impl SerializedTerrain {
             columns_num: terrain.width,
             rows_num: terrain.height,
             cells: terrain.cells.to_vec(),
+            water_lvl: terrain.water_lvl,
         };
         return serialized_terrain;
     }

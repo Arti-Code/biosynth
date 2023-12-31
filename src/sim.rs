@@ -4,6 +4,7 @@ use crate::agent::*;
 use crate::part::*;
 use crate::camera::*;
 use crate::neuro::MyPos2;
+use crate::resource::Resource;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
@@ -74,7 +75,7 @@ impl Simulation {
             ranking: vec![],
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
-            terrain: Terrain::new(0.0, 0.0, 0.0),
+            terrain: Terrain::new(0.0, 0.0, 0.0, 5),
             coord_timer: Timer::new(0.25, true, true, true),
             //tail: Tail::new(vec2(400., 400.), 7., PI/2.0, RED),
         }
@@ -88,7 +89,7 @@ impl Simulation {
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
-        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, 40.0);
+        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, 40.0, settings.water_lvl);
         self.agents.agents.clear();
         self.resources.resources.clear();
         self.sim_time = 0.0;
@@ -177,20 +178,34 @@ impl Simulation {
     }
 
     fn update_res(&mut self) {
+        let settings = get_settings();
+        let mut new_resources: Vec<Resource> = vec![];
         for (_, res) in self.resources.get_iter_mut() {
+            match res.update_cloning(&mut self.physics) {
+                None => {},
+                Some(new_res) => {
+                    new_resources.push(new_res);
+                }
+            }
             res.update(&mut self.physics);
             if !res.alife {
                 self.physics.remove_object(res.physics_handle);
             }
         }
         self.resources.resources.retain(|_, res| res.alife == true);
-        let dt = get_frame_time();
-        let settings = get_settings();
-        let res_num = settings.res_num;
-        let res_prob = (res_num*dt)/(self.resources.count() as f32+1.0);
-        if rand::gen_range(0.0, 1.0) < res_prob {
-            self.resources.add_many_resources(1, &mut self.physics);
+        for res in new_resources.iter() {
+            self.resources.add_resource(res.to_owned())
         }
+        if self.resources.count() < settings.res_min_num {
+            self.resources.add_many_resources(2, &mut self.physics);
+        }
+        //let dt = get_frame_time();
+        //let settings = get_settings();
+        //let res_num = settings.res_num;
+        //let res_prob = (res_num*dt)/(self.resources.count() as f32+1.0);
+        //if rand::gen_range(0.0, 1.0) < res_prob {
+        //    self.resources.add_many_resources(1, &mut self.physics);
+        //}
     }
 
     fn update_coordinates(&mut self) {
@@ -352,8 +367,9 @@ impl Simulation {
     }
 
     fn draw_res(&self) {
+        let settings = get_settings();
         for (_, res) in self.resources.get_iter() {
-            res.draw();
+            res.draw(settings.show_res_rad);
         }
     }
 
@@ -440,7 +456,7 @@ impl Simulation {
                     let mut signals = get_signals();
                     signals.load_sim_name = None;
                     set_global_signals(signals);
-                    self.load_sim(&sim_name);
+                    self.load_sim(&sim_name, false);
                 },
             }
         }
@@ -484,7 +500,7 @@ impl Simulation {
         let data = SimulationSave::from_sim(self);
         let s = serde_json::to_string_pretty(&data);
         let s2 = serde_json::to_string(&data);
-        let p = format!("saves/simulations/{}/", self.simulation_name);
+        let p = format!("saves/simulations/{}/", self.simulation_name.to_lowercase());
         //let de = bincode::encode();
         match s2 {
             Ok(serial) => {
@@ -492,7 +508,8 @@ impl Simulation {
                 match encoded {
                     Err(_e) => println!("Error encoding simulation"),
                     Ok(encoded) => {
-                        let mut path = Path::new(&p).join(format!("{}.sim", self.simulation_name));
+                        let mut path = Path::new(&p).join(format!("{}.sim", self.simulation_name.to_lowercase()));
+                        let mut path_n = Path::new(&p).join(format!("{}.sim", data.sim_time));
                         match fs::write(path, &encoded) {
                             Ok(_) => {},
                             Err(_) => {
@@ -509,14 +526,19 @@ impl Simulation {
             Ok(save) => {
                 match fs::DirBuilder::new().recursive(true).create(p) {
                     Ok(_) => {
-                        let f = format!("saves/simulations/{}/last.json", self.simulation_name);
-                        match fs::write(f, save) {
+                        let f_n = format!("saves/simulations/{}/{}.json", self.simulation_name.to_lowercase(), data.sim_time as i32);
+                        let f = format!("saves/simulations/{}/last.json", self.simulation_name.to_lowercase());
+                        match fs::write(f_n, save.clone()) {
+                            Ok(_) => {println!("SAVED");},
+                            Err(_) => println!("ERROR"),
+                        }
+                        match fs::write(f, save.clone()) {
                             Ok(_) => {println!("SAVED");},
                             Err(_) => println!("ERROR"),
                         }
                     },
                     Err(_) => {
-                        let f = format!("saves/simulations/{}/last.json", self.simulation_name);
+                        let f = format!("saves/simulations/{}/last.json", self.simulation_name.to_lowercase());
                         match fs::write(f, save) {
                             Ok(_) => {println!("SAVED EXIST");},
                             Err(_) => println!("ERROR EXIST"),
@@ -531,7 +553,7 @@ impl Simulation {
     }
 
     fn delete_sim(&self, sim_name: &str) {
-        let f = format!("saves/simulations/{}", sim_name);
+        let f = format!("saves/simulations/{}", sim_name.to_lowercase());
         let path = Path::new(&f);
         match fs::remove_dir_all(path) {
             Err(_) => {
@@ -541,12 +563,22 @@ impl Simulation {
         }
     }
 
-    fn load_sim(&mut self, sim_name: &str) {
-        let f = format!("saves/simulations/{}/last.json", sim_name);
-        let path = Path::new(&f);
+    pub fn load_sim(&mut self, sim_name: &str, absolute_path: bool) {
+        let path: &Path;
+        let f: String;
+        if absolute_path {
+            f = sim_name.to_string().to_lowercase();
+            path = Path::new(sim_name);
+        } else {
+            f = format!("saves/simulations/{}/last.json", sim_name);
+            path = Path::new(&f);
+        }
         match fs::read_to_string(path) {
-            Err(_) => {},
+            Err(_) => {
+                warn!("can't read from {}", path.to_str().unwrap());
+            },
             Ok(save) => {
+                //let decoded: String = bincode::deserialize(save.as_bytes()).expect("can't decode file");
                 match serde_json::from_str::<SimulationSave>(&save) {
                     Err(_) => {
                         println!("error during deserialization of saved sim... [{}]", &f);
@@ -572,7 +604,7 @@ impl Simulation {
                 }
             }
         }
-    }
+    } 
 
     fn load_agent(&mut self, file_name: &str) {
         let f = format!("saves/agents/{}", file_name);
@@ -643,6 +675,13 @@ impl Simulation {
                         break;
                     }
                 }
+                if self.selected.is_some() { return; }
+                for (id, res) in self.resources.get_iter() {
+                    if contact_mouse(rel_coords, res.pos, res.size) {
+                        self.selected = Some(*id);
+                        break;
+                    }
+                }
             }
         }
     }
@@ -662,6 +701,9 @@ impl Simulation {
                     }
                 }
             }
+        }
+        if settings.water_lvl != self.terrain.water_level() {
+            self.terrain.set_water_level(settings.water_lvl);
         }
 
     }
@@ -729,13 +771,19 @@ impl Simulation {
     }
 
     pub fn process_ui(&mut self) {
-        let selected = match self.selected {
+        let selected_agent = match self.selected {
             Some(selected) => {
                 self.agents.get(selected)
             },
             None => None,
         };
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected, &self.ranking);
+        let selected_resource = match self.selected {
+            Some(selected) => {
+                self.resources.get(selected)
+            },
+            None => None,
+        };
+        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected_agent, selected_resource, &self.ranking);
     }
 
     pub fn draw_ui(&self) {

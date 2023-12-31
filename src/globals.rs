@@ -43,12 +43,36 @@ fn default_size_cost() -> f32 {
     return 1.0;
 }
 
+fn default_base_hp() -> i32 {
+    return 100;
+}
+
+fn default_size_to_hp() -> f32 {
+    return 10.0;
+}
+
+fn default_res_prob() -> f32 {
+    return 0.1;
+}
+
+fn default_growth() -> f32 {
+    return 5.0;
+}
+
+fn default_water_lvl() -> u8 {
+    return 4;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
     pub world_h: i32,
     pub agent_min_num: usize,
+    pub res_min_num: usize,
     pub agent_init_num: usize,
+    pub res_init_num: usize,
+    pub res_balance: usize,
+    pub res_detection_radius: f32,
     pub agent_speed: f32,
     pub agent_rotate: f32,
     pub agent_eng_bar: bool,
@@ -58,6 +82,7 @@ pub struct Settings {
     pub show_network: bool,
     pub show_specie: bool,
     pub show_cells: bool,
+    pub show_res_rad: bool,
     pub mutations: f32,
     pub neurolink_rate: f32,
     pub damage: f32,
@@ -66,6 +91,10 @@ pub struct Settings {
     pub attack_energy_cost: f32,
     #[serde(default = "default_size_cost")]
     pub size_cost: f32,
+    #[serde(default = "default_base_hp")]
+    pub base_hp: i32,
+    #[serde(default = "default_size_to_hp")]
+    pub size_to_hp: f32,
     pub res_num: f32,
     pub neuro_duration: f32,
     pub hidden_nodes_num: usize,
@@ -77,6 +106,12 @@ pub struct Settings {
     pub new_one_probability: f32,
     pub grid_size: u32,
     pub follow_mode: bool,
+    #[serde(default = "default_res_prob")]
+    pub resource_probability: f32,
+    #[serde(default = "default_growth")]
+    pub growth: f32,
+    #[serde(default = "default_water_lvl")]
+    pub water_lvl: u8,
 }
 
 impl Default for Settings {
@@ -87,7 +122,11 @@ impl Default for Settings {
             world_h: WORLD_H as i32,
             agent_eng_bar: true,
             agent_init_num: 70,
+            res_init_num: 50,
+            res_balance: 2,
+            res_detection_radius: 200.0,
             agent_min_num: 12,
+            res_min_num: 5,
             agent_rotate: 40.0,
             agent_speed: 40.0,
             agent_size_min: 2,
@@ -96,6 +135,7 @@ impl Default for Settings {
             show_network: true,
             show_specie: true,
             show_cells: false,
+            show_res_rad: false,
             mutations: 0.5,
             neurolink_rate: 0.2,
             damage: 50.0,
@@ -103,6 +143,8 @@ impl Default for Settings {
             move_energy_cost: 0.5,
             attack_energy_cost: 0.2,
             size_cost: 1.5,
+            base_hp: 100,
+            size_to_hp: 75.0,
             res_num: 70.0,
             hidden_nodes_num: 0,
             neuro_duration: 0.15,
@@ -113,7 +155,10 @@ impl Default for Settings {
             repro_time: 75.0,
             new_one_probability: 0.04,
             grid_size: 50,
-            follow_mode: false, 
+            follow_mode: false,
+            resource_probability: 0.5,
+            growth: 5.0,
+            water_lvl: 0,
        }
     }
 

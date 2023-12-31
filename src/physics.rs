@@ -15,7 +15,7 @@ use std::io;
 
 
 pub struct Physics {
-    core: PhysicsCore,
+    pub core: PhysicsCore,
 }
 
 impl Physics {
@@ -94,6 +94,17 @@ impl Physics {
 
     pub fn get_objects_iter_mut(&mut self) -> impl Iterator<Item = (RigidBodyHandle, &mut RigidBody)> {
         return self.core.rigid_bodies.iter_mut();
+    }
+
+    pub fn count_near_resources(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
+        return self.core.count_near_resources(rbh, detection_range);
+    }    
+
+    pub fn get_first_collider_mut(&mut self, rbh: RigidBodyHandle) -> &mut Collider {
+        let rb = self.core.rigid_bodies.get(rbh).unwrap();
+        let ch = rb.colliders().first().unwrap();
+        let c = self.core.colliders.get_mut(*ch).unwrap();
+        return c;
     }
 
 }
@@ -444,6 +455,28 @@ impl PhysicsCore {
         } else {
             return None;
         }
+    }
+
+    pub fn count_near_resources(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
+        let rb = self.rigid_bodies.get(rbh).unwrap();
+        let pos1 = matrix_to_vec2(rb.position().translation);
+        let mut dist = f32::INFINITY;
+        let mut target: RigidBodyHandle = RigidBodyHandle::invalid();
+        let detector = ColliderBuilder::ball(detection_range).sensor(true).density(0.0).build();
+        let filter = QueryFilter {
+            flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
+            groups: Some(InteractionGroups::new(Group::GROUP_2, Group::GROUP_2)),
+            exclude_collider: None,
+            exclude_rigid_body: Some(rbh),
+            ..Default::default()
+        };
+        let mut n: usize = 0;
+        self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), detector.shape(), filter,
+         |col_h| {
+            n += 1;
+            return true;
+        });
+        return n;
     }
 
 }

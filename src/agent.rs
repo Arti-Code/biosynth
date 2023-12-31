@@ -166,6 +166,7 @@ pub struct Agent {
     pub shell: i32,
     pub mutations: i32,
     pub eyes: i32,
+    pub mood: Color,
     parts: Vec<Box<dyn AgentPart>>,
     pub eng_cost: EnergyCost,
 }
@@ -185,8 +186,8 @@ impl Agent {
         let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI"];
-        let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN"];
+        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "RED", "GRE", "BLU"];
+        let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
         network.build(inp_labs.len(), inp_labs, settings.hidden_nodes_num, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
@@ -196,9 +197,9 @@ impl Agent {
         let parts: Vec<Box<dyn AgentPart>> = vec![];
         //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
         //let tail = Box::new(tail);
-        let eng = size * 75.0 + 300.0;
+        let eng = size * settings.size_to_hp + settings.base_hp as f32;
         //parts.push(tail);
-        Self {
+        let mut agent = Agent {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
             rot,
@@ -208,8 +209,8 @@ impl Agent {
             size,
             vision_range:  Self::calc_vision_range(eyes),
             vision_angle: Self::calc_vision_angle(eyes),
-            max_eng: eng,
-            eng: eng * 0.5,
+            max_eng: 0.0,
+            eng: 0.0,
             color,
             shape,
             analize_timer: Timer::new(settings.neuro_duration, true, true, true),
@@ -244,9 +245,12 @@ impl Agent {
             shell: gen_range(0, 10),
             mutations: gen_range(0, 10),
             eyes,
+            mood: Color::new(0.0, 0.0, 0.0, 1.0),
             parts,
             eng_cost: EnergyCost::default(),
-        }
+        };
+        agent.calc_hp();
+        return agent;
     }
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
@@ -263,8 +267,8 @@ impl Agent {
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
-        let size = Self::mutate_one(sketch.size as i32) as f32;
-        let eyes = Self::mutate_one(sketch.eyes);
+        let size = sketch.size;
+        let eyes = sketch.eyes;
         let shape = match sketch.shape {
             MyShapeType::Ball => {
                 SharedShape::ball(size)
@@ -277,16 +281,15 @@ impl Agent {
             },
         };
         let gen = sketch.generation + 1;
-        let mut network = sketch.network.from_sketch();
-        //let m = settings.mutations + settings.mutations * ((sketch.mutations as f32 - 5.0)/10.0);
-        network.mutate(settings.mutations);
+        let network = sketch.network.from_sketch();
+        //network.mutate(settings.mutations);
         let parts: Vec<Box<dyn AgentPart>> = vec![];
         //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
         //let tail = Box::new(tail);
         //parts.push(tail);
-        let eng = sketch.size * 75.0 + 300.0;
+        //let eng = size * settings.size_to_hp + settings.base_hp as f32;
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
-        Agent {
+        let mut agent = Agent {
             key,
             pos,
             rot: random_rotation(),
@@ -294,10 +297,10 @@ impl Agent {
             vel: 0.0,
             ang_vel: 0.0,
             size,
-            vision_range: Self::calc_vision_range(eyes),
-            vision_angle: Self::calc_vision_angle(eyes),
-            max_eng: eng,
-            eng: eng * 0.5,
+            vision_range: 0.0,
+            vision_angle: 0.0,
+            max_eng: 0.0,
+            eng: 0.0,
             color,
             shape,
             analize_timer: Timer::new(settings.neuro_duration, true, true, true),
@@ -327,20 +330,22 @@ impl Agent {
             points: 0.0,
             pain: false,
             run: false,
-            power: Self::mutate_one(sketch.power),
-            speed: Self::mutate_one(sketch.speed),
-            shell: Self::mutate_one(sketch.shell),
-            mutations: Self::mutate_one(sketch.mutations),
+            power: sketch.power,
+            speed: sketch.speed,
+            shell: sketch.shell,
+            mutations: sketch.mutations,
             eyes,
+            mood: Color::new(0.0, 0.0, 0.0, 1.0),
             parts,
             eng_cost: EnergyCost::default(),
-        }
+        };
+        agent.mutate();
+        agent.calc_hp();
+        return agent;
     }
 
     pub fn draw(&self, selected: bool, font: &Font) {
         let settings = get_settings();
-        //let x0 = self.pos.x;
-        //let y0 = self.pos.y;
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
             self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
@@ -370,6 +375,7 @@ impl Agent {
         draw_circle(x1, y1, shell*0.6, WHITE);
         draw_circle(x1, y1, self.size*0.6, self.color);
         draw_circle(x0, y0, self.size, self.color);
+        draw_circle(x0, y0, self.size/2.0, self.mood);
         if self.run {
             let mut shadow = self.color;
             shadow.a = 0.6;
@@ -500,6 +506,9 @@ impl Agent {
         };
 
         let hp = self.eng/self.max_eng;
+        let red = self.mood.r;
+        let blu = self.mood.b;
+        let gre = self.mood.g;
         //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
         //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
         let mut pain = 0.0;
@@ -519,6 +528,9 @@ impl Agent {
         self.neuro_map.set_signal("RER", resr);
         self.neuro_map.set_signal("RED", res_dist);
         self.neuro_map.set_signal("PAI", pain);
+        self.neuro_map.set_signal("RED", red);
+        self.neuro_map.set_signal("GRE", gre);
+        self.neuro_map.set_signal("BLU", blu);
     }
 
     fn analize(&mut self) {
@@ -559,6 +571,13 @@ impl Agent {
         } else {
             self.eating = false;
         }
+
+        let r = clamp(self.neuro_map.get_action("RED"), 0.0, 1.0);
+        let g = clamp(self.neuro_map.get_action("GRE"), 0.0, 1.0);
+        let b = clamp(self.neuro_map.get_action("BLU"), 0.0, 1.0);
+        self.mood.r = (self.mood.r+r)/2.0;
+        self.mood.g = (self.mood.g+g)/2.0;
+        self.mood.b = (self.mood.b+b)/2.0;
     }
 
     fn draw_front(&self) {
@@ -795,7 +814,7 @@ impl Agent {
         let size_cost = self.size * settings.size_cost;
         let mut basic_loss = (self.shell as f32 + size_cost) * base_cost;
         if self.eating {
-            basic_loss += size_cost;
+            basic_loss += size_cost * base_cost;
         }
         let mut move_loss = self.vel * (self.speed as f32 + size_cost) * move_cost;
         if self.run {
@@ -850,70 +869,37 @@ impl Agent {
     }
 
     pub fn mutate(&mut self) {
-        println!("Mutate");
         let settings = get_settings();
-        let mut size = self.size;
-        let mut r = rand::gen_range(0, 9);
-        if r == 1 {
-            println!("r: {}", r);
-            size += rand::gen_range(-1, 1) as f32;
-        }
-        size = clamp(size, settings.agent_size_min as f32, settings.agent_size_max as f32);
-        r = rand::gen_range(0, 9);
-        let mut power = self.power;
-        if r == 1 {
-            println!("r: {}", r);
-            power += rand::gen_range(-1, 1);
-        }
-        power = clamp(power, 0, 10);
-        r = rand::gen_range(0, 9);
-        let mut speed = self.speed;
-        if r == 1 {
-            println!("r: {}", r);
-            speed += rand::gen_range(-1, 1);
-        }
-        speed = clamp(speed, 0, 10);
-        r = rand::gen_range(0, 9);
-        let mut shell = self.shell;
-        if r == 1 {
-            println!("r: {}", r);
-            shell += rand::gen_range(-1, 1);
-        }
-        shell = clamp(shell, 0, 10);
-        if self.size != size {
-            println!("{} -> {}", self.size, size);
-        }
-        if self.power != power {
-            println!("{} -> {}", self.power, power);
-        }
-        if self.speed != speed {
-            println!("{} -> {}", self.speed, speed);
-        }
-        if self.shell != shell {
-            println!("{} -> {}", self.shell, shell);
-        }
-        self.size = size;
-        self.power = power;
-        self.speed = speed;
-        self.shell = shell;
+        self.size = Self::mutate_one(self.size as i32) as f32;
+        self.power = Self::mutate_one(self.power);
+        self.speed = Self::mutate_one(self.speed);
+        self.shell = Self::mutate_one(self.shell);
+        self.mutations = Self::mutate_one(self.mutations);
+        self.eyes = Self::mutate_one(self.eyes);
+        let m = ((self.mutations - 5) as f32) / 10.0;
+        self.network.mutate(settings.mutations + settings.mutations*m);
+        self.calc_hp();
+        self.vision_angle = Self::calc_vision_angle(self.eyes);
+        self.vision_range = Self::calc_vision_range(self.eyes);
+    }
+
+    fn calc_hp(&mut self) {
+        let settings = get_settings();
+        let eng = self.size * settings.size_to_hp + settings.base_hp as f32;
+        self.max_eng = eng;
+        self.eng = eng*0.5;
     }
 
     pub fn replicate(&self, physics: &mut Physics) -> Agent {
         let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
-        let mut size = Self::mutate_one(self.size as i32) as f32;
-        let mut power = Self::mutate_one(self.power);
-        let mut speed = Self::mutate_one(self.speed);
-        let mut shell = Self::mutate_one(self.shell);
-        let mut mutations = Self::mutate_one(self.mutations);
-        let mut eyes = Self::mutate_one(self.eyes);
         let color = self.color.to_owned();
-        let shape = SharedShape::ball(size);
+        let shape = SharedShape::ball(self.size);
         let rot = random_rotation();
         let pos = self.pos;
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
         let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), interactions);
-        let network = self.network.replicate();
+        let mut network = self.network.replicate();
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
@@ -922,20 +908,19 @@ impl Agent {
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
         //let tail = Box::new(tail);
-        let eng = size * 75.0 + 300.0;
         //parts.push(tail);
-        Agent {
+        let mut agent = Agent {
             key,
             pos: pos + random_unit_vec2()*30.0,
             rot,
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
-            size,
-            vision_range: Self::calc_vision_range(eyes),
-            vision_angle: Self::calc_vision_angle(eyes),
-            max_eng: eng,
-            eng: eng * 0.5,
+            size: self.size,
+            vision_range: 0.0,
+            vision_angle: 0.0,
+            max_eng: 0.0,
+            eng: 0.0,
             color,
             shape,
             analize_timer: self.analize_timer.to_owned(),
@@ -965,14 +950,18 @@ impl Agent {
             points: 0.0,
             pain: false,
             run: false,
-            power,
-            speed,
-            shell,
-            mutations,
-            eyes,
+            power: self.power,
+            speed: self.speed,
+            shell: self.shell,
+            mutations: self.mutations,
+            eyes: self.eyes,
+            mood: Color::new(0.0, 0.0, 0.0, 1.0),
             parts,
             eng_cost: EnergyCost::default(),
-        }
+        };
+        agent.mutate();
+        agent.calc_hp();
+        return agent;
     }
 
     pub fn get_sketch(&self) -> AgentSketch {
