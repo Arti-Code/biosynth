@@ -1,13 +1,46 @@
 #![allow(unused)]
 
+use std::error::Error;
 use std::f32::consts::PI;
+use std::{fs, io};
+use std::path::Path;
+use std::time::{UNIX_EPOCH, SystemTime};
+use crate::agent::AgentSketch;
 use crate::globals::*;
+use crate::sim::SimulationSave;
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
 use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
 use rapier2d::na::{Isometry2, Vector2, Translation, Point2, Const};
+
+static NAME_LIST: [&str; 529] = [
+    "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",
+    "cu", "ca", "co", "cy", "cu", "ce", "co", "cv", "ce", "cd", "cf", "cf", "ct", "ci", "cj", "ck", "cl", "cr", "cs", "cz", "cw", "cm", "cu", "cp",
+    "mu", "ma", "mo", "my", "mu", "me", "mo", "mv", "me", "md", "mf", "mf", "mt", "mi", "mj", "mk", "ml", "mr", "ms", "mz", "mw", "mm", "mu", "mp",
+    "ju", "ja", "jo", "jy", "ju", "je", "jo", "jv", "je", "jd", "jf", "jf", "jt", "ji", "jj", "jk", "jl", "jr", "js", "jz", "jw", "jj", "ju", "jp",
+    "du", "da", "do", "dy", "du", "de", "do", "dv", "de", "dd", "df", "df", "dt", "di", "dj", "dk", "dl", "dr", "ds", "dz", "dw", "dd", "du", "dp",
+    "so", "su", "sa", "si", "se", "sy", "sl", "sj", "ss", "sk", "sr", "st", "sq", "sf", "sn",
+    "nu", "na", "no", "ny", "nu", "ne", "no", "nv", "ne", "nd", "nf", "nf", "nt", "ni", "nj", "nk", "nl", "nr", "ns", "nz", "nw", "nn", "nu", "np",
+    "vu", "va", "vo", "vy", "vu", "ve", "vo", "vv", "ve", "vd", "vf", "vf", "vt", "vi", "vj", "vk", "vl", "vr", "vs", "vz", "vw", "vv", "vu", "vp",
+    "xu", "xa", "xo", "xy", "xu", "xe", "xo", "xv", "xe", "xd", "xf", "xf", "xt", "xi", "xj", "xk", "xl", "xr", "xs", "xz", "xw", "xx", "xu", "xp",
+    "pu", "pa", "po", "py", "pu", "pe", "po", "pv", "pe", "pd", "pf", "pf", "pj", "pi", "pj", "pk", "pl", "pr", "ps", "pz", "pw", "pp", "pu", "pt",
+    "lu", "la", "lo", "ly", "lu", "le", "lo", "lv", "le", "ld", "lf", "lf", "lt", "li", "lj", "lk", "ll", "lr", "ls", "lz", "lw", "ll", "lu", "lp", 
+    "ku", "ka", "ko", "ky", "ku", "ke", "ko", "kv", "ke", "kd", "kf", "kf", "kt", "ki", "kj", "kk", "kl", "kr", "ks", "kz", "kw", "kk", "ku", "kp",
+    "ru", "ra", "ro", "ry", "ru", "re", "ro", "rv", "re", "rd", "rf", "rf", "rt", "ri", "rj", "rk", "rl", "rr", "rs", "rz", "rw", "rr", "ru", "rp",
+    "fu", "fa", "fo", "fy", "fu", "fe", "fo", "fv", "fe", "fd", "ff", "ff", "ft", "fi", "fj", "fk", "fl", "fr", "fs", "fz", "fw", "ff", "fu", "fp", 
+    "ol", "oi", "oj", "od", "os", "ot", "ok", "on", "om", "oc", "ox", "oz", "op",
+    "iu", "ia", "io", "iy", "iu", "ie", "io", "iv", "ie", "id", "if", "if", "it", "ii", "ij", "ik", "il", "ir", "is", "iz", "iw", "ii", "iu", "ip",
+    "wu", "wa", "wo", "wy", "wu", "we", "wo", "wv", "we", "wd", "wf", "wf", "wt", "wi", "wj", "wk", "wl", "wr", "ws", "wz", "ww", "ww", "wu", "wp",
+    "bu", "ba", "bo", "by", "bu", "be", "bo", "bv", "be", "bd", "bf", "bf", "bt", "bi", "bj", "bk", "bl", "br", "bs", "bz", "bw", "bb", "bu", "bp",
+    "qu", "qa", "qo", "qy", "qu", "qe", "qo", "qv", "qe", "qd", "qf", "qf", "qt", "qi", "qj", "qk", "ql", "qr", "qs", "qz", "qw", "qq", "qu", "qp", 
+    "uo", "ui", "ua", "us", "ud", "uf", "ug", "ug", "uj", "uk", "ul",
+    "hu", "ha", "ho", "hy", "hu", "he", "ho", "hv", "he", "hd", "hf", "hf", "ht", "hi", "hj", "hk", "hl", "hr", "hs", "hz", "hw", "hh", "hu", "hp", 
+    "su", "sa", "so", "sy", "su", "se", "so", "sv", "se", "sd", "sf", "sf", "st", "si", "sj", "sk", "sl", "sr", "ss", "sz", "sw", "ss", "su", "sp",
+    "tu", "ta", "to", "ty", "tu", "te", "to", "tv", "te", "td", "tf", "tf", "th", "ti", "tj", "tk", "tl", "tr", "ts", "tz", "tw", "tt", "tu", "tp",
+    "zu", "za", "zo", "zy", "zu", "ze", "zo", "zv", "ze", "zd", "zf", "zf", "zt", "zi", "zj", "zk", "zl", "zr", "zs", "zz", "zw", "zz", "zu", "zp"
+];
 
 #[doc = r"Random unit value in range -1.0..1.0."]
 pub fn random_unit() -> f32 {
@@ -19,7 +52,7 @@ pub fn random_unit_unsigned() -> f32 {
     return rand::gen_range(0.0, 1.0);
 }
 
-#[doc = r"Random pocition vector2d in range between 0.0..max_value."]
+#[doc = r"Random position vector2d in range between 0.0..max_value."]
 pub fn random_position(x_max: f32, y_max: f32) -> Vec2 {
     let x = rand::gen_range(0.0, x_max);
     let y = rand::gen_range(0.0, y_max);
@@ -64,17 +97,20 @@ pub fn angle2vec2(angle: f32) -> Vec2 {
 }
 
 pub fn wrap_around(v: &Vec2) -> Vec2 {
-    let tolerance = 5.0;
+    let settings = get_settings();
+    let world_w = settings.world_w as f32;
+    let world_h = settings.world_h as f32;
+    let tolerance = 0.0;
     let mut vr = Vec2::new(v.x, v.y);
-    if vr.x > WORLD_W + tolerance {
-        vr.x = 0.0 - tolerance;
+    if vr.x > world_w + tolerance {
+        vr.x = world_w - tolerance
     } else if vr.x < 0.0 - tolerance {
-        vr.x = WORLD_W + tolerance;
+        vr.x = 0.0 + tolerance;
     }
-    if vr.y > WORLD_H + tolerance {
-        vr.y = 0.0 - tolerance;
+    if vr.y > world_h + tolerance {
+        vr.y = world_h - tolerance;
     } else if vr.y < 0.0 - tolerance {
-        vr.y = WORLD_H + tolerance;
+        vr.y = 0.0 + tolerance;
     }
     return vr;
 }
@@ -175,6 +211,42 @@ pub fn make_regular_poly_indices(n: usize, r: f32) -> (Vec<Vec2>, Vec<[u32; DIM]
     return (verts, indices);
 }
 
+pub fn generate_seed() -> u64 {
+    let t = SystemTime::now();
+    let s = t.duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let s2 = s / 1000000;
+    return s%s2;
+}
+
+/* fn get_names() -> [&str; 529] {
+    return [
+        "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",
+        "cu", "ca", "co", "cy", "cu", "ce", "co", "cv", "ce", "cd", "cf", "cf", "ct", "ci", "cj", "ck", "cl", "cr", "cs", "cz", "cw", "cm", "cu", "cp",
+        "mu", "ma", "mo", "my", "mu", "me", "mo", "mv", "me", "md", "mf", "mf", "mt", "mi", "mj", "mk", "ml", "mr", "ms", "mz", "mw", "mm", "mu", "mp",
+        "ju", "ja", "jo", "jy", "ju", "je", "jo", "jv", "je", "jd", "jf", "jf", "jt", "ji", "jj", "jk", "jl", "jr", "js", "jz", "jw", "jj", "ju", "jp",
+        "du", "da", "do", "dy", "du", "de", "do", "dv", "de", "dd", "df", "df", "dt", "di", "dj", "dk", "dl", "dr", "ds", "dz", "dw", "dd", "du", "dp",
+        "so", "su", "sa", "si", "se", "sy", "sl", "sj", "ss", "sk", "sr", "st", "sq", "sf", "sn",
+        "nu", "na", "no", "ny", "nu", "ne", "no", "nv", "ne", "nd", "nf", "nf", "nt", "ni", "nj", "nk", "nl", "nr", "ns", "nz", "nw", "nn", "nu", "np",
+        "vu", "va", "vo", "vy", "vu", "ve", "vo", "vv", "ve", "vd", "vf", "vf", "vt", "vi", "vj", "vk", "vl", "vr", "vs", "vz", "vw", "vv", "vu", "vp",
+        "xu", "xa", "xo", "xy", "xu", "xe", "xo", "xv", "xe", "xd", "xf", "xf", "xt", "xi", "xj", "xk", "xl", "xr", "xs", "xz", "xw", "xx", "xu", "xp",
+        "pu", "pa", "po", "py", "pu", "pe", "po", "pv", "pe", "pd", "pf", "pf", "pj", "pi", "pj", "pk", "pl", "pr", "ps", "pz", "pw", "pp", "pu", "pt",
+        "lu", "la", "lo", "ly", "lu", "le", "lo", "lv", "le", "ld", "lf", "lf", "lt", "li", "lj", "lk", "ll", "lr", "ls", "lz", "lw", "ll", "lu", "lp", 
+        "ku", "ka", "ko", "ky", "ku", "ke", "ko", "kv", "ke", "kd", "kf", "kf", "kt", "ki", "kj", "kk", "kl", "kr", "ks", "kz", "kw", "kk", "ku", "kp",
+        "ru", "ra", "ro", "ry", "ru", "re", "ro", "rv", "re", "rd", "rf", "rf", "rt", "ri", "rj", "rk", "rl", "rr", "rs", "rz", "rw", "rr", "ru", "rp",
+        "fu", "fa", "fo", "fy", "fu", "fe", "fo", "fv", "fe", "fd", "ff", "ff", "ft", "fi", "fj", "fk", "fl", "fr", "fs", "fz", "fw", "ff", "fu", "fp", 
+        "ol", "oi", "oj", "od", "os", "ot", "ok", "on", "om", "oc", "ox", "oz", "op",
+        "iu", "ia", "io", "iy", "iu", "ie", "io", "iv", "ie", "id", "if", "if", "it", "ii", "ij", "ik", "il", "ir", "is", "iz", "iw", "ii", "iu", "ip",
+        "wu", "wa", "wo", "wy", "wu", "we", "wo", "wv", "we", "wd", "wf", "wf", "wt", "wi", "wj", "wk", "wl", "wr", "ws", "wz", "ww", "ww", "wu", "wp",
+        "bu", "ba", "bo", "by", "bu", "be", "bo", "bv", "be", "bd", "bf", "bf", "bt", "bi", "bj", "bk", "bl", "br", "bs", "bz", "bw", "bb", "bu", "bp",
+        "qu", "qa", "qo", "qy", "qu", "qe", "qo", "qv", "qe", "qd", "qf", "qf", "qt", "qi", "qj", "qk", "ql", "qr", "qs", "qz", "qw", "qq", "qu", "qp", 
+        "uo", "ui", "ua", "us", "ud", "uf", "ug", "ug", "uj", "uk", "ul",
+        "hu", "ha", "ho", "hy", "hu", "he", "ho", "hv", "he", "hd", "hf", "hf", "ht", "hi", "hj", "hk", "hl", "hr", "hs", "hz", "hw", "hh", "hu", "hp", 
+        "su", "sa", "so", "sy", "su", "se", "so", "sv", "se", "sd", "sf", "sf", "st", "si", "sj", "sk", "sl", "sr", "ss", "sz", "sw", "ss", "su", "sp",
+        "tu", "ta", "to", "ty", "tu", "te", "to", "tv", "te", "td", "tf", "tf", "th", "ti", "tj", "tk", "tl", "tr", "ts", "tz", "tw", "tt", "tu", "tp",
+        "zu", "za", "zo", "zy", "zu", "ze", "zo", "zv", "ze", "zd", "zf", "zf", "zt", "zi", "zj", "zk", "zl", "zr", "zs", "zz", "zw", "zz", "zu", "zp"
+    ];
+} */
+
 pub fn create_name(num: usize) -> String {
     let names_list: Vec<&str> = vec![
         "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",
@@ -210,8 +282,22 @@ pub fn create_name(num: usize) -> String {
         name.insert_str(locus*2, voice);
     }
     return name;
-
 }
+
+/* pub fn modify_name(name: &str, i: usize) {
+    let mut new_name = String::from(name);
+    if i*2 < new_name.len() && i >= 0 {
+        let index = i*2;
+        match new_name.get_mut(index..index+1) {
+            None => {},
+            Some(m) => {
+                let names = get_names().to_owned();
+                let new = rand::gen_range(0, names.len());
+                m = names.get_mut(new).unwrap().to_owned();
+            },
+        }
+    }
+} */
 
 pub fn vec2_to_pos2(vec2: Vec2) -> Pos2 {
     return Pos2 { x: vec2.x, y: vec2.y };
@@ -245,11 +331,19 @@ pub struct UIState {
     pub docs: bool,
     pub net: bool,
     pub about: bool,
-    pub enviroment: bool,
+    pub environment: bool,
     pub neuro_lab: bool,
-    pub io: bool,
+    //pub io: bool,
     pub ranking: bool,
     pub set_agent: bool,
+    pub load_sim: bool,
+    pub load_agent: bool,
+    pub attributes: bool,
+    pub main_menu: bool,
+    pub energy_cost: bool,
+    pub neuro_settings: bool,
+    pub info: bool,
+    pub resource: bool,
 }
 
 impl UIState {
@@ -262,16 +356,24 @@ impl UIState {
             mouse: false,
             quit: false,
             agents_num: 0,
-            new_sim: true,
+            new_sim: false,
             credits: false,
             docs: false,
             net: false,
             about: false,
-            enviroment: false,
+            environment: false,
             neuro_lab: false,
-            io: false,
+            //io: false,
             ranking: false,
             set_agent: false,
+            load_sim: false,
+            load_agent: false,
+            attributes: false,
+            main_menu: true,
+            energy_cost: false,
+            neuro_settings: false,
+            info: false,
+            resource: false,
         }
     }
 }
@@ -283,8 +385,10 @@ pub struct SimState {
     pub agents_num: i32,
     pub sources_num: i32,
     pub plants_num: i32,
-    pub lifes_num: i32,
+    //pub agents_num: i32,
     pub physics_num: i32,
+    pub rigid_num: usize,
+    pub colliders_num: usize,
     pub total_mass: f32,
     pub total_eng: f32,
     pub sim_time: f64,
@@ -303,7 +407,7 @@ impl SimState {
             agents_num: 0,
             sources_num: 0,
             plants_num: 0,
-            lifes_num: 0,
+            //agents_num: 0,
             physics_num: 0,
             total_mass: 0.0,
             total_eng: 0.0,
@@ -312,6 +416,8 @@ impl SimState {
             dt: 0.0,
             total_kin_eng: 0.0,
             contacts_info: (0, 0),
+            rigid_num: 0,
+            colliders_num: 0,
         }
     }
 }
@@ -319,4 +425,112 @@ impl SimState {
 
 pub struct MouseState {
     pub pos: Vec2,
+}
+
+
+pub struct MyIcon {
+    pub small: [u8; 16*16*4],
+    pub medium: [u8; 32*32*4],
+    pub big: [u8; 64*64*4],
+}
+
+impl MyIcon {
+    pub fn color_filled(color: Color) -> Self {
+        let r = (color.r * 255.) as u8;
+        let g = (color.g * 255.) as u8;
+        let b = (color.b * 255.) as u8;
+        let a = (color.a * 255.) as u8;
+        let small = [r, g, b, a].repeat(16*16);
+        let medium = [r, g, b, a].repeat(32*32);
+        let big = [r, g, b, a].repeat(64*64);
+        let mut s: [u8; 16*16*4] = [0; 16*16*4]; 
+        let mut m: [u8; 32*32*4] = [0; 32*32*4]; 
+        let mut l: [u8; 64*64*4] = [0; 64*64*4]; 
+        for i in 0..s.len() {
+            s[i] = small[i];
+        }
+        for i in 0..m.len() {
+            m[i] = medium[i];
+        }
+        for i in 0..l.len() {
+            l[i] = big[i];
+        }
+        Self {
+            small: s,
+            medium: m,
+            big: l,
+        }
+    }
+}
+
+pub fn saved_sim_to_sketch(path: &Path) -> Option<SimulationSave> {
+    let sim = match fs::read_to_string(path) {
+        Err(_) => { None },
+        Ok(save) => {
+            match serde_json::from_str::<SimulationSave>(&save) {
+                Err(_) => {
+                    println!("error during deserialization of saved sim...");
+                    return None;
+                },
+                Ok(sim_state) => {
+                    Some(sim_state)
+                },
+            }
+        },
+    };
+    return sim;
+}
+
+pub fn saved_agent_to_agent_sketch(file_name: &str) -> Option<AgentSketch> {
+    let path_str = format!("saves/agents/{}.json", file_name);
+    let path = Path::new(&path_str);
+    let agent = match fs::read_to_string(path) {
+        Err(_) => { None },
+        Ok(save) => {
+            match serde_json::from_str::<AgentSketch>(&save) {
+                Err(_) => {
+                    println!("error during deserialization of agent...");
+                    return None;
+                },
+                Ok(agent_state) => {
+                    Some(agent_state)
+                },
+            }
+        },
+    };
+    return agent;
+}
+
+pub fn draw_smooth_circle(r: f32, center: Vec2, detail: f32, width: f32, color: Color) {
+    let o = PI * r * 2.0;
+    let s = o / detail;
+    let a = 2.0 * PI / s;
+    let mut angle = 0.0;
+    while angle <= 2.0*PI {
+        let p0 = center + Vec2::from_angle(angle) * r;
+        angle += a;
+        let p1 = center + Vec2::from_angle(angle) * r;
+        draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
+    }
+    let p0 = center + Vec2::from_angle(angle) * r;
+    let p1 = center + Vec2::from_angle(0.0) * r;
+    draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
+}
+
+pub fn draw_smooth_arc(r: f32, center: Vec2, rotation: f32, half_angle: f32, detail: f32, width: f32, color: Color) {
+    let rel_peri = (2.0*half_angle) / (2.0*PI);
+    let o = PI * r * 2.0 * rel_peri;
+    let s = o / (detail*rel_peri);
+    let a = 2.0 * half_angle / s;
+    let mut angle = rotation - half_angle;
+    while angle + a <= rotation + half_angle {
+        let p0 = center + Vec2::from_angle(angle) * r;
+        angle += a;
+        let p1 = center + Vec2::from_angle(angle) * r;
+        draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
+    }
+    angle = clamp(angle, rotation - half_angle, rotation + half_angle);
+    let p0 = center + Vec2::from_angle(angle) * r;
+    let p1 = center + Vec2::from_angle(rotation + half_angle) * r;
+    draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
 }

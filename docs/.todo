@@ -18,10 +18,13 @@ Live2:
         ✔ global settings @done(23-10-07 01:44)
         ✔ fix: new sim name input field @done(23-10-07 01:44)
         ✔ fix: add nodes mutation @high @started(23-10-10 13:58) @done(23-10-10 13:59) @lasted(1m19s)
-        ☐ fix: del nodes mutation
+        ✔ fix: del nodes mutation @done(23-10-29 13:55)
         ✔ fix: sources @high @done(23-10-10 13:57)
         ✔ fix new sim win layout @done(23-10-07 03:56)
         ✔ new settings options (neuro hidden nodes num, neuro duration, source num) @done(23-10-07 03:56)
+        ✔ impr: load_sim window @done(23-10-29 18:01)
+        ✔ impr: gui font sizes @done(23-10-29 18:02)
+        ☐ impr: subwindows layout
     0.4:
         ✔ add rapier physics world
         ✔ add agents to physics world

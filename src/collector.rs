@@ -14,8 +14,8 @@ use rapier2d::prelude::RigidBodyHandle;
 pub trait PhysicsObject {
     fn new() -> Self;
     fn draw(&self, selected: bool, font: &Font);
-    fn update(&mut self, dt: f32, physics: &mut PhysicsWorld) -> bool;
-    fn update_physics(&mut self, physics: &mut PhysicsWorld);
+    fn update(&mut self, dt: f32, physics: &mut Physics) -> bool;
+    fn update_physics(&mut self, physics: &mut Physics);
     fn link_physics_handle(&mut self, handle: RigidBodyHandle);
 }
 
@@ -30,20 +30,20 @@ impl AgentBox {
         }
     }
 
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut PhysicsWorld) {
+    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut Physics) {
         for _ in 0..agents_num {
             let agent = Agent::new(physics_world);
             _ = self.add_agent(agent);
         }
     }
 
-    pub fn populate(&mut self, physics: &mut PhysicsWorld) {
+    pub fn populate(&mut self, physics: &mut Physics) {
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
-            if agent.lifetime >= (50 + 50 * agent.childs) as f32 && (agent.eng/agent.max_eng) >= 0.8 {
-                let newone = agent.replicate(physics);
-                newborns.push(newone);
+            if agent.lifetime >= (settings.repro_time + settings.repro_time * (agent.childs*2) as f32) && (agent.eng/agent.max_eng) >= 0.75 {
+                let mut newbie = agent.replicate(physics).to_owned();
+                newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;
                 agent.eng -= 0.4*agent.max_eng;
@@ -51,10 +51,9 @@ impl AgentBox {
         }
         loop {
             match newborns.pop() {
-                Some(mut newone) => {
-                    newone.network.mutate(settings.mutations);
-                    self.add_agent(newone);
-                    //self.agents.insert(newone.key, newone);
+                Some(mut newbie) => {
+                    //newbie.network.mutate(settings.mutations);
+                    self.add_agent(newbie);
                 },
                 None => {
                     break;
@@ -64,16 +63,14 @@ impl AgentBox {
     }
 
     pub fn add_agent(&mut self, agent: Agent) {
-        //let key = agent.key;
         self.agents.insert(agent.physics_handle, agent);
-        //return key;
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Agent> {
         return self.agents.get(&id);
     }
 
-    pub fn _remove(&mut self, id: RigidBodyHandle) {
+    pub fn remove(&mut self, id: RigidBodyHandle) {
         self.agents.remove(&id);
     }
 
@@ -85,7 +82,7 @@ impl AgentBox {
         return self.agents.iter_mut();
     }
 
-    pub fn _count(&self) -> usize {
+    pub fn count(&self) -> usize {
         return self.agents.len();
     }
 
@@ -104,7 +101,7 @@ impl ResBox {
         }
     }
 
-    pub fn add_many_resources(&mut self, resources_num: usize, physics_world: &mut PhysicsWorld) {
+    pub fn add_many_resources(&mut self, resources_num: usize, physics_world: &mut Physics) {
         for _ in 0..resources_num {
             let resource = Resource::new(physics_world);
             _ = self.add_resource(resource);
@@ -121,7 +118,7 @@ impl ResBox {
         return self.resources.get(&id);
     }
 
-    pub fn _remove(&mut self, id: RigidBodyHandle) {
+    pub fn remove(&mut self, id: RigidBodyHandle) {
         self.resources.remove(&id);
     }
 

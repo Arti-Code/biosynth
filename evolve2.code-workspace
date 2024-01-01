@@ -1,7 +1,24 @@
 {
-    "folders": [
-        {
-            "path": "."
-        }
-    ]
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"cSpell.ignoreWords": [
+			"childs",
+			"lacunarity",
+			"neurolink",
+			"resl",
+			"xfactor"
+		],
+		"cSpell.words": [
+			"childs",
+			"lacunarity",
+			"neurolink",
+			"resl",
+			"unmultiplied",
+			"xfactor"
+		]
+	}
 }

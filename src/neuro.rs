@@ -3,6 +3,7 @@
 use egui_macroquad::egui::InputState;
 use macroquad::prelude::*;
 use macroquad::rand::*;
+use rapier2d::na::ComplexField;
 use serde::ser::SerializeStruct;
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -10,6 +11,8 @@ use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use serde_json::{self, *};
 use std::fs;
+use crate::globals::get_mutations;
+use crate::globals::set_mutations;
 use crate::util::*;
 
 
@@ -92,7 +95,7 @@ pub struct Link {
     signal: f32,
 }
 
-//#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
@@ -110,7 +113,7 @@ impl Node {
             id: generate_id(),
             pos: (position*100.0).round()/100.0,
             //links_to: vec![],
-            bias: rand::gen_range(0.0, 1.0)*rand::gen_range(0.0, 1.0),
+            bias: rand::gen_range(-1.0, 1.0),
             val: rand::gen_range(0.0, 0.0),
             sum: 0.0,
             selected: false,
@@ -146,6 +149,14 @@ impl Node {
         Node { id: sketch.id, pos: sketch.pos.to_vec2(), bias: sketch.bias, val: 0.0, sum: 0.0, selected: false, node_type: sketch.node_type, last: 0.0, active: false, label: sketch.label.to_string(), new_mut: false }
     }
 
+    pub fn get_size(&self) -> f32 {
+        if !self.active {
+            return 2.0;
+        } else {
+            return 2.0 + 6.0*self.val.abs();
+        }
+    }
+
     pub fn get_colors(&self) -> (Color, Color) {
         if !self.active {
             return (LIGHTGRAY, GRAY);
@@ -177,20 +188,6 @@ impl Node {
     pub fn get_label(&self) -> String {
         return self.label.to_owned();
     }
-
-/*     pub fn draw(&self) {
-        let (color0, color) = self.get_colors();
-        let r = 3.0;
-        draw_circle(self.pos.x, self.pos.y, r, BLACK);
-        draw_circle(self.pos.x, self.pos.y, r, color);
-        draw_circle_lines(self.pos.x, self.pos.y, r, 3.0, color0);
-        if self.selected {
-            let mark = r + r*(PI*t).sin()*1.5;
-            draw_circle_lines(self.pos.x, self.pos.y, mark, 2.0, YELLOW);
-        }
-        let value = format!("{}", (self.val*100.0).round()/100.0);
-        draw_text(&value, self.pos.x-8.0, self.pos.y+18.0, 18.0, WHITE);
-    } */
 
     pub fn send_impulse(&self) -> f32 {
         return self.val;
@@ -234,7 +231,7 @@ impl Link {
             id: generate_id(),
             node_from,
             node_to,
-            w: rand::gen_range(0.0, 1.0),
+            w: rand::gen_range(-1.0, 1.0),
             signal: 0.0,
         }
     }
@@ -244,9 +241,7 @@ impl Link {
         let s = clamp(self.signal, 0.0, 1.0);
         let (color0, color1) = self.get_colors();
         let (p0, p1, _pt) = self.get_coords(nodes, 1.0);
-        //let flow2 = l*(timer/2.0)*dir*0.96;
         draw_line(p0.x, p0.y, p1.x, p1.y, 1.0+4.0*w.abs(), color1);
-        //draw_line(p0.x, p0.y, pt.x, pt.y, 2.0+4.0*s.abs(), color1);
         
     }
 
@@ -265,20 +260,29 @@ impl Link {
 
     pub fn get_colors(&self) -> (Color, Color) {
         let s = clamp(self.signal, -1.0, 1.0);
-        let mut color0: Color = LIGHTGRAY;
-        let mut color1: Color = GRAY;
+        let mut color0: Color = Color::new(0.78, 0.78, 0.78, 0.50); //LIGHTGRAY;
+        let mut color1: Color = Color::new(0.15, 0.15, 0.15, 1.00); //GRAY;
         if s == 0.0 {
             return (color0, color1);
         }
         if s > 0.0 {
-            color1 = color_u8!(255, 0, 0, (100.0+155.0*s) as u8);
+            let mut r = 100 + (155.0 * s) as u8;
+            r = clamp(r, 0, 255);
+            color1 = color_u8!(r, 0, 0, (100.0+155.0*s) as u8);
         }
         if s < 0.0 {
-            color1 = color_u8!(0, 0, 255, (100.0+155.0*s.abs()) as u8);
+            let mut b = 100 + (155.0 * s.abs()) as u8;
+            b = clamp(b, 0, 255);
+            color1 = color_u8!(0, 0, b, (100.0+155.0*s.abs()) as u8);
         }
         return (color0, color1);
     }
     
+    pub fn get_width(&self) -> f32 {
+        let s = clamp(self.signal.abs(), 0.0, 1.0);
+        return 1.0 + s * 4.0;
+    }
+
     pub fn calc(&mut self, nodes: &mut HashMap<u64, Node>) {
         let n0 = self.node_from;
         let n1 = self.node_to;
@@ -329,8 +333,8 @@ impl Network {
         }
     }
 
-    pub fn build(&mut self,input_num: usize, input_labels: Vec<&str>, hidden_num: usize, output_num: usize, output_labels: Vec<&str>, link_rate: f32) {
-        self.create_nodes(input_num, input_labels, hidden_num, output_num, output_labels);
+    pub fn build(&mut self,input_num: usize, input_labels: Vec<&str>, hidden_num: Vec<usize>, output_num: usize, output_labels: Vec<&str>, link_rate: f32) {
+        self.create_nodes2(input_num, input_labels, hidden_num, output_num, output_labels);
         self.create_links(link_rate);
         let (i, _, o) = self.get_node_keys_by_type();
         self.input_keys = i;
@@ -389,6 +393,35 @@ impl Network {
         return pairs;
     }
 
+    fn create_nodes2(&mut self, input: usize, input_labels: Vec<&str>, hidden: Vec<usize>, output: usize, output_labels: Vec<&str>) {
+        let deep_n = (hidden.len()+1) as f32;
+        let hi = (self.margins.y_max / input as f32);
+        let ho = (self.margins.y_max / output as f32);
+        //let hd = (self.margins.y_max / hidden as f32);
+        let wd = (self.margins.x_max)/deep_n + self.margins.x_min;
+        let h0 = self.margins.y_min;
+        for i in 0..input {
+            let node = Node::new(Vec2::new(self.margins.x_min, (hi/2.0+hi*i as f32)+h0), NeuronTypes::INPUT, input_labels[i]);
+            let id = node.id;
+            self.nodes.insert(id, node);
+        }
+        for deep in 0..hidden.len() {
+            let hd = (self.margins.y_max / hidden[deep] as f32);
+            for d in 0..hidden[deep] {
+                let node = Node::new(Vec2::new(wd*(deep+1) as f32, (hd/2.0+hd*d as f32)+h0), NeuronTypes::DEEP, "");
+                //let node = Node::new(rand_position(self.margins.x_min, self.margins.x_max, self.margins.y_min, self.margins.y_max), NeuronTypes::DEEP);
+                let id = node.id;
+                self.nodes.insert(id, node);
+            }
+        }
+
+        for o in 0..output {
+            let node = Node::new(Vec2::new(self.margins.x_max, (ho/2.0+ho*o as f32)+h0), NeuronTypes::OUTPUT, output_labels[o]);
+            let id = node.id;
+            self.nodes.insert(id, node);
+        }
+    }
+
     fn create_nodes(&mut self, input: usize, input_labels: Vec<&str>, hidden: usize, output: usize, output_labels: Vec<&str>) {
         let hi = (self.margins.y_max / input as f32);
         let ho = (self.margins.y_max / output as f32);
@@ -424,7 +457,16 @@ impl Network {
                     NeuronTypes::INPUT => { continue; },
                     NeuronTypes::DEEP => {
                         match self.nodes.get(&id).unwrap().node_type {
-                            NeuronTypes::DEEP | NeuronTypes::OUTPUT => { continue; },
+                            NeuronTypes::OUTPUT => { continue; },
+                            NeuronTypes::DEEP => {
+                                let x1 = self.nodes.get(&id).unwrap().pos.x;
+                                let x2 = self.nodes.get(&id2).unwrap().pos.x;
+                                if x2 > x1 {
+                                    if rand::gen_range(0.0, 1.0) <= links {
+                                        self.add_link(id, id2)
+                                    }
+                                }
+                            },
                             _ => {
                                 if rand::gen_range(0.0, 1.0) <= links {
                                     self.add_link(id, id2)
@@ -443,11 +485,6 @@ impl Network {
                         }
                     },
                     _ => {
-                        /* if id != id2 {
-                            if rand::gen_range(0.0, 1.0) <= links {
-                                self.add_link(id, id2)
-                            }
-                        } */
                     },
                 }  
             }
@@ -456,8 +493,6 @@ impl Network {
         
     pub fn add_link(&mut self, node_from: u64, node_to: u64) {
         let link = Link::new(node_from, node_to);
-        //let node = self.nodes.get_mut(&node_to).unwrap();
-        //node.add_link_to(link.id);
         self.links.insert(link.id, link);
     }
 
@@ -466,7 +501,6 @@ impl Network {
         let id = node.id;
         self.nodes.insert(id, node);
         return id;
-        //println!("[NODE CREATE] id: {}", id);
     }
 
     pub fn add_node_with_id(&mut self, id: u64, position: Vec2) -> u64 {
@@ -475,24 +509,6 @@ impl Network {
         self.nodes.insert(id, node);
         return id;
     }
-
-/*     pub fn draw(&self) {
-        //let t = self.timer/self.duration;
-        for (_, link) in self.links.iter() {
-            link.draw(&self.nodes);
-        }
-        for (_, node) in self.nodes.iter() {
-            node.draw();
-        }
-    } */
-
-/*     pub fn update(&mut self) {
-        self.timer += get_frame_time();
-        if self.timer > self.duration {
-            self.timer -= self.duration;
-            self.calc();
-        }
-    } */
 
     pub fn calc(&mut self) {
         for (_id, link) in self.links.iter_mut() {
@@ -611,13 +627,16 @@ impl Network {
         al = self.add_random_link(mutation_rate);
         w = self.mutate_link_weight(mutation_rate);
         (an, dn, al2, dl, b) = self.mutate_nodes(mutation_rate);
-        println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al+al2, dl, b, w);
+        let mut stats = get_mutations();
+        stats.add_values(an as i32, dn as i32, (al+al2) as i32, dl as i32, b as i32, w as i32);
+        set_mutations(stats);
+        //println!("MUTATIONS: add_node: {} | del_node {} | add_link: {} | del_link: {} | b: {} | w: {}", an, dn, al+al2, dl, b, w);
     }
 
     fn mutate_nodes(&mut self, mutation_rate: f32) -> (usize, usize, usize, usize, usize) {
-        let (dn, dl) = self.del_random_node(mutation_rate);
-        let (an, al) = self.add_random_node(mutation_rate);
-        let b = self.mutate_nodes_bias(mutation_rate*1.5);
+        let (dn, dl) = self.del_random_node(mutation_rate*1.5);
+        let (an, al) = self.add_random_node(mutation_rate/3.0);
+        let b = self.mutate_nodes_bias(mutation_rate);
         return (an, dn, al, dl, b);
     }
 
@@ -627,7 +646,7 @@ impl Network {
         let xfactor = mutation_rate/n_num as f32;
         for (id, node) in self.nodes.iter_mut() {
             if random_unit_unsigned() < xfactor {
-                node.bias = rand::gen_range(-1.0, 1.0)*rand::gen_range(-1.0, 1.0);
+                node.bias = rand::gen_range(1.0, 1.0);
                 counter += 1;
             }
         }
@@ -651,14 +670,12 @@ impl Network {
     fn add_random_node(&mut self, mutation_rate: f32) -> (usize, usize) {
         let link_keys: Vec<u64> = self.links.keys().copied().collect();
         let num = link_keys.len();
-        //let n0: u64; let n1: u64; let nx: u64; let mut link: &Link;
         if random_unit_unsigned() <= mutation_rate {
             let rand_key = rand::gen_range(0, num);
             let link_key = link_keys[rand_key];
             let link = self.links.get_mut(&link_key).unwrap();
             let n0 = link.node_from;
             let n1 = link.node_to;
-
             let node0 = self.nodes.get(&n0).unwrap();
             let pos0 = node0.pos;
             let node1 = self.nodes.get(&n1).unwrap();
@@ -851,11 +868,9 @@ impl NetworkSketch {
         let mut net = Network { 
             nodes: nodes.to_owned(), 
             links: links.to_owned(), 
-            //timer: random_unit().abs(), 
             margins: self.margins.to_owned(), 
             input_keys: vec![], 
             output_keys: vec![], 
-            //duration: self.duration 
         };
 
         let (mut i, _, mut o) = net.get_node_keys_by_type();
