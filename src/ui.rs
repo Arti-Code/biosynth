@@ -599,11 +599,11 @@ impl UISystem {
                     let mut w = settings.world_w;
                     let mut h = settings.world_h;
                     row.columns(2, |columns| {
-                        if columns[0].add(Slider::new(&mut w, 400..=4800)).changed() {
+                        if columns[0].add(Slider::new(&mut w, 800..=10000).step_by(100.0)).changed() {
                             settings.world_w = w;
                             set_global_settings(settings.clone());
                         }
-                        if columns[1].add(Slider::new(&mut h, 300..=3600)).changed() {
+                        if columns[1].add(Slider::new(&mut h, 600..=7500).step_by(100.0)).changed() {
                             settings.world_h = h;
                             set_global_settings(settings.clone());
                         }

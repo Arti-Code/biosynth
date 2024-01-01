@@ -27,12 +27,12 @@ impl Cell {
 
     pub fn new(altitude: f32) -> Self {
         Self {
-            alt: clamp(altitude, 0.0, 10.0) as u8,
+            alt: clamp(altitude, 0.0, 20.0) as u8,
         }
     }
 
     pub fn set_cell(&mut self, altitude: f32) {
-        self.alt = clamp(altitude, 0.0, 10.0) as u8;
+        self.alt = clamp(altitude, 0.0, 20.0) as u8;
     }
 
     pub fn get_altitude(&self) -> f32 {
@@ -41,11 +41,11 @@ impl Cell {
 
     pub fn get_color(&self, water_level: u8) -> Color {
         if self.alt < water_level {
-            let a = 1.0 - (water_level as f32 / 10.0) * 0.5;
+            let a = 1.0 - (water_level as f32 / 20.0) * 0.5;
             return Color::new(0.0, 0.0, 1.0, a);
         }
         let alt = self.alt as f32;
-        let c = (alt * 15.0 + 50.0) as u8;
+        let c = (alt * 8.0 + 50.0) as u8;
         let mut color = color_u8!(c, c, c, 255);
         return color;
     }
@@ -76,7 +76,7 @@ impl Terrain {
                 let mut v = map.get_value(c, r) as f32;
                 v = v + 0.4;
                 v = clamp(v, 0.0, 1.0);
-                let cell = Cell::new(v*10.0);
+                let cell = Cell::new(v*20.0);
                 row.push(cell);
             }
             cells.push(row);
@@ -116,7 +116,9 @@ impl Terrain {
         for r in 0..self.cells.len() {
             for c in 0..self.cells[r].len() {
                 let mut color = self.get_color(c, r);
-                color.a = 0.35;
+                if color.a == 1.0 {
+                    color.a = 0.35;
+                }
                 let x0 = c as f32 * self.cell_size;
                 let y0 = r as f32 * self.cell_size;
                 draw_rectangle(x0, y0, self.cell_size, self.cell_size, color);
@@ -152,8 +154,8 @@ impl Terrain {
         let mut basic_multi = BasicMulti::<Perlin>::new(seed);
         basic_multi.frequency = rand::gen_range(0.2, 0.8);
         basic_multi.octaves = rand::gen_range(1, 6);
-        basic_multi.lacunarity = rand::gen_range(0.2, 0.8);
-        basic_multi.persistence = rand::gen_range(0.2, 0.8);
+        basic_multi.lacunarity = rand::gen_range(0.1, 0.8);
+        basic_multi.persistence = rand::gen_range(0.2, 0.6);
         PlaneMapBuilder::<_, 2>::new(&basic_multi)
             .set_size(w, h).set_x_bounds(-5.0, 5.0)
             .set_y_bounds(-5.0, 5.0).build()
@@ -164,7 +166,7 @@ impl Terrain {
     }
 
     pub fn set_water_level(&mut self, new_level: u8) {
-        self.water_lvl = clamp(new_level, 0, 10);
+        self.water_lvl = clamp(new_level, 0, 20);
     }
 
 }

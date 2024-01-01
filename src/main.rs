@@ -16,7 +16,8 @@ mod globals;
 mod resource;
 mod neural;
 mod terrain;
-mod agent2;
+//mod agent2;
+mod monit;
 
 use std::env;
 //use std::path::Path;

@@ -132,7 +132,8 @@ pub struct Agent {
     pub vision_angle: f32,
     pub max_eng: f32,
     pub eng: f32,
-    color: color::Color,
+    color: Color,
+    color_second: Color,
     pub shape: SharedShape,
     analize_timer: Timer,
     pub network: Network,
@@ -185,10 +186,12 @@ impl Agent {
         let shape = SharedShape::ball(size);
         let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let color = random_color();
+        let color_second = random_color();
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "RED", "GRE", "BLU"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
-        network.build(inp_labs.len(), inp_labs, settings.hidden_nodes_num, out_labs.len(), out_labs, settings.neurolink_rate);
+        let hid = settings.hidden_nodes_num;
+        network.build(inp_labs.len(), inp_labs, vec![hid], out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
@@ -212,6 +215,7 @@ impl Agent {
             max_eng: 0.0,
             eng: 0.0,
             color,
+            color_second,
             shape,
             analize_timer: Timer::new(settings.neuro_duration, true, true, true),
             network,
@@ -267,6 +271,7 @@ impl Agent {
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
+        let color_second = Color::new(sketch.color_second[0], sketch.color_second[1], sketch.color_second[2], sketch.color_second[3]);
         let size = sketch.size;
         let eyes = sketch.eyes;
         let shape = match sketch.shape {
@@ -282,12 +287,7 @@ impl Agent {
         };
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
-        //network.mutate(settings.mutations);
         let parts: Vec<Box<dyn AgentPart>> = vec![];
-        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        //let tail = Box::new(tail);
-        //parts.push(tail);
-        //let eng = size * settings.size_to_hp + settings.base_hp as f32;
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let mut agent = Agent {
             key,
@@ -302,6 +302,7 @@ impl Agent {
             max_eng: 0.0,
             eng: 0.0,
             color,
+            color_second,
             shape,
             analize_timer: Timer::new(settings.neuro_duration, true, true, true),
             network,
@@ -371,8 +372,8 @@ impl Agent {
         let x1 = x0+rv.x*self.size*0.8;
         let y1 = y0+rv.y*self.size*0.8;
         let shell = self.size + (self.shell as f32)*0.4;
-        draw_circle(x0, y0, shell, WHITE);
-        draw_circle(x1, y1, shell*0.6, WHITE);
+        draw_circle(x0, y0, shell, self.color_second);
+        draw_circle(x1, y1, shell*0.6, self.color_second);
         draw_circle(x1, y1, self.size*0.6, self.color);
         draw_circle(x0, y0, self.size, self.color);
         draw_circle(x0, y0, self.size/2.0, self.mood);
@@ -894,6 +895,7 @@ impl Agent {
         let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let color = self.color.to_owned();
+        let color_second = self.color_second.to_owned();
         let shape = SharedShape::ball(self.size);
         let rot = random_rotation();
         let pos = self.pos;
@@ -906,9 +908,6 @@ impl Agent {
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
         let mut parts: Vec<Box<dyn AgentPart>> = vec![];
-        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        //let tail = Box::new(tail);
-        //parts.push(tail);
         let mut agent = Agent {
             key,
             pos: pos + random_unit_vec2()*30.0,
@@ -922,6 +921,7 @@ impl Agent {
             max_eng: 0.0,
             eng: 0.0,
             color,
+            color_second,
             shape,
             analize_timer: self.analize_timer.to_owned(),
             network,
@@ -973,7 +973,8 @@ impl Agent {
                 ShapeType::Ball => MyShapeType::Ball,
                 _ => MyShapeType::Cuboid,
             },
-            color: self.color.to_vec().to_array(), 
+            color: self.color.to_vec().to_array(),
+            color_second: self.color_second.to_vec().to_array(),  
             network: self.network.get_sketch(),
             points: self.points, 
             neuro_map: self.neuro_map.clone(),
@@ -1010,6 +1011,8 @@ pub struct AgentSketch {
     pub size: f32,
     pub shape: MyShapeType,
     pub color: [f32; 4],
+    #[serde(default = "default_color")]
+    pub color_second: [f32; 4],
     pub network: NetworkSketch,
     pub points: f32,
     pub neuro_map: NeuroMap,
@@ -1024,6 +1027,11 @@ pub struct AgentSketch {
 
 pub fn default_mutation() -> i32 {
     return gen_range(0, 10);
+}
+
+pub fn default_color() -> [f32; 4] {
+    let c = random_color();
+    return [c.r, c.g, c.b, c.a];
 }
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]

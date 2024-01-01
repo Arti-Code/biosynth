@@ -23,7 +23,7 @@ use serde_json;
 use std::fs;
 use std::path::Path;
 use bincode;
-
+use crate::monit::PerformanceMonitor;
 
 
 pub struct Simulation {
@@ -47,12 +47,14 @@ pub struct Simulation {
     population_timer: Timer,
     pub terrain: Terrain,
     coord_timer: Timer,
+    monitor: PerformanceMonitor,
     //tail: Tail,
 }
 
 impl Simulation {
     
     pub fn new(font: Font) -> Self {
+        let settings = get_settings();
         Self {
             simulation_name: format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
             world_size: Vec2 {
@@ -75,9 +77,10 @@ impl Simulation {
             ranking: vec![],
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
-            terrain: Terrain::new(0.0, 0.0, 0.0, 5),
+            terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
             coord_timer: Timer::new(0.25, true, true, true),
             //tail: Tail::new(vec2(400., 400.), 7., PI/2.0, RED),
+            monitor: PerformanceMonitor::new(1.0),
         }
     }
 
@@ -89,7 +92,7 @@ impl Simulation {
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
-        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, 40.0, settings.water_lvl);
+        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
         self.agents.agents.clear();
         self.resources.resources.clear();
         self.sim_time = 0.0;
@@ -144,7 +147,8 @@ impl Simulation {
                 }
             }
             if !agent.update(&agents, &mut self.physics) {
-                let sketch = agent.get_sketch();
+                let mut sketch = agent.get_sketch();
+                sketch.points = sketch.points.sqrt().round();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
             }
@@ -232,6 +236,7 @@ impl Simulation {
         self.update_agents();
         self.update_rank();
         self.agents.populate(&mut self.physics);
+        self.monitor.monitor();
         self.physics.step();
     }
 
@@ -508,8 +513,8 @@ impl Simulation {
                 match encoded {
                     Err(_e) => println!("Error encoding simulation"),
                     Ok(encoded) => {
-                        let mut path = Path::new(&p).join(format!("{}.sim", self.simulation_name.to_lowercase()));
-                        let mut path_n = Path::new(&p).join(format!("{}.sim", data.sim_time));
+                        let path = Path::new(&p).join(format!("{}.sim", self.simulation_name.to_lowercase()));
+                        let path_n = Path::new(&p).join(format!("{}.sim", data.sim_time));
                         match fs::write(path, &encoded) {
                             Ok(_) => {},
                             Err(_) => {
@@ -659,7 +664,14 @@ impl Simulation {
 
     pub fn input(&mut self) {
         self.mouse_input();
+        self.keyboard_input();
         control_camera(&mut self.camera);
+    }
+
+    fn keyboard_input(&mut self) {
+        if is_key_pressed(KeyCode::Tab) {
+            self.random_selection();
+        }
     }
 
     fn mouse_input(&mut self) {
@@ -687,7 +699,7 @@ impl Simulation {
     }
 
     fn check_settings(&mut self) {
-        let mut settings = get_settings();
+        let settings = get_settings();
         if settings.follow_mode && self.selected.is_some() {
             match self.selected {
                 None => {},
@@ -701,6 +713,8 @@ impl Simulation {
                     }
                 }
             }
+        } else if settings.follow_mode && self.selected.is_none() {
+            self.random_selection();
         }
         if settings.water_lvl != self.terrain.water_level() {
             self.terrain.set_water_level(settings.water_lvl);
@@ -709,8 +723,8 @@ impl Simulation {
     }
 
     fn update_sim_state(&mut self) {
-        self.sim_state.fps = get_fps();
-        self.sim_state.dt = get_frame_time();
+        self.sim_state.fps = self.monitor.fps();
+        self.sim_state.dt = self.monitor.dt();
         self.sim_state.sim_time += get_frame_time() as f64;
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
@@ -793,6 +807,15 @@ impl Simulation {
     pub fn is_running(&self) -> bool {
         return self.running;
     }
+
+    fn random_selection(&mut self) {
+        let n = self.agents.count();
+        let r = rand::gen_range(0, n);
+        let keys: Vec<&RigidBodyHandle> = self.agents.agents.keys().collect();
+        self.selected = Some(*keys[r]);
+    }
+
+
 
 }
 

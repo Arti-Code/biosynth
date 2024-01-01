@@ -333,8 +333,8 @@ impl Network {
         }
     }
 
-    pub fn build(&mut self,input_num: usize, input_labels: Vec<&str>, hidden_num: usize, output_num: usize, output_labels: Vec<&str>, link_rate: f32) {
-        self.create_nodes(input_num, input_labels, hidden_num, output_num, output_labels);
+    pub fn build(&mut self,input_num: usize, input_labels: Vec<&str>, hidden_num: Vec<usize>, output_num: usize, output_labels: Vec<&str>, link_rate: f32) {
+        self.create_nodes2(input_num, input_labels, hidden_num, output_num, output_labels);
         self.create_links(link_rate);
         let (i, _, o) = self.get_node_keys_by_type();
         self.input_keys = i;
@@ -393,6 +393,35 @@ impl Network {
         return pairs;
     }
 
+    fn create_nodes2(&mut self, input: usize, input_labels: Vec<&str>, hidden: Vec<usize>, output: usize, output_labels: Vec<&str>) {
+        let deep_n = (hidden.len()+1) as f32;
+        let hi = (self.margins.y_max / input as f32);
+        let ho = (self.margins.y_max / output as f32);
+        //let hd = (self.margins.y_max / hidden as f32);
+        let wd = (self.margins.x_max)/deep_n + self.margins.x_min;
+        let h0 = self.margins.y_min;
+        for i in 0..input {
+            let node = Node::new(Vec2::new(self.margins.x_min, (hi/2.0+hi*i as f32)+h0), NeuronTypes::INPUT, input_labels[i]);
+            let id = node.id;
+            self.nodes.insert(id, node);
+        }
+        for deep in 0..hidden.len() {
+            let hd = (self.margins.y_max / hidden[deep] as f32);
+            for d in 0..hidden[deep] {
+                let node = Node::new(Vec2::new(wd*(deep+1) as f32, (hd/2.0+hd*d as f32)+h0), NeuronTypes::DEEP, "");
+                //let node = Node::new(rand_position(self.margins.x_min, self.margins.x_max, self.margins.y_min, self.margins.y_max), NeuronTypes::DEEP);
+                let id = node.id;
+                self.nodes.insert(id, node);
+            }
+        }
+
+        for o in 0..output {
+            let node = Node::new(Vec2::new(self.margins.x_max, (ho/2.0+ho*o as f32)+h0), NeuronTypes::OUTPUT, output_labels[o]);
+            let id = node.id;
+            self.nodes.insert(id, node);
+        }
+    }
+
     fn create_nodes(&mut self, input: usize, input_labels: Vec<&str>, hidden: usize, output: usize, output_labels: Vec<&str>) {
         let hi = (self.margins.y_max / input as f32);
         let ho = (self.margins.y_max / output as f32);
@@ -428,7 +457,16 @@ impl Network {
                     NeuronTypes::INPUT => { continue; },
                     NeuronTypes::DEEP => {
                         match self.nodes.get(&id).unwrap().node_type {
-                            NeuronTypes::DEEP | NeuronTypes::OUTPUT => { continue; },
+                            NeuronTypes::OUTPUT => { continue; },
+                            NeuronTypes::DEEP => {
+                                let x1 = self.nodes.get(&id).unwrap().pos.x;
+                                let x2 = self.nodes.get(&id2).unwrap().pos.x;
+                                if x2 > x1 {
+                                    if rand::gen_range(0.0, 1.0) <= links {
+                                        self.add_link(id, id2)
+                                    }
+                                }
+                            },
                             _ => {
                                 if rand::gen_range(0.0, 1.0) <= links {
                                     self.add_link(id, id2)

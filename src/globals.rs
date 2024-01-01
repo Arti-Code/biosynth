@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 pub const SCREEN_WIDTH: f32 = 1800.0;
 pub const SCREEN_HEIGHT: f32 = 900.0;
-pub const WORLD_W: f32 = 1800.0;
-pub const WORLD_H: f32 = 900.0;
+pub const WORLD_W: f32 = 7000.0;
+pub const WORLD_H: f32 = 6000.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
