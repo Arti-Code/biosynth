@@ -14,7 +14,6 @@ mod collector;
 mod food;
 mod globals;
 mod resource;
-mod neural;
 mod terrain;
 //mod agent2;
 mod monit;

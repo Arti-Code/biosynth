@@ -211,6 +211,9 @@ pub fn make_regular_poly_indices(n: usize, r: f32) -> (Vec<Vec2>, Vec<[u32; DIM]
     return (verts, indices);
 }
 
+pub fn vec2_to_uivec2(vec2: &Vec2) -> egui_macroquad::egui::Vec2 {
+    return egui_macroquad::egui::Vec2::new(vec2.x, vec2.y);
+}
 pub fn generate_seed() -> u64 {
     let t = SystemTime::now();
     let s = t.duration_since(UNIX_EPOCH).unwrap().as_secs();
@@ -299,8 +302,15 @@ pub fn create_name(num: usize) -> String {
     }
 } */
 
-pub fn vec2_to_pos2(vec2: Vec2) -> Pos2 {
+pub fn vec2_to_pos2(vec2: &egui_macroquad::egui::Vec2) -> Pos2 {
     return Pos2 { x: vec2.x, y: vec2.y };
+}
+pub fn vec2_to_ivec2(vec2: &egui_macroquad::egui::Vec2) -> Vec2 {
+    return Vec2 { x: vec2.x, y: vec2.y };
+}
+
+pub fn ivec2_to_pos2(vec2: IVec2) -> Pos2 {
+    return Pos2 { x: vec2.x as f32, y: vec2.y as f32};
 }
 
 pub fn color_to_color32(color: Color) -> Color32 {
@@ -344,6 +354,7 @@ pub struct UIState {
     pub neuro_settings: bool,
     pub info: bool,
     pub resource: bool,
+    pub plot: bool,
 }
 
 impl UIState {
@@ -374,6 +385,7 @@ impl UIState {
             neuro_settings: false,
             info: false,
             resource: false,
+            plot: false,
         }
     }
 }
@@ -396,6 +408,12 @@ pub struct SimState {
     pub dt: f32,
     pub total_kin_eng: f32,
     pub contacts_info: (i32, i32),
+    pub lifetime: Vec<[f64; 2]>,
+    pub sizes: Vec<[f64; 2]>,
+    pub powers: Vec<[f64; 2]>,
+    pub speeds: Vec<[f64; 2]>,
+    pub eyes: Vec<[f64; 2]>,
+    pub mutations: Vec<[f64; 2]>,
 }
 
 impl SimState {
@@ -418,6 +436,12 @@ impl SimState {
             contacts_info: (0, 0),
             rigid_num: 0,
             colliders_num: 0,
+            lifetime: vec![],
+            sizes: vec![],
+            powers: vec![],
+            speeds: vec![],
+            eyes: vec![],
+            mutations: vec![],
         }
     }
 }

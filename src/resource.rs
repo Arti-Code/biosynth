@@ -47,7 +47,7 @@ impl Resource {
             time: 64.0,
             alife: true,
             clone_timer: Timer::new(10.0, true, true, true),
-            growth_timer: Timer::new(3.0, true, true, true),
+            growth_timer: Timer::new(10.0, true, true, true),
         }
     }
     pub fn draw(&self, show_range: bool) {

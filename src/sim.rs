@@ -49,6 +49,15 @@ pub struct Simulation {
     coord_timer: Timer,
     monitor: PerformanceMonitor,
     //tail: Tail,
+    lifetimes: Vec<f32>,
+    lifetime_stats: Vec<[i32; 2]>,
+    sizes: Vec<f32>,
+    eyes: Vec<f32>,
+    speeds: Vec<f32>,
+    powers: Vec<f32>,
+    mutations: Vec<f32>,
+    shells: Vec<f32>,
+    plot_x: i32,
 }
 
 impl Simulation {
@@ -81,6 +90,15 @@ impl Simulation {
             coord_timer: Timer::new(0.25, true, true, true),
             //tail: Tail::new(vec2(400., 400.), 7., PI/2.0, RED),
             monitor: PerformanceMonitor::new(1.0),
+            lifetimes: vec![],
+            lifetime_stats: vec![],
+            sizes: vec![],
+            eyes: vec![],
+            speeds: vec![],
+            powers: vec![],
+            mutations: vec![],
+            shells: vec![],
+            plot_x: 0,
         }
     }
 
@@ -127,6 +145,7 @@ impl Simulation {
         let settings = get_settings();
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
+        self.plot_x = (self.sim_state.sim_time/100.0) as i32;
     }
 
     fn update_agents(&mut self) {
@@ -147,8 +166,16 @@ impl Simulation {
                 }
             }
             if !agent.update(&agents, &mut self.physics) {
+                let lf = agent.lifetime.round();
+                self.lifetimes.push(lf);
+                self.sizes.push(agent.size);
+                self.eyes.push(agent.eyes as f32);
+                self.speeds.push(agent.speed as f32);
+                self.powers.push(agent.power as f32);
+                self.mutations.push(agent.mutations as f32);
+                self.shells.push(agent.shell as f32);
                 let mut sketch = agent.get_sketch();
-                sketch.points = sketch.points.sqrt().round();
+                sketch.points = (sketch.points * 0.3).round();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
             }
@@ -596,6 +623,7 @@ impl Simulation {
                         }
                         self.ranking = sim_state.ranking.to_owned();
                         self.sim_state.sim_time = sim_state.sim_time;
+                        self.plot_x = sim_state.sim_time as i32 / 100;
                         self.last_autosave = sim_state.last_autosave;
                         self.simulation_name = sim_state.simulation_name.to_owned();
                         self.sim_state.sim_name = sim_state.simulation_name.to_owned();
@@ -732,14 +760,38 @@ impl Simulation {
         self.sim_state.sources_num = self.resources.resources.len() as i32;
         self.sim_state.physics_num = self.physics.get_bodies_num() as i32;
         (self.sim_state.rigid_num, self.sim_state.colliders_num) = self.physics.get_bodies_and_colliders_num();
-        let mut kin_eng = 0.0;
-        let mut total_mass = 0.0;
-        for (_, rb) in self.physics.get_objects_iter() {
+        let kin_eng = 0.0;
+        let total_mass = 0.0;
+        /* for (_, rb) in self.physics.get_objects_iter() {
             kin_eng += rb.kinetic_energy();
             total_mass += rb.mass();
-        }
+        } */
         self.sim_state.total_eng = kin_eng;
         self.sim_state.total_mass = total_mass;
+        let l = self.sim_state.lifetime.len() as i32;
+        let x = self.sim_state.sim_time as i32/100;
+        let next = x-self.plot_x;
+        if l < next {
+            let l2 = self.lifetimes.len() as f32;
+            let avg: f32 = self.lifetimes.iter().sum::<f32>()/l2;
+            let sizes: f32 = self.sizes.iter().sum::<f32>()/l2;
+            let powers: f32 = self.powers.iter().sum::<f32>()/l2;
+            let speeds: f32 = self.speeds.iter().sum::<f32>()/l2;
+            let eyes: f32 = self.eyes.iter().sum::<f32>()/l2;
+            let mutations: f32 = self.mutations.iter().sum::<f32>()/l2;
+            self.powers.clear();
+            self.speeds.clear();
+            self.eyes.clear();
+            self.mutations.clear();
+            self.lifetimes.clear();
+            self.sizes.clear();
+            self.sim_state.lifetime.push([(next-1) as f64, avg as f64]);
+            self.sim_state.sizes.push([(next-1) as f64, sizes as f64]);
+            self.sim_state.powers.push([(next-1) as f64, powers as f64]);
+            self.sim_state.speeds.push([(next-1) as f64, speeds as f64]);
+            self.sim_state.eyes.push([(next-1) as f64, eyes as f64]);
+            self.sim_state.mutations.push([(next-1) as f64, mutations as f64]);
+        }
         if (self.sim_state.sim_time-self.last_autosave).round() >= 1000.0 {
             self.last_autosave = self.sim_state.sim_time.round();
             self.save_sim();

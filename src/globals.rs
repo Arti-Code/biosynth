@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 pub const SCREEN_WIDTH: f32 = 1800.0;
 pub const SCREEN_HEIGHT: f32 = 900.0;
-pub const WORLD_W: f32 = 7000.0;
-pub const WORLD_H: f32 = 6000.0;
+pub const WORLD_W: f32 = 1800.0;
+pub const WORLD_H: f32 = 900.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
 pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 
@@ -63,6 +63,10 @@ fn default_water_lvl() -> u8 {
     return 4;
 }
 
+fn default_mutations() -> f32 {
+    return 0.2;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -112,6 +116,16 @@ pub struct Settings {
     pub growth: f32,
     #[serde(default = "default_water_lvl")]
     pub water_lvl: u8,
+    #[serde(default = "default_mutations")]
+    pub mut_add_link: f32,
+    #[serde(default = "default_mutations")]
+    pub mut_del_link: f32,
+    #[serde(default = "default_mutations")]
+    pub mut_add_node: f32,
+    #[serde(default = "default_mutations")]
+    pub mut_del_node: f32,
+    #[serde(default = "default_mutations")]
+    pub mut_change_val: f32,
 }
 
 impl Default for Settings {
@@ -125,9 +139,9 @@ impl Default for Settings {
             res_init_num: 50,
             res_balance: 2,
             res_detection_radius: 200.0,
-            agent_min_num: 12,
+            agent_min_num: 20,
             res_min_num: 5,
-            agent_rotate: 40.0,
+            agent_rotate: 50.0,
             agent_speed: 40.0,
             agent_size_min: 2,
             agent_size_max: 10,
@@ -137,28 +151,33 @@ impl Default for Settings {
             show_cells: false,
             show_res_rad: false,
             mutations: 0.5,
-            neurolink_rate: 0.2,
+            neurolink_rate: 0.066,
             damage: 50.0,
             base_energy_cost: 0.2,
-            move_energy_cost: 0.5,
+            move_energy_cost: 0.25,
             attack_energy_cost: 0.2,
             size_cost: 1.5,
-            base_hp: 100,
-            size_to_hp: 75.0,
+            base_hp: 200,
+            size_to_hp: 70.0,
             res_num: 70.0,
-            hidden_nodes_num: 0,
-            neuro_duration: 0.15,
-            atk_to_eng: 0.7,
-            eat_to_eng: 6.0,
+            hidden_nodes_num: 4,
+            neuro_duration: 0.25,
+            atk_to_eng: 0.9,
+            eat_to_eng: 8.0,
             ranking_size: 20,
             repro_points: 300.0,
             repro_time: 75.0,
-            new_one_probability: 0.04,
+            new_one_probability: 0.1,
             grid_size: 50,
             follow_mode: false,
             resource_probability: 0.5,
             growth: 5.0,
             water_lvl: 0,
+            mut_add_link: 0.1,
+            mut_del_link: 0.1,
+            mut_add_node: 0.1,
+            mut_change_val: 0.3,
+            mut_del_node: 0.1,
        }
     }
 

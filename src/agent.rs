@@ -170,6 +170,7 @@ pub struct Agent {
     pub mood: Color,
     parts: Vec<Box<dyn AgentPart>>,
     pub eng_cost: EnergyCost,
+    blocked: f32,
 }
 
 
@@ -188,10 +189,13 @@ impl Agent {
         let color = random_color();
         let color_second = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "RED", "GRE", "BLU"];
+        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
-        let hid = settings.hidden_nodes_num;
-        network.build(inp_labs.len(), inp_labs, vec![hid], out_labs.len(), out_labs, settings.neurolink_rate);
+        let mut hid = settings.hidden_nodes_num;
+        let hid1 = rand::gen_range(1, hid);
+        let hid2 = rand::gen_range(1, hid);
+        //let hid3 = rand::gen_range(1, hid);
+        network.build(inp_labs.len(), inp_labs, vec![hid1, hid2], out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
@@ -252,6 +256,7 @@ impl Agent {
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
             parts,
             eng_cost: EnergyCost::default(),
+            blocked: 0.0,
         };
         agent.calc_hp();
         return agent;
@@ -339,6 +344,7 @@ impl Agent {
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
             parts,
             eng_cost: EnergyCost::default(),
+            blocked: 0.0,
         };
         agent.mutate();
         agent.calc_hp();
@@ -505,7 +511,8 @@ impl Agent {
                 f
             }
         };
-
+        let wall = self.blocked;
+        self.blocked = 0.0;
         let hp = self.eng/self.max_eng;
         let red = self.mood.r;
         let blu = self.mood.b;
@@ -529,6 +536,7 @@ impl Agent {
         self.neuro_map.set_signal("RER", resr);
         self.neuro_map.set_signal("RED", res_dist);
         self.neuro_map.set_signal("PAI", pain);
+        self.neuro_map.set_signal("WAL", wall);
         self.neuro_map.set_signal("RED", red);
         self.neuro_map.set_signal("GRE", gre);
         self.neuro_map.set_signal("BLU", blu);
@@ -709,25 +717,26 @@ impl Agent {
     fn check_edges(&mut self, body: &mut RigidBody) {
         let settings = get_settings();
         let (mut raw_pos, rot ) = iso_to_vec2_rot(body.position());
-        let mut out_of_edge = false;
-        if raw_pos.x < -0.0 {
+        let mut out_of_edge: f32 = 0.0;
+        if raw_pos.x <= 0.0 {
             raw_pos.x = 0.0;
-            out_of_edge = true;
-        } else if raw_pos.x > settings.world_w as f32 + 0.0 {
+            out_of_edge = 1.0;
+        } else if raw_pos.x >= settings.world_w as f32 + 0.0 {
             raw_pos.x = settings.world_w as f32;
-            out_of_edge = true;
+            out_of_edge = 1.0;
         }
-        if raw_pos.y < -0.0 {
+        if raw_pos.y <= 0.0 {
             raw_pos.y = 0.0;
-            out_of_edge = true;
-        } else if raw_pos.y > settings.world_h as f32 + 0.0 {
+            out_of_edge = 1.0;
+        } else if raw_pos.y >= settings.world_h as f32 + 0.0 {
             raw_pos.y = settings.world_h as f32;
-            out_of_edge = true;
+            out_of_edge = 1.0;
         }
-        if out_of_edge {
+        if out_of_edge == 1.0 {
             body.set_position(make_isometry(raw_pos.x, raw_pos.y, rot+PI), true);
-            //body.set_linvel([0.0, 0.0].into(), true);
-            //self.vel = 0.0;
+        }
+        if out_of_edge == 1.0 {
+            self.blocked = 1.0;
         }
     }
 
@@ -878,7 +887,7 @@ impl Agent {
         self.mutations = Self::mutate_one(self.mutations);
         self.eyes = Self::mutate_one(self.eyes);
         let m = ((self.mutations - 5) as f32) / 10.0;
-        self.network.mutate(settings.mutations + settings.mutations*m);
+        self.network.mutate(m);
         self.calc_hp();
         self.vision_angle = Self::calc_vision_angle(self.eyes);
         self.vision_range = Self::calc_vision_range(self.eyes);
@@ -958,6 +967,7 @@ impl Agent {
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
             parts,
             eng_cost: EnergyCost::default(),
+            blocked: 0.0,
         };
         agent.mutate();
         agent.calc_hp();

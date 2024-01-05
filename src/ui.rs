@@ -5,12 +5,14 @@ use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use egui_macroquad;
 use egui_macroquad::egui::*;
+use egui_macroquad::egui::plot::{Legend, PlotPoints, Line};
 use egui_macroquad::egui::widgets::{Slider, Button};
 use egui_macroquad::egui::Checkbox;
 use egui_macroquad::egui::Vec2 as UIVec2;
 use egui_macroquad::egui::FontFamily::Proportional;
 use egui_macroquad::egui::FontId;
 use egui_macroquad::egui::TextStyle::*;
+use egui_macroquad::egui::{CentralPanel, plot::Plot};
 use macroquad::prelude::*;
 use crate::resource::Resource;
 use crate::util::*;
@@ -106,6 +108,7 @@ impl UISystem {
             self.build_load_agent_window(egui_ctx);
             self.build_neuro_settings_window(egui_ctx, signals);
             self.build_info_window(egui_ctx);
+            self.build_plot_window(egui_ctx, &sim_state);
         });
     }
 
@@ -175,6 +178,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Print Mutations Stats").strong().color(Color32::WHITE)).clicked() {
                         self.state.info = !self.state.info;
+                    }
+                    if ui.button(RichText::new("Plot").strong().color(Color32::WHITE)).clicked() {
+                        self.state.plot = !self.state.plot;
                     }
                 });
 
@@ -307,11 +313,19 @@ impl UISystem {
             let time = sim_state.sim_time;
             let agents_num = sim_state.agents_num;
             let sources_num = sim_state.sources_num;
+            let fps = sim_state.fps;
+            let dt = sim_state.dt;
+            let rb = sim_state.rigid_num;
+            let col = sim_state.colliders_num;
             Window::new("MONITOR").default_pos((170.0, 0.0)).default_width(400.0).default_height(80.0).show(egui_ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new(format!("TIME: {}", time.round())).small());
+                    ui.label(RichText::new(format!("FPS: {}", fps)).small());
+                    ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).small());
                     ui.label(RichText::new(format!("AGENTS: {}", agents_num)).small());
                     ui.label(RichText::new(format!("SOURCES: {}", sources_num)).small());
+                    ui.label(RichText::new(format!("RIGIDS: {}", rb)).small());
+                    ui.label(RichText::new(format!("COLLIDERS: {}", col)).small());
                 })
             });
         }
@@ -740,7 +754,7 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            let w = 360.0; let h = 360.0; let resize = macroquad::prelude::Vec2::new(360.0, 360.0);
+            let w = 300.0; let h = 300.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.0);
             let offset = UIVec2::new(0.0, 0.0);
             Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w).resizable(true)
                 .title_bar(true).show(egui_ctx, |ui| {
@@ -750,9 +764,11 @@ impl UISystem {
                     let zero = rect.left_top().to_vec2()+offset;
                     for (_, link) in network.links.iter() {
                         let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
-                        let w = link.get_width()*1.5;
-                        let p1 = vec2_to_pos2(coord0*resize)+zero;
-                        let p2 = vec2_to_pos2(coord1*resize)+zero;
+                        let ui_coord0 = vec2_to_uivec2(&coord0);
+                        let ui_coord1 = vec2_to_uivec2(&coord1);
+                        let w = link.get_width()*1.2;
+                        let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
+                        let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
                         let (_, color1) = link.get_colors();
                         let c1 = color_to_color32(color1);
                         let points1 = [p1, p2];
@@ -760,8 +776,9 @@ impl UISystem {
                     }
                     for (key, node) in network.nodes.iter() {
                         let (color0, color1) = node.get_colors();
-                        let r = node.get_size()*1.5;
-                        let p1 = vec2_to_pos2(node.pos*resize)+zero;
+                        let r = node.get_size()*1.2;
+                        let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
+                        let p1 = vec2_to_pos2(&ipos);
                         let c0 = color_to_color32(color1);
                         let c1 = color_to_color32(color0);
                         let label = node.get_label();
@@ -774,14 +791,14 @@ impl UISystem {
                         let w = 0.75 + 0.24*r;
                         painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
                         let mut font = FontId::default();
-                        font.size = 10.0;
+                        font.size = 8.0;
                         let txt = format!("{}: {:.1}", label, v);
                         match node.node_type {
                             NeuronTypes::INPUT => {
-                                painter.text(p1+UIVec2{x: 10.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
+                                painter.text(p1+UIVec2{x: 8.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
                             },
                             NeuronTypes::OUTPUT => {
-                                painter.text(p1+UIVec2{x: -60.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
+                                painter.text(p1+UIVec2{x: -50.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
                             },
                             _ => {},
                         }
@@ -1051,7 +1068,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_min_num: i32 = settings.res_min_num as i32;
                 column[0].label(RichText::new("RES MIN NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_min_num, 0..=20)).changed() {
+                if column[1].add(Slider::new(&mut res_min_num, 0..=100)).changed() {
                     settings.res_min_num = res_min_num as usize;
                     signals.new_settings = true;
                 }
@@ -1237,6 +1254,56 @@ impl UISystem {
                 }
             });
             ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut mut_add_link = settings.mut_add_link;
+                column[0].label(RichText::new("MUTATIONS: ADD LINK").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<f32>(&mut mut_add_link, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.mut_add_link = mut_add_link;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut mut_del_link = settings.mut_del_link;
+                column[0].label(RichText::new("MUTATIONS: DEL LINK").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<f32>(&mut mut_del_link, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.mut_del_link = mut_del_link;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut mut_add_node = settings.mut_add_node;
+                column[0].label(RichText::new("MUTATIONS: ADD NODE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<f32>(&mut mut_add_node, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.mut_add_node = mut_add_node;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut mut_del_node = settings.mut_del_node;
+                column[0].label(RichText::new("MUTATIONS: DEL NODE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<f32>(&mut mut_del_node, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.mut_del_node = mut_del_node;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut mut_change_val = settings.mut_change_val;
+                column[0].label(RichText::new("MUTATIONS: MOD VALUE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<f32>(&mut mut_change_val, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.mut_change_val = mut_change_val;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(120., 75.));
                 column[1].set_max_size(UIVec2::new(120., 75.));
                 let mut show_network: bool = settings.show_network;
@@ -1286,6 +1353,40 @@ impl UISystem {
                 }
             });
         }
+    }
+
+    fn build_plot_window(&mut self, egui_ctx: &Context, state: &SimState) {
+        if !self.state.plot {
+            return;
+        }
+        Window::new("PLOT").default_size(UIVec2::new(300.0, 300.0)).show(egui_ctx, |ui| {
+            if ui.button("Save Plot").clicked() {
+                
+                //egui_ctx.send_viewport_cmd(ViewportCommand::Screenshot);
+            }
+
+            let my_plot = Plot::new("Plot").legend(Legend::default());
+
+            // let's create a dummy line in the plot
+            //let graph: Vec<[f64; 2]> = vec![[0.0, 1.0], [2.0, 3.0], [3.0, 2.0]];
+            let graph = state.lifetime.clone();
+            let sizes = state.sizes.clone();
+            let powers = state.powers.clone();
+            let speeds = state.speeds.clone();
+            let eyes = state.eyes.clone();
+            let mutations = state.mutations.clone();
+            let inner = my_plot.show(ui, |plot_ui| {
+                //plot_ui.line(Line::new(PlotPoints::from(graph)).name("lifetime").color(Color32::GREEN));
+                plot_ui.line(Line::new(PlotPoints::from(sizes)).name("sizes").color(Color32::BLUE));
+                plot_ui.line(Line::new(PlotPoints::from(powers)).name("powers").color(Color32::GREEN));
+                plot_ui.line(Line::new(PlotPoints::from(speeds)).name("speeds").color(Color32::YELLOW));
+                plot_ui.line(Line::new(PlotPoints::from(eyes)).name("eyes").color(Color32::RED));
+                plot_ui.line(Line::new(PlotPoints::from(mutations)).name("mutations").color(Color32::LIGHT_BLUE));
+                //plot_ui.line(Line::new(PlotPoints::from(graph2)).name("size").color(Color32::BLUE));
+            });
+            // Remember the position of the plot
+            let plot_rect = Some(inner.response.rect);
+        });
     }
 
     pub fn ui_draw(&self) {
