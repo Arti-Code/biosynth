@@ -14,11 +14,23 @@ use egui_macroquad::egui::FontId;
 use egui_macroquad::egui::TextStyle::*;
 use egui_macroquad::egui::{CentralPanel, plot::Plot};
 use macroquad::prelude::*;
+use macroquad::math::vec2;
 use crate::resource::Resource;
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
 use crate::globals::*;
+
+
+struct TempValues {
+    pub world_size: Option<macroquad::prelude::Vec2>,
+}
+
+impl Default for TempValues {
+    fn default() -> Self {
+        Self { world_size: None }
+    }
+}
 
 pub struct UISystem {
     pub state: UIState,
@@ -27,6 +39,7 @@ pub struct UISystem {
     logo: Option<egui_macroquad::egui::TextureHandle>,
     big_logo: Option<egui_macroquad::egui::TextureHandle>,
     title: Option<egui_macroquad::egui::TextureHandle>,
+    temp_values: TempValues,
 }
 
 impl UISystem {
@@ -39,6 +52,7 @@ impl UISystem {
             logo: None,
             big_logo: None,
             title: None,
+            temp_values: TempValues::default(),
         }
     }
 
@@ -109,6 +123,7 @@ impl UISystem {
             self.build_neuro_settings_window(egui_ctx, signals);
             self.build_info_window(egui_ctx);
             self.build_plot_window(egui_ctx, &sim_state);
+            self.build_resize_world_window(egui_ctx);
         });
     }
 
@@ -144,6 +159,13 @@ impl UISystem {
                     if ui.button(RichText::new("Save Agent").strong().color(Color32::BLUE),).clicked() {
                         //let mut signals = mod_signals();
                         signals.save_selected = true;
+                    }
+                    if ui.button(RichText::new("Resize World").strong().color(Color32::LIGHT_RED),).clicked() {
+                        if !self.state.resize_world {
+                            let settings = get_settings();
+                            self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
+                        }
+                        self.state.resize_world = !self.state.resize_world;
                     }
                     if ui.button(RichText::new("Quit").color(Color32::RED).strong()).clicked() {
                         self.state.quit = true;
@@ -636,6 +658,59 @@ impl UISystem {
                             signals.new_sim = true;
                             signals.new_sim_name = String::from(&self.temp_sim_name);
                             self.temp_sim_name = String::new();
+                        }
+                    });
+                });
+                ui.add_space(3.0);
+            });
+        }
+    }
+
+    fn build_resize_world_window(&mut self, egui_ctx: &Context) {
+        if self.state.resize_world {
+            let win_w = 500.0; let win_h = 220.0;
+            let mut settings = get_settings();
+            let xy = self.temp_values.world_size.unwrap_or(vec2(1800.0, 900.0));
+            let mut w = xy.x; let mut h = xy.y;
+            Window::new("WORD RESIZE").default_pos((SCREEN_WIDTH / 2.0 - win_w/2.0, 100.0)).default_size([win_w, win_h]).show(egui_ctx, |ui| {
+                let title = self.title.clone().unwrap();
+                ui.vertical_centered(|head| {
+                    head.heading(RichText::new("WORD RESIZE").color(Color32::GREEN).strong());
+                });
+                ui.add_space(3.0);
+                ui.vertical_centered(|row| {
+                    row.label("WORLD SIZE [X | Y]");
+                });
+                ui.add_space(2.0);
+                let mut new_xy = xy;
+                ui.vertical_centered(|row| {
+                    row.style_mut().spacing.slider_width = 220.0;
+                    row.columns(2, |columns| {
+                        if columns[0].add(Slider::new(&mut w, 800.0..=10000.0).step_by(100.0)).changed() {
+                            new_xy = vec2(w, h);
+                        }
+                        if columns[1].add(Slider::new(&mut h, 600.0..=7500.0).step_by(100.0)).changed() {
+                            new_xy = vec2(w, h);
+                        }
+                    });
+                });
+                self.temp_values.world_size = Some(new_xy);
+                ui.add_space(4.0);
+                ui.spacing();
+                ui.vertical_centered(|mid| {
+                    mid.columns(2, |columns| {
+                        if columns[0].button(RichText::new("CANCEL").color(Color32::YELLOW).strong()).clicked() {
+                            self.state.resize_world = false;
+                            self.temp_values.world_size = None;
+                            let mut signals = get_signals();
+                            signals.resize_world = None;
+                            set_global_signals(signals);
+                        }
+                        if columns[1].button(RichText::new("APPLY").color(Color32::BLUE).strong()).clicked() {
+                            self.state.resize_world = false;
+                            let mut signals = get_signals();
+                            signals.resize_world = self.temp_values.world_size;
+                            set_global_signals(signals);
                         }
                     });
                 });

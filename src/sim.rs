@@ -12,6 +12,7 @@ use crate::physics::*;
 use crate::collector::*;
 use crate::globals::*;
 use crate::terrain::*;
+use base64::engine;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 //use rapier2d::na::coordinates;
@@ -22,7 +23,7 @@ use serde::{Serialize, Deserialize};
 use serde_json;
 use std::fs;
 use std::path::Path;
-use bincode;
+use base64::prelude::*;
 use crate::monit::PerformanceMonitor;
 
 
@@ -526,6 +527,17 @@ impl Simulation {
                 None => {},
             }
         }
+        if get_signals().resize_world.is_some() {
+            let xy = get_signals().resize_world.unwrap();
+            let mut settings = get_settings();
+            settings.world_w = xy.x as i32; settings.world_h = xy.y as i32;
+            set_global_settings(settings.clone());
+            self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
+            self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
+            let mut signals = get_signals();
+            signals.resize_world = None;
+            set_global_signals(signals);
+        }
     }
 
     fn save_sim(&self) {
@@ -534,26 +546,6 @@ impl Simulation {
         let s2 = serde_json::to_string(&data);
         let p = format!("saves/simulations/{}/", self.simulation_name.to_lowercase());
         //let de = bincode::encode();
-        match s2 {
-            Ok(serial) => {
-                let encoded = bincode::serialize(&serial);
-                match encoded {
-                    Err(_e) => println!("Error encoding simulation"),
-                    Ok(encoded) => {
-                        let path = Path::new(&p).join(format!("{}.sim", self.simulation_name.to_lowercase()));
-                        let path_n = Path::new(&p).join(format!("{}.sim", data.sim_time));
-                        match fs::write(path, &encoded) {
-                            Ok(_) => {},
-                            Err(_) => {
-                                println!("Could not write bin file");
-                            },
-                        }
-
-                    }
-                }
-            },
-            Err(_) => {},
-        }
         match s {
             Ok(save) => {
                 match fs::DirBuilder::new().recursive(true).create(p) {
@@ -582,6 +574,25 @@ impl Simulation {
                 warn!("ERROR PATH");
             },
         }
+        match s2 {
+            Ok(serial) => {
+                let f = format!("saves/simulations/{}/last.sim", self.simulation_name.to_lowercase());
+                //let encoded = bincode::serialize(&serial);
+                let encoded = BASE64_STANDARD.encode(serial.as_bytes());
+                //let path = Path::new(&p).join(format!("last.sim"));
+                //let path_n = Path::new(&p).join(format!("{}.sim", data.sim_time));
+                match fs::write(f.clone(), &encoded) {
+                    Ok(_) => {
+                        println!("Simulation saved as last.sim.");
+                    },
+                    Err(e) => {
+                        println!("{}", e);
+                        println!("{}", f.clone());
+                    },
+                }
+            },
+            Err(_) => {},
+        }
     }
 
     fn delete_sim(&self, sim_name: &str) {
@@ -602,7 +613,7 @@ impl Simulation {
             f = sim_name.to_string().to_lowercase();
             path = Path::new(sim_name);
         } else {
-            f = format!("saves/simulations/{}/last.json", sim_name);
+            f = format!("saves/simulations/{}/last.sim", sim_name);
             path = Path::new(&f);
         }
         match fs::read_to_string(path) {
@@ -610,30 +621,41 @@ impl Simulation {
                 warn!("can't read from {}", path.to_str().unwrap());
             },
             Ok(save) => {
-                //let decoded: String = bincode::deserialize(save.as_bytes()).expect("can't decode file");
-                match serde_json::from_str::<SimulationSave>(&save) {
+                //BASE64_STANDARD.
+                match BASE64_STANDARD.decode(save.clone().into_bytes()) {
                     Err(_) => {
-                        println!("error during deserialization of saved sim... [{}]", &f);
+                        println!("error during decoding of saved sim...");
                     },
-                    Ok(sim_state) => {
-                        self.clear_sim();
-                        for agent_sketch in sim_state.agents.iter() {
-                            let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
-                            self.agents.add_agent(agent);
+                    Ok(decoded) => {
+                        //unsafe {
+                        let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
+                        //}
+                        //let decoded: String = bincode::deserialize(save.as_bytes()).expect("can't decode file");
+                        match serde_json::from_str::<SimulationSave>(&save) {
+                            Err(_) => {
+                                println!("error during deserialization of saved sim... [{}]", &f);
+                            },
+                            Ok(sim_state) => {
+                                self.clear_sim();
+                                for agent_sketch in sim_state.agents.iter() {
+                                    let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
+                                    self.agents.add_agent(agent);
+                                }
+                                self.ranking = sim_state.ranking.to_owned();
+                                self.sim_state.sim_time = sim_state.sim_time;
+                                self.plot_x = sim_state.sim_time as i32 / 100;
+                                self.last_autosave = sim_state.last_autosave;
+                                self.simulation_name = sim_state.simulation_name.to_owned();
+                                self.sim_state.sim_name = sim_state.simulation_name.to_owned();
+                                self.world_size = sim_state.world_size.to_vec2();
+                                self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
+                                let mut settings = sim_state.settings.to_owned();
+                                settings.world_h = sim_state.world_size.y as i32;
+                                settings.world_w = sim_state.world_size.x as i32;
+                                set_global_settings(settings);
+                            },
                         }
-                        self.ranking = sim_state.ranking.to_owned();
-                        self.sim_state.sim_time = sim_state.sim_time;
-                        self.plot_x = sim_state.sim_time as i32 / 100;
-                        self.last_autosave = sim_state.last_autosave;
-                        self.simulation_name = sim_state.simulation_name.to_owned();
-                        self.sim_state.sim_name = sim_state.simulation_name.to_owned();
-                        self.world_size = sim_state.world_size.to_vec2();
-                        self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
-                        let mut settings = sim_state.settings.to_owned();
-                        settings.world_h = sim_state.world_size.y as i32;
-                        settings.world_w = sim_state.world_size.x as i32;
-                        set_global_settings(settings);
-                    },
+                    }
                 }
             }
         }

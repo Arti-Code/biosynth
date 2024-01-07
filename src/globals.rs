@@ -203,6 +203,7 @@ pub struct Signals {
     pub load_agent: bool,
     pub load_agent_name: Option<String>,
     pub del_agent_name: Option<String>,
+    pub resize_world: Option<Vec2>,
 }
 
 impl Signals {
@@ -227,6 +228,7 @@ impl Signals {
             del_agent_name: None,
             load_agent_name: None,
             save_agent: false,
+            resize_world: None,
         }
     }
 
