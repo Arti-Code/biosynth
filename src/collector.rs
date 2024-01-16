@@ -37,7 +37,8 @@ impl AgentBox {
         }
     }
 
-    pub fn populate(&mut self, physics: &mut Physics) {
+    pub fn populate(&mut self, physics: &mut Physics) -> i32 {
+        let mut counter: i32 = 0;
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
@@ -53,6 +54,7 @@ impl AgentBox {
             match newborns.pop() {
                 Some(mut newbie) => {
                     //newbie.network.mutate(settings.mutations);
+                    counter += 1;
                     self.add_agent(newbie);
                 },
                 None => {
@@ -60,6 +62,7 @@ impl AgentBox {
                 }
             }
         }
+        return counter;
     }
 
     pub fn add_agent(&mut self, agent: Agent) {

@@ -656,7 +656,9 @@ impl Network {
         let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
         if random_unit_unsigned() < mutation_rate {
             let k = *node_keys.choose().unwrap();
-            self.nodes.get_mut(&k).unwrap().bias = rand::gen_range(-1.0, 1.0);
+            let node = self.nodes.get_mut(&k).unwrap();
+            node.bias = node.bias + rand::gen_range(-1.0, 1.0) * 0.2;
+            node.bias = clamp(node.bias, -1.0, 1.0);
             counter += 1;
         }
         //let xfactor = mutation_rate/n_num as f32;
@@ -674,7 +676,9 @@ impl Network {
         let link_keys: Vec<u64> = self.links.keys().copied().collect();
         if random_unit_unsigned() < mutation_rate {
             let k = *link_keys.choose().unwrap();
-            self.links.get_mut(&k).unwrap().w = rand::gen_range(-1.0, 1.0);
+            let link = self.links.get_mut(&k).unwrap();
+            link.w = link.w + rand::gen_range(-1.0, 1.0)*0.2;
+            link.w = clamp(link.w, -1.0, 1.0);
             counter += 1;
         }
         //let l_num = self.links.len();

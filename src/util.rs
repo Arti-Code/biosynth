@@ -8,6 +8,7 @@ use std::time::{UNIX_EPOCH, SystemTime};
 use crate::agent::AgentSketch;
 use crate::globals::*;
 use crate::sim::SimulationSave;
+use crate::stats::Stats;
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
@@ -221,35 +222,6 @@ pub fn generate_seed() -> u64 {
     return s%s2;
 }
 
-/* fn get_names() -> [&str; 529] {
-    return [
-        "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",
-        "cu", "ca", "co", "cy", "cu", "ce", "co", "cv", "ce", "cd", "cf", "cf", "ct", "ci", "cj", "ck", "cl", "cr", "cs", "cz", "cw", "cm", "cu", "cp",
-        "mu", "ma", "mo", "my", "mu", "me", "mo", "mv", "me", "md", "mf", "mf", "mt", "mi", "mj", "mk", "ml", "mr", "ms", "mz", "mw", "mm", "mu", "mp",
-        "ju", "ja", "jo", "jy", "ju", "je", "jo", "jv", "je", "jd", "jf", "jf", "jt", "ji", "jj", "jk", "jl", "jr", "js", "jz", "jw", "jj", "ju", "jp",
-        "du", "da", "do", "dy", "du", "de", "do", "dv", "de", "dd", "df", "df", "dt", "di", "dj", "dk", "dl", "dr", "ds", "dz", "dw", "dd", "du", "dp",
-        "so", "su", "sa", "si", "se", "sy", "sl", "sj", "ss", "sk", "sr", "st", "sq", "sf", "sn",
-        "nu", "na", "no", "ny", "nu", "ne", "no", "nv", "ne", "nd", "nf", "nf", "nt", "ni", "nj", "nk", "nl", "nr", "ns", "nz", "nw", "nn", "nu", "np",
-        "vu", "va", "vo", "vy", "vu", "ve", "vo", "vv", "ve", "vd", "vf", "vf", "vt", "vi", "vj", "vk", "vl", "vr", "vs", "vz", "vw", "vv", "vu", "vp",
-        "xu", "xa", "xo", "xy", "xu", "xe", "xo", "xv", "xe", "xd", "xf", "xf", "xt", "xi", "xj", "xk", "xl", "xr", "xs", "xz", "xw", "xx", "xu", "xp",
-        "pu", "pa", "po", "py", "pu", "pe", "po", "pv", "pe", "pd", "pf", "pf", "pj", "pi", "pj", "pk", "pl", "pr", "ps", "pz", "pw", "pp", "pu", "pt",
-        "lu", "la", "lo", "ly", "lu", "le", "lo", "lv", "le", "ld", "lf", "lf", "lt", "li", "lj", "lk", "ll", "lr", "ls", "lz", "lw", "ll", "lu", "lp", 
-        "ku", "ka", "ko", "ky", "ku", "ke", "ko", "kv", "ke", "kd", "kf", "kf", "kt", "ki", "kj", "kk", "kl", "kr", "ks", "kz", "kw", "kk", "ku", "kp",
-        "ru", "ra", "ro", "ry", "ru", "re", "ro", "rv", "re", "rd", "rf", "rf", "rt", "ri", "rj", "rk", "rl", "rr", "rs", "rz", "rw", "rr", "ru", "rp",
-        "fu", "fa", "fo", "fy", "fu", "fe", "fo", "fv", "fe", "fd", "ff", "ff", "ft", "fi", "fj", "fk", "fl", "fr", "fs", "fz", "fw", "ff", "fu", "fp", 
-        "ol", "oi", "oj", "od", "os", "ot", "ok", "on", "om", "oc", "ox", "oz", "op",
-        "iu", "ia", "io", "iy", "iu", "ie", "io", "iv", "ie", "id", "if", "if", "it", "ii", "ij", "ik", "il", "ir", "is", "iz", "iw", "ii", "iu", "ip",
-        "wu", "wa", "wo", "wy", "wu", "we", "wo", "wv", "we", "wd", "wf", "wf", "wt", "wi", "wj", "wk", "wl", "wr", "ws", "wz", "ww", "ww", "wu", "wp",
-        "bu", "ba", "bo", "by", "bu", "be", "bo", "bv", "be", "bd", "bf", "bf", "bt", "bi", "bj", "bk", "bl", "br", "bs", "bz", "bw", "bb", "bu", "bp",
-        "qu", "qa", "qo", "qy", "qu", "qe", "qo", "qv", "qe", "qd", "qf", "qf", "qt", "qi", "qj", "qk", "ql", "qr", "qs", "qz", "qw", "qq", "qu", "qp", 
-        "uo", "ui", "ua", "us", "ud", "uf", "ug", "ug", "uj", "uk", "ul",
-        "hu", "ha", "ho", "hy", "hu", "he", "ho", "hv", "he", "hd", "hf", "hf", "ht", "hi", "hj", "hk", "hl", "hr", "hs", "hz", "hw", "hh", "hu", "hp", 
-        "su", "sa", "so", "sy", "su", "se", "so", "sv", "se", "sd", "sf", "sf", "st", "si", "sj", "sk", "sl", "sr", "ss", "sz", "sw", "ss", "su", "sp",
-        "tu", "ta", "to", "ty", "tu", "te", "to", "tv", "te", "td", "tf", "tf", "th", "ti", "tj", "tk", "tl", "tr", "ts", "tz", "tw", "tt", "tu", "tp",
-        "zu", "za", "zo", "zy", "zu", "ze", "zo", "zv", "ze", "zd", "zf", "zf", "zt", "zi", "zj", "zk", "zl", "zr", "zs", "zz", "zw", "zz", "zu", "zp"
-    ];
-} */
-
 pub fn create_name(num: usize) -> String {
     let names_list: Vec<&str> = vec![
         "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",
@@ -287,21 +259,6 @@ pub fn create_name(num: usize) -> String {
     return name;
 }
 
-/* pub fn modify_name(name: &str, i: usize) {
-    let mut new_name = String::from(name);
-    if i*2 < new_name.len() && i >= 0 {
-        let index = i*2;
-        match new_name.get_mut(index..index+1) {
-            None => {},
-            Some(m) => {
-                let names = get_names().to_owned();
-                let new = rand::gen_range(0, names.len());
-                m = names.get_mut(new).unwrap().to_owned();
-            },
-        }
-    }
-} */
-
 pub fn vec2_to_pos2(vec2: &egui_macroquad::egui::Vec2) -> Pos2 {
     return Pos2 { x: vec2.x, y: vec2.y };
 }
@@ -329,68 +286,6 @@ pub fn iso_to_vec2_rot(isometry: &Isometry<Real>) -> (Vec2, f32) {
     return (pos, rot);
 }
 
-pub struct UIState {
-    pub new_sim_name: String,
-    pub performance: bool,
-    pub inspect: bool,
-    pub mouse: bool,
-    pub quit: bool,
-    pub agents_num: i32,
-    pub new_sim: bool,
-    pub credits: bool,
-    pub docs: bool,
-    pub net: bool,
-    pub about: bool,
-    pub environment: bool,
-    pub neuro_lab: bool,
-    pub resize_world: bool,
-    pub ranking: bool,
-    pub set_agent: bool,
-    pub load_sim: bool,
-    pub load_agent: bool,
-    pub attributes: bool,
-    pub main_menu: bool,
-    pub energy_cost: bool,
-    pub neuro_settings: bool,
-    pub info: bool,
-    pub resource: bool,
-    pub plot: bool,
-}
-
-impl UIState {
-
-    pub fn new() -> Self {
-        Self {
-            new_sim_name: String::new(),
-            performance: false,
-            inspect: false,
-            mouse: false,
-            quit: false,
-            agents_num: 0,
-            new_sim: false,
-            credits: false,
-            docs: false,
-            net: false,
-            about: false,
-            environment: false,
-            neuro_lab: false,
-            resize_world: false,
-            ranking: false,
-            set_agent: false,
-            load_sim: false,
-            load_agent: false,
-            attributes: false,
-            main_menu: true,
-            energy_cost: false,
-            neuro_settings: false,
-            info: false,
-            resource: false,
-            plot: false,
-        }
-    }
-}
-
-
 pub struct SimState {
     pub sim_name: String,
     pub ver: String,
@@ -414,6 +309,7 @@ pub struct SimState {
     pub speeds: Vec<[f64; 2]>,
     pub eyes: Vec<[f64; 2]>,
     pub mutations: Vec<[f64; 2]>,
+    pub stats: Stats,
 }
 
 impl SimState {
@@ -442,6 +338,7 @@ impl SimState {
             speeds: vec![],
             eyes: vec![],
             mutations: vec![],
+            stats: Stats::new(),
         }
     }
 }

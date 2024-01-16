@@ -17,6 +17,7 @@ mod resource;
 mod terrain;
 //mod agent2;
 mod monit;
+mod stats;
 
 use std::env;
 //use std::path::Path;

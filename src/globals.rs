@@ -67,6 +67,18 @@ fn default_mutations() -> f32 {
     return 0.2;
 }
 
+fn default_specie_mod() -> i32 {
+    return 500;
+}
+
+fn default_born_eng() -> f32 {
+    return 1.0;
+}
+
+fn default_false() -> bool {
+    return false;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -85,6 +97,8 @@ pub struct Settings {
     pub agent_size_max: i32,
     pub show_network: bool,
     pub show_specie: bool,
+    #[serde(default = "default_false")]
+    pub show_generation: bool,
     pub show_cells: bool,
     pub show_res_rad: bool,
     pub mutations: f32,
@@ -126,6 +140,10 @@ pub struct Settings {
     pub mut_del_node: f32,
     #[serde(default = "default_mutations")]
     pub mut_change_val: f32,
+    #[serde(default = "default_specie_mod")]
+    pub rare_specie_mod: i32,
+    #[serde(default = "default_born_eng")]
+    pub born_eng: f32,
 }
 
 impl Default for Settings {
@@ -148,9 +166,10 @@ impl Default for Settings {
             agent_vision_range: 450.0,
             show_network: true,
             show_specie: true,
+            show_generation: false,
             show_cells: false,
             show_res_rad: false,
-            mutations: 0.5,
+            mutations: 0.2,
             neurolink_rate: 0.066,
             damage: 50.0,
             base_energy_cost: 0.2,
@@ -173,11 +192,13 @@ impl Default for Settings {
             resource_probability: 0.5,
             growth: 5.0,
             water_lvl: 0,
-            mut_add_link: 0.1,
-            mut_del_link: 0.1,
-            mut_add_node: 0.1,
-            mut_change_val: 0.3,
-            mut_del_node: 0.1,
+            mut_add_link: 0.05,
+            mut_del_link: 0.05,
+            mut_add_node: 0.03,
+            mut_change_val: 0.05,
+            mut_del_node: 0.03,
+            rare_specie_mod: 750,
+            born_eng: 1.0,
        }
     }
 
@@ -277,4 +298,26 @@ impl MutationStats {
         println!("-------------------");
     }
 
+}
+
+
+#[derive(Clone)]
+pub struct AncestorsHistory {
+    pub data: Vec<(String, String, i32)>
+}
+
+impl Default for AncestorsHistory {
+    
+    fn default() -> Self {
+        AncestorsHistory{data: vec![]}
+    }
+
+}
+
+pub fn set_ancestors(ancestors: AncestorsHistory) {
+    storage::store(ancestors);
+}
+
+pub fn get_ancestors() -> AncestorsHistory {
+    return storage::get::<AncestorsHistory>().clone();
 }

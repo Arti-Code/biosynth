@@ -54,7 +54,6 @@ impl NeuroMap {
         self.effectors.insert(name.to_string(), node_key);
     }
 
-
     pub fn add_effectors(&mut self, pairs: Vec<(u64, String)>) {
         for (k, s) in pairs.iter() {
             self.add_effector(s, *k);
@@ -202,10 +201,7 @@ impl Agent {
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
         let parts: Vec<Box<dyn AgentPart>> = vec![];
-        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        //let tail = Box::new(tail);
         let eng = size * settings.size_to_hp + settings.base_hp as f32;
-        //parts.push(tail);
         let mut agent = Agent {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
@@ -264,11 +260,28 @@ impl Agent {
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
         let settings = get_settings();
-        return 100.0 + settings.agent_vision_range*(eyes as f32)/10.0;
+        return 40.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
     pub fn calc_vision_angle(eyes: i32) -> f32 {
         return 1.8*PI * ((11.0 - eyes as f32)/11.0);
+    }
+
+    fn mod_specie(&mut self) {
+        let settings = get_settings();
+        if rand::gen_range(0, settings.rare_specie_mod) == 0 {
+            let s = create_name(1);
+            let i = rand::gen_range(0, 3)*2;
+            let mut name = self.specie.to_owned();
+            name.replace_range(i..=i+1, &s);
+            self.specie = name.to_owned();
+            if random_unit_unsigned() < 0.25 {
+                self.color_second = random_color();
+            } else if random_unit_unsigned() < 0.25 {
+                self.color = random_color();
+            }
+        }
+
     }
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
@@ -346,6 +359,7 @@ impl Agent {
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };
+        agent.mod_specie();
         agent.mutate();
         agent.calc_hp();
         return agent;
@@ -363,7 +377,7 @@ impl Agent {
         if selected {
             self.draw_info(&font);
             self.draw_target(selected);
-        } else if settings.show_specie {
+        } else {
             self.draw_info(&font);
         }
         for part in self.parts.iter() {
@@ -378,9 +392,9 @@ impl Agent {
         let x1 = x0+rv.x*self.size*0.8;
         let y1 = y0+rv.y*self.size*0.8;
         let shell = self.size + (self.shell as f32)*0.4;
-        draw_circle(x0, y0, shell, self.color_second);
-        draw_circle(x1, y1, shell*0.6, self.color_second);
-        draw_circle(x1, y1, self.size*0.6, self.color);
+        draw_circle(x0, y0, shell, LIGHTGRAY);
+        draw_circle(x1, y1, shell*0.6, LIGHTGRAY);
+        draw_circle(x1, y1, self.size*0.6, self.color_second);
         draw_circle(x0, y0, self.size, self.color);
         draw_circle(x0, y0, self.size/2.0, self.mood);
         if self.run {
@@ -668,6 +682,7 @@ impl Agent {
     }
 
     fn draw_info(&self, font: &Font) {
+        let settings = get_settings();
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let text_cfg = TextParams {
@@ -676,7 +691,16 @@ impl Agent {
             color: WHITE,
             ..Default::default()
         };
-        let info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
+        let mut info: String;
+        if settings.show_specie && settings.show_generation {
+            info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
+        } else if settings.show_specie {
+            info = format!("{}", self.specie.to_uppercase());
+        } else if settings.show_generation {
+            info = format!("[{}]", self.generation);
+        } else {
+            return;
+        }
         let txt_center = get_text_center(&info, Some(*font), 10, 1.0, 0.0);
         draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 8.0, text_cfg.clone());
     }
@@ -866,27 +890,30 @@ impl Agent {
         self.check_alife();
     }
 
-    fn mutate_one(v: i32) -> i32 {
+    fn mutate_one(v: i32, m: f32) -> i32 {
         let mut vm: i32 = v;
-        let mut r = rand::gen_range(0, 20);
-        if r == 1 {
-            vm += 1;
-        } else if r == 2 {
-            vm -= 1;
+        if random_unit_unsigned() < m {
+            let mut r = rand::gen_range(0, 2);
+            if r == 1 {
+                vm += 1;
+            } else if r == 0 {
+                vm -= 1;
+            }
+            vm = clamp(vm, 1_i32, 10_i32);
         }
-        vm = clamp(vm, 1_i32, 10_i32);
         return vm;
     }
 
     pub fn mutate(&mut self) {
         let settings = get_settings();
-        self.size = Self::mutate_one(self.size as i32) as f32;
-        self.power = Self::mutate_one(self.power);
-        self.speed = Self::mutate_one(self.speed);
-        self.shell = Self::mutate_one(self.shell);
-        self.mutations = Self::mutate_one(self.mutations);
-        self.eyes = Self::mutate_one(self.eyes);
         let m = ((self.mutations - 5) as f32) / 10.0;
+        let mut_rate = settings.mutations + settings.mutations * m;
+        self.mutations = Self::mutate_one(self.mutations, mut_rate);
+        self.size = Self::mutate_one(self.size as i32, mut_rate) as f32;
+        self.power = Self::mutate_one(self.power, mut_rate);
+        self.speed = Self::mutate_one(self.speed, mut_rate);
+        self.shell = Self::mutate_one(self.shell, mut_rate);
+        self.eyes = Self::mutate_one(self.eyes, mut_rate);
         self.network.mutate(m);
         self.calc_hp();
         self.vision_angle = Self::calc_vision_angle(self.eyes);
@@ -897,7 +924,7 @@ impl Agent {
         let settings = get_settings();
         let eng = self.size * settings.size_to_hp + settings.base_hp as f32;
         self.max_eng = eng;
-        self.eng = eng*0.5;
+        self.eng = eng*settings.born_eng;
     }
 
     pub fn replicate(&self, physics: &mut Physics) -> Agent {
@@ -969,6 +996,7 @@ impl Agent {
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };
+        agent.mod_specie();
         agent.mutate();
         agent.calc_hp();
         return agent;
