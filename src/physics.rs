@@ -204,7 +204,7 @@ impl PhysicsCore {
     }
 
     fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
-        let pos = Isometry2::new(Vector2::new(position.x, position.y), rotation);
+        let pos = make_isometry(position.x, position.y, rotation);
         let dynamic_body = RigidBodyBuilder::dynamic().position(pos)
             .linear_damping(linear_damping).angular_damping(angular_damping).build();
         return self.rigid_bodies.insert(dynamic_body);
