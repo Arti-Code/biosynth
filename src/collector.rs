@@ -10,6 +10,7 @@ use crate::globals::*;
 use crate::resource::*;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
+use crate::settings::*;
 
 pub trait PhysicsObject {
     fn new() -> Self;
@@ -65,8 +66,13 @@ impl AgentBox {
         return counter;
     }
 
-    pub fn add_agent(&mut self, agent: Agent) {
+    pub fn add_agent(&mut self, mut agent: Agent) {
+        let settings = get_settings();
+        while agent.pos.x >= settings.world_w as f32 || agent.pos.y >= settings.world_h as f32 || agent.pos.x <= 0.0 || agent.pos.y <= 0.0 {
+            agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
+        }            
         self.agents.insert(agent.physics_handle, agent);
+        
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Agent> {

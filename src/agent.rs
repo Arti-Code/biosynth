@@ -17,8 +17,7 @@ use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
-//use serde_json;
-//use std::fs;
+use crate::settings::*;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

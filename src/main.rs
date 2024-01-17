@@ -15,7 +15,7 @@ mod food;
 mod globals;
 mod resource;
 mod terrain;
-//mod agent2;
+mod settings;
 mod monit;
 mod stats;
 
@@ -28,6 +28,7 @@ use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
 use util::MyIcon;
 use util::generate_seed;
+use crate::settings::*;
 
 
 fn app_configuration() -> Conf {

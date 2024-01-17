@@ -7,6 +7,7 @@ use macroquad::{prelude::*, color};
 use crate::util::*;
 use crate::timer::*;
 use crate::globals::*;
+use crate::settings::*;
 
 pub struct Food {
     pub pos: Vec2,

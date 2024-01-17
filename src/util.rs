@@ -15,6 +15,7 @@ use macroquad::{color, prelude::*};
 use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
 use rapier2d::na::{Isometry2, Vector2, Translation, Point2, Const};
+use crate::settings::*;
 
 static NAME_LIST: [&str; 529] = [
     "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",

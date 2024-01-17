@@ -15,7 +15,6 @@ use crate::terrain::*;
 use base64::engine;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
-//use rapier2d::na::coordinates;
 use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -26,6 +25,7 @@ use std::path::Path;
 use base64::prelude::*;
 use crate::monit::PerformanceMonitor;
 use crate::stats::Stats;
+use crate::settings::*;
 
 pub struct Simulation {
     pub simulation_name: String,
@@ -91,7 +91,6 @@ impl Simulation {
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
             coord_timer: Timer::new(0.25, true, true, true),
-            //tail: Tail::new(vec2(400., 400.), 7., PI/2.0, RED),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
             lifetime_stats: vec![],
@@ -244,13 +243,6 @@ impl Simulation {
         if self.resources.count() < settings.res_min_num {
             self.resources.add_many_resources(2, &mut self.physics);
         }
-        //let dt = get_frame_time();
-        //let settings = get_settings();
-        //let res_num = settings.res_num;
-        //let res_prob = (res_num*dt)/(self.resources.count() as f32+1.0);
-        //if rand::gen_range(0.0, 1.0) < res_prob {
-        //    self.resources.add_many_resources(1, &mut self.physics);
-        //}
     }
 
     fn update_coordinates(&mut self) {
@@ -406,7 +398,6 @@ impl Simulation {
         //self.draw_grid();
         self.draw_agents();
         self.draw_res();
-        //self.tail.draw(Vec2::ZERO, PI/2.0);
     }
 
     pub fn draw_terrain(&self) {
@@ -478,7 +469,6 @@ impl Simulation {
         if self.signals.new_sim {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
-            //self.app_state = AppState::RESTART;
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
@@ -487,7 +477,6 @@ impl Simulation {
             self.signals.save_selected = false;
             match self.selected {
                 Some(handle) => {
-                    //self.save_agent_sketch(handle);
                     self.save_encoded_agent(handle);
                 },
                 None => {},
@@ -525,7 +514,6 @@ impl Simulation {
         if sign3.load_agent_name.is_some() {
             match sign3.load_agent_name {
                 Some(agent_file_name) => {
-                    //self.load_agent(&agent_file_name);
                     self.load_encoded_agent(&agent_file_name);
                     let mut signals = get_signals();
                     signals.load_agent_name = None;
@@ -560,7 +548,6 @@ impl Simulation {
 
     fn save_sim(&self) {
         let data = SimulationSave::from_sim(self);
-        //let s2 = serde_json::to_string(&data);
         let p = format!("saves/simulations/{}/", self.simulation_name.to_lowercase());
         match serde_json::to_string(&data) {
             Ok(serial) => {
@@ -616,16 +603,12 @@ impl Simulation {
                 warn!("can't read from {}", path.to_str().unwrap());
             },
             Ok(save) => {
-                //BASE64_STANDARD.
                 match BASE64_STANDARD.decode(save.clone().into_bytes()) {
                     Err(_) => {
                         println!("error during decoding of saved sim...");
                     },
                     Ok(decoded) => {
-                        //unsafe {
                         let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
-                        //}
-                        //let decoded: String = bincode::deserialize(save.as_bytes()).expect("can't decode file");
                         match serde_json::from_str::<SimulationSave>(&save) {
                             Err(_) => {
                                 println!("error during deserialization of saved sim... [{}]", &f);
@@ -839,10 +822,6 @@ impl Simulation {
         (self.sim_state.rigid_num, self.sim_state.colliders_num) = self.physics.get_bodies_and_colliders_num();
         let kin_eng = 0.0;
         let total_mass = 0.0;
-        /* for (_, rb) in self.physics.get_objects_iter() {
-            kin_eng += rb.kinetic_energy();
-            total_mass += rb.mass();
-        } */
         self.sim_state.total_eng = kin_eng;
         self.sim_state.total_mass = total_mass;
         let l = self.sim_state.lifetime.len() as i32;
@@ -868,10 +847,6 @@ impl Simulation {
             self.sim_state.speeds.push([(next-1) as f64, speeds as f64]);
             self.sim_state.eyes.push([(next-1) as f64, eyes as f64]);
             self.sim_state.mutations.push([(next-1) as f64, mutations as f64]);
-            //"New Creatures"
-            //"Born Creatures"
-            //"Rank Creatures"
-            //"Zero Creatures"
             self.sim_state.stats.add_data("New Creatures", (next-1, self.borns[0] as f64));
             self.sim_state.stats.add_data("Born Creatures", (next-1, self.borns[1] as f64));
             self.sim_state.stats.add_data("Rank Creatures", (next-1, self.borns[2] as f64));

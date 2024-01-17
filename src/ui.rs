@@ -24,6 +24,7 @@ use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
 use crate::globals::*;
+use crate::settings::*;
 
 
 struct TempValues {
@@ -771,17 +772,6 @@ impl UISystem {
         }
     }
 
-/*     fn build_eng_cost_window(&self, egui_ctx: &Context, agent: &Agent) {
-        if self.state.energy_cost {
-            Window::new(RichText::new("ENERGY COST").strong().color(Color32::GREEN)).default_pos((170.0, 100.0)).min_width(380.0).show(egui_ctx, |ui| {
-                ui.horizontal(|row| {
-                    let txt = format!("[ BASE: {} | MOVE {} | ATTACK {} ]", agent.eng_cost.basic.round(), agent.eng_cost.movement.round(), agent.eng_cost.attack.round());
-                    row.label(RichText::new(txt).strong().color(Color32::RED));
-                });
-            });
-        }
-    } */
-
     fn build_inspect_window(&self, egui_ctx: &Context, agent: &Agent) {
         if self.state.inspect {
             let rot = agent.rot;
@@ -870,26 +860,6 @@ impl UISystem {
             });
         }
     }
-
-
-/*     fn build_attributes_window(&self, egui_ctx: &Context, agent: &Agent) {
-        if self.state.attributes {
-            let size = agent.size as i32;
-            let power = agent.power;
-            let speed = agent.speed;
-            let shell = agent.shell;
-            let mutations = agent.mutations;
-            let eyes = agent.eyes;
-            let name = &agent.specie;
-            let attributes = format!("size: {} | speed: {} | power: {} | shell: {} | mutation: {} | eyes: {}", size, speed, power, shell, mutations, eyes);
-            let title_txt = format!("Attributes: {}", name.to_uppercase()); 
-            Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((800.0, 0.0)).min_width(150.0).show(egui_ctx, |ui| {
-                ui.horizontal(|row| {
-                    row.label(RichText::new(attributes).strong());
-                });
-            });
-        }
-    } */
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {

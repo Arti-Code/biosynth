@@ -14,7 +14,7 @@ use std::fs;
 use crate::globals::*;
 use crate::util::*;
 use ::rand::{Rng, thread_rng};
-
+use crate::settings::*;
 
 
 pub trait Neural {
@@ -100,7 +100,6 @@ pub struct Link {
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
-    //timer: f32,
     margins: Margins,
     pub input_keys: Vec<u64>,
     pub output_keys: Vec<u64>,
@@ -425,31 +424,6 @@ impl Network {
             self.nodes.insert(id, node);
         }
     }
-
-/*     fn create_nodes(&mut self, input: usize, input_labels: Vec<&str>, hidden: usize, output: usize, output_labels: Vec<&str>) {
-        let hi = (self.margins.y_max / input as f32);
-        let ho = (self.margins.y_max / output as f32);
-        let hd = (self.margins.y_max / hidden as f32);
-        let wd = (self.margins.x_max)/2.0 + self.margins.x_min;
-        let h0 = self.margins.y_min;
-        for i in 0..input {
-            let node = Node::new(Vec2::new(self.margins.x_min, (hi/2.0+hi*i as f32)+h0), NeuronTypes::INPUT, input_labels[i]);
-            let id = node.id;
-            self.nodes.insert(id, node);
-        }
-        for d in 0..hidden {
-            let node = Node::new(Vec2::new(wd, (hd/2.0+hd*d as f32)+h0), NeuronTypes::DEEP, "");
-            //let node = Node::new(rand_position(self.margins.x_min, self.margins.x_max, self.margins.y_min, self.margins.y_max), NeuronTypes::DEEP);
-            let id = node.id;
-            self.nodes.insert(id, node);
-        }
-
-        for o in 0..output {
-            let node = Node::new(Vec2::new(self.margins.x_max, (ho/2.0+ho*o as f32)+h0), NeuronTypes::OUTPUT, output_labels[o]);
-            let id = node.id;
-            self.nodes.insert(id, node);
-        }
-    } */
     
     fn create_links(&mut self, links: f32) {
         //let buf_links = self.links.
@@ -621,7 +595,6 @@ impl Network {
         NetworkSketch { 
             nodes: nodes_sketch, 
             links: links_sketch,
-            //duration: self.duration, 
             margins: self.margins.to_owned() 
         }
     }
@@ -661,13 +634,6 @@ impl Network {
             node.bias = clamp(node.bias, -1.0, 1.0);
             counter += 1;
         }
-        //let xfactor = mutation_rate/n_num as f32;
-        //for (id, node) in self.nodes.iter_mut() {
-        //    if random_unit_unsigned() < xfactor {
-        //        node.bias = rand::gen_range(-1.0, 1.0);
-        //        counter += 1;
-        //    }
-        //}
         return counter;
     }
 
@@ -681,15 +647,6 @@ impl Network {
             link.w = clamp(link.w, -1.0, 1.0);
             counter += 1;
         }
-        //let l_num = self.links.len();
-        //if l_num == 0 { return 0; }
-        //let xfactor = mutation_rate / ((l_num as f32)/2.0);
-        //for (id, link) in self.links.iter_mut() {
-        //    if random_unit_unsigned() < xfactor {
-        //        link.w = rand::gen_range(-1.0, 1.0);
-        //        counter += 1;
-        //    }
-        //}
         return counter;
     }
 

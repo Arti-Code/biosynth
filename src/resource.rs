@@ -6,7 +6,8 @@ use rapier2d::prelude::*;
 use crate::timer::Timer;
 use crate::util::*;
 use crate::physics::*;
-use crate::globals::*;
+//use crate::globals::*;
+use crate::settings::*;
 
 
 #[derive(Clone, Copy)]
