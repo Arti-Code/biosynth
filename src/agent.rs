@@ -9,7 +9,7 @@ use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
 use crate::globals::*;
-use crate::part::*;
+//use crate::part::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
@@ -147,6 +147,7 @@ pub struct Agent {
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub enemy_size: Option<f32>,
+    enemy_mood: Option<Color>,
     pub resource: Option<RigidBodyHandle>,
     pub resource_position: Option<Vec2>,
     pub resource_dir: Option<f32>,
@@ -166,7 +167,7 @@ pub struct Agent {
     pub mutations: i32,
     pub eyes: i32,
     pub mood: Color,
-    parts: Vec<Box<dyn AgentPart>>,
+    //parts: Vec<Box<dyn AgentPart>>,
     pub eng_cost: EnergyCost,
     blocked: f32,
 }
@@ -187,7 +188,7 @@ impl Agent {
         let color = random_color();
         let color_second = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL"];
+        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
         let mut hid = settings.hidden_nodes_num;
         let hid1 = rand::gen_range(1, hid);
@@ -199,7 +200,7 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        let parts: Vec<Box<dyn AgentPart>> = vec![];
+        //let parts: Vec<Box<dyn AgentPart>> = vec![];
         let eng = size * settings.size_to_hp + settings.base_hp as f32;
         let mut agent = Agent {
             key: gen_range(u64::MIN, u64::MAX),
@@ -225,6 +226,7 @@ impl Agent {
             enemy: None,
             enemy_family: None,
             enemy_position: None,
+            enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
             resource: None,
@@ -249,7 +251,7 @@ impl Agent {
             mutations: gen_range(0, 10),
             eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            parts,
+            //parts,
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };
@@ -264,6 +266,10 @@ impl Agent {
 
     pub fn calc_vision_angle(eyes: i32) -> f32 {
         return 1.8*PI * ((11.0 - eyes as f32)/11.0);
+    }
+
+    pub fn get_mood(&self) -> Color {
+        return self.mood.to_owned();
     }
 
     fn mod_specie(&mut self) {
@@ -304,7 +310,7 @@ impl Agent {
         };
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
-        let parts: Vec<Box<dyn AgentPart>> = vec![];
+        //let parts: Vec<Box<dyn AgentPart>> = vec![];
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let mut agent = Agent {
             key,
@@ -330,6 +336,7 @@ impl Agent {
             enemy: None,
             enemy_family: None,
             enemy_position: None,
+            enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
             resource: None,
@@ -354,7 +361,7 @@ impl Agent {
             mutations: sketch.mutations,
             eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            parts,
+            //parts,
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };
@@ -379,17 +386,17 @@ impl Agent {
         } else {
             self.draw_info(&font);
         }
-        for part in self.parts.iter() {
-            part.draw_part(self.pos, self.rot);
-        }
+        //źfor part in self.parts.iter() {
+        //    part.draw_part(self.pos, self.rot);
+        //}
     }    
 
     fn draw_body(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let rv = Vec2::from_angle(self.rot+PI);
-        let x1 = x0+rv.x*self.size*0.8;
-        let y1 = y0+rv.y*self.size*0.8;
+        let x1 = x0+rv.x*self.size;
+        let y1 = y0+rv.y*self.size;
         let shell = self.size + (self.shell as f32)*0.4;
         draw_circle(x0, y0, shell, LIGHTGRAY);
         draw_circle(x1, y1, shell*0.6, LIGHTGRAY);
@@ -414,21 +421,45 @@ impl Agent {
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
         let dt = get_frame_time();
         self.lifetime += dt;
-        for part in self.parts.iter_mut() {
-            //part.update_part();
-        }
+        //for part in self.parts.iter_mut() {
+        //    //part.update_part();
+        //}
         if self.analize_timer.update(dt) {
             self.watch(physics);
             self.update_contacts(other, physics);
+            self.update_enemy_mood(other);
             self.analize();
         }
 
         self.update_physics(physics);
+        if self.pos.x.is_nan() || self.pos.y.is_nan() {
+            self.alife = false;
+            return self.alife;
+        }
         //self.calc_timers(dt);
         //self.network.update();
         self.calc_energy(dt);
         return self.alife;
     }
+
+    fn update_enemy_mood(&mut self, other: &HashMap<RigidBodyHandle, Agent>) {
+        match self.enemy {
+            None => {
+                self.enemy_mood = Some(Color::new(0.0, 0.0, 0.0, 1.0));
+            },
+            Some(rbh) => {
+                match other.get(&rbh) {
+                    None => {
+                        self.enemy_mood = Some(Color::new(0.0, 0.0, 0.0, 1.0));
+                    },
+                    Some(agent) => {
+                        self.enemy_mood = Some(agent.get_mood());
+                    },
+                }
+            },
+        }
+    }
+
 
     pub fn eat(&self) -> Vec<RigidBodyHandle> {
         let mut hits: Vec<RigidBodyHandle> = vec![];
@@ -530,6 +561,13 @@ impl Agent {
         let red = self.mood.r;
         let blu = self.mood.b;
         let gre = self.mood.g;
+        let en_color = match self.enemy_mood {
+            None => Color::new(0.0, 0.0, 0.0, 1.0),
+            Some(color) => color,
+        };
+        let e_r = en_color.r;
+        let e_g = en_color.g;
+        let e_b = en_color.b;
         //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
         //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
         let mut pain = 0.0;
@@ -553,6 +591,10 @@ impl Agent {
         self.neuro_map.set_signal("RED", red);
         self.neuro_map.set_signal("GRE", gre);
         self.neuro_map.set_signal("BLU", blu);
+        self.neuro_map.set_signal("E-R", e_r);
+        self.neuro_map.set_signal("E-G", e_g);
+        self.neuro_map.set_signal("E-B", e_b);
+        
     }
 
     fn analize(&mut self) {
@@ -942,7 +984,7 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        let mut parts: Vec<Box<dyn AgentPart>> = vec![];
+        //let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         let mut agent = Agent {
             key,
             pos: pos + random_unit_vec2()*30.0,
@@ -967,6 +1009,7 @@ impl Agent {
             enemy: None,
             enemy_family: None,
             enemy_position: None,
+            enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
             resource: None,
@@ -991,7 +1034,7 @@ impl Agent {
             mutations: self.mutations,
             eyes: self.eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            parts,
+            //parts,
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };

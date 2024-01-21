@@ -309,6 +309,7 @@ pub struct SimState {
     pub powers: Vec<[f64; 2]>,
     pub speeds: Vec<[f64; 2]>,
     pub eyes: Vec<[f64; 2]>,
+    pub shells: Vec<[f64; 2]>,
     pub mutations: Vec<[f64; 2]>,
     pub stats: Stats,
 }
@@ -338,6 +339,7 @@ impl SimState {
             powers: vec![],
             speeds: vec![],
             eyes: vec![],
+            shells: vec![],
             mutations: vec![],
             stats: Stats::new(),
         }

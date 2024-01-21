@@ -11,7 +11,7 @@ use crate::settings::*;
 
 
 #[derive(Clone, Copy)]
-pub struct Resource {
+pub struct Plant {
     pub pos: Vec2,
     pub rot: f32,
     pub size: f32,
@@ -26,7 +26,7 @@ pub struct Resource {
     growth_timer: Timer,
 }
 
-impl Resource {
+impl Plant {
     pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
         //let key = rand::gen_range(u64::MIN, u64::MAX);
@@ -107,17 +107,17 @@ impl Resource {
         }
     }
 
-    pub fn update_cloning(&mut self, physics: &mut Physics) -> Option<Resource> {
+    pub fn update_cloning(&mut self, physics: &mut Physics) -> Option<Plant> {
         if self.clone_timer.update(get_frame_time()) {
             let settings = get_settings();
             let b = settings.res_balance as f32;
             let n = physics.count_near_resources(self.physics_handle, settings.res_detection_radius) as f32;
-            let mut p = settings.resource_probability;
+            let mut p = settings.plant_probability;
             if n > b {
                 p = p - p*((n-b)/b);
             }
             if random_unit_unsigned() <= p {
-                let mut res = Resource::new(physics);
+                let mut res = Plant::new(physics);
                 res.pos = self.pos + random_unit_vec2() * 150.0;
                 return Some(res);
             } else {

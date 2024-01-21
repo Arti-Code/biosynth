@@ -17,7 +17,7 @@ use egui_macroquad::egui::TextStyle::*;
 use egui_macroquad::egui::{CentralPanel, plot::Plot};
 use macroquad::prelude::*;
 use macroquad::math::vec2;
-use crate::resource::Resource;
+use crate::plant::Plant;
 use base64::engine;
 use base64::prelude::*;
 use crate::util::*;
@@ -94,7 +94,7 @@ impl UISystem {
         egui_ctx.set_style(style);
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Resource>, ranking: &Vec<AgentSketch>) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Plant>, ranking: &Vec<AgentSketch>) {
         egui_macroquad::ui(|egui_ctx| {
             self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
@@ -234,22 +234,22 @@ impl UISystem {
                     if ui.button(RichText::new("Follow Mode").strong().color(Color32::GOLD)).clicked() {
                         let mut settings = get_settings();
                         settings.follow_mode = !settings.follow_mode;
-                        set_global_settings(settings);
+                        set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Name").strong().color(Color32::GOLD)).clicked() {
                         let mut settings = get_settings();
                         settings.show_specie = !settings.show_specie;
-                        set_global_settings(settings);
+                        set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Generation").strong().color(Color32::GOLD)).clicked() {
                         let mut settings = get_settings();
                         settings.show_generation = !settings.show_generation;
-                        set_global_settings(settings);
+                        set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Energy Bar").strong().color(Color32::GOLD)).clicked() {
                         let mut settings = get_settings();
                         settings.agent_eng_bar = !settings.agent_eng_bar;
-                        set_global_settings(settings);
+                        set_settings(settings);
                     }
                 });
 
@@ -690,11 +690,11 @@ impl UISystem {
                     row.columns(2, |columns| {
                         if columns[0].add(Slider::new(&mut w, 800..=10000).step_by(100.0)).changed() {
                             settings.world_w = w;
-                            set_global_settings(settings.clone());
+                            set_settings(settings.clone());
                         }
                         if columns[1].add(Slider::new(&mut h, 600..=7500).step_by(100.0)).changed() {
                             settings.world_h = h;
-                            set_global_settings(settings.clone());
+                            set_settings(settings.clone());
                         }
                     });
                 });
@@ -846,7 +846,7 @@ impl UISystem {
     }
 
 
-    fn build_res_window(&self, egui_ctx: &Context, res: &Resource) {
+    fn build_res_window(&self, egui_ctx: &Context, res: &Plant) {
         if self.state.resource {
             let size = res.size as i32;
             let max_eng = res.max_eng;
@@ -863,7 +863,7 @@ impl UISystem {
 
     fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
         if self.state.neuro_lab {
-            let w = 250.0; let h = 300.0; let resize = egui_macroquad::egui::Vec2::new(2.5, 3.2);
+            let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
             let offset = UIVec2::new(0.0, 0.0);
             Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w).resizable(true)
                 .title_bar(true).show(egui_ctx, |ui| {
@@ -1138,11 +1138,11 @@ impl UISystem {
             ui.vertical_centered(|closer| {
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.set_agent = false;
-                    set_global_settings(settings.clone());
+                    set_settings(settings.clone());
                 }
             });
         });
-        set_global_settings(settings.clone());
+        set_settings(settings.clone());
     }
 
     fn build_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
@@ -1235,10 +1235,20 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut resource_probability = settings.resource_probability;
-                column[0].label(RichText::new("SOURCES RATE").color(Color32::WHITE).strong());
+                let mut plant_lifetime = settings.plant_probability;
+                column[0].label(RichText::new("PLANT LIFETIME").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut plant_lifetime, 0.0..=500.0).step_by(0.01)).changed() {
+                    settings.plant_lifetime = plant_lifetime;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut resource_probability = settings.plant_probability;
+                column[0].label(RichText::new("PLANT RATE").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut resource_probability, 0.0..=1.0).step_by(0.01)).changed() {
-                    settings.resource_probability = resource_probability;
+                    settings.plant_probability = resource_probability;
                     signals.new_settings = true;
                 }
             });
@@ -1338,11 +1348,11 @@ impl UISystem {
                 //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.environment = false;
-                    set_global_settings(settings.clone());
+                    set_settings(settings.clone());
                 }
             });
         });
-        set_global_settings(settings.clone());
+        set_settings(settings.clone());
     }
 
     fn build_neuro_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
@@ -1447,11 +1457,11 @@ impl UISystem {
             ui.vertical_centered(|closer| {
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.neuro_settings = false;
-                    set_global_settings(settings.clone());
+                    set_settings(settings.clone());
                 }
             });
         });
-        set_global_settings(settings.clone());
+        set_settings(settings.clone());
     }
 
     fn build_ranking_window(&mut self, egui_ctx: &Context, ranking: &Vec<AgentSketch>) {
@@ -1495,13 +1505,15 @@ impl UISystem {
             let powers = state.powers.clone();
             let speeds = state.speeds.clone();
             let eyes = state.eyes.clone();
+            let shells = state.shells.clone();
             let mutations = state.mutations.clone();
             let inner = my_plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(PlotPoints::from(sizes)).name("sizes").color(Color32::BLUE));
-                plot_ui.line(Line::new(PlotPoints::from(powers)).name("powers").color(Color32::GREEN));
-                plot_ui.line(Line::new(PlotPoints::from(speeds)).name("speeds").color(Color32::YELLOW));
-                plot_ui.line(Line::new(PlotPoints::from(eyes)).name("eyes").color(Color32::RED));
-                plot_ui.line(Line::new(PlotPoints::from(mutations)).name("mutations").color(Color32::LIGHT_BLUE));
+                plot_ui.line(Line::new(PlotPoints::from(sizes)).name("size").color(Color32::BLUE));
+                plot_ui.line(Line::new(PlotPoints::from(powers)).name("power").color(Color32::GREEN));
+                plot_ui.line(Line::new(PlotPoints::from(speeds)).name("speed").color(Color32::YELLOW));
+                plot_ui.line(Line::new(PlotPoints::from(eyes)).name("eye").color(Color32::RED));
+                plot_ui.line(Line::new(PlotPoints::from(shells)).name("shell").color(Color32::DARK_GRAY));
+                plot_ui.line(Line::new(PlotPoints::from(mutations)).name("mutation").color(Color32::LIGHT_BLUE));
             });
             let plot_rect = Some(inner.response.rect);
         });

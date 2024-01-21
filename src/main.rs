@@ -8,12 +8,12 @@ mod timer;
 mod ui;
 mod util;
 mod physics;
-mod part;
+//mod part;
 mod agent;
 mod collector;
-mod food;
+//mod food;
 mod globals;
-mod resource;
+mod plant;
 mod terrain;
 mod settings;
 mod monit;
@@ -50,7 +50,7 @@ fn app_configuration() -> Conf {
 }
 
 fn setup() {
-    set_global_settings(Settings::default());
+    set_settings(Settings::default());
     set_global_signals(Signals::new());
     set_mutations(MutationStats::new(0.0, 0.0));
 }

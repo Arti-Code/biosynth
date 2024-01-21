@@ -4,7 +4,7 @@ use macroquad::{experimental::collections::storage, prelude::Vec2};
 use serde::{Deserialize, Serialize};
 
 use crate::globals::*;
-pub fn set_global_settings(settings: Settings) {
+pub fn set_settings(settings: Settings) {
     storage::store(settings);
 }
 
@@ -12,44 +12,8 @@ pub fn get_settings() -> Settings {
     return storage::get::<Settings>().clone();
 }
 
-/* fn default_size_cost() -> f32 {
-    return 1.0;
-}
-
-fn default_base_hp() -> i32 {
-    return 100;
-}
-
-fn default_size_to_hp() -> f32 {
-    return 10.0;
-}
-
-fn default_res_prob() -> f32 {
-    return 0.1;
-}
-
-fn default_growth() -> f32 {
-    return 5.0;
-}
-
-fn default_water_lvl() -> u8 {
-    return 4;
-}
-
-fn default_mutations() -> f32 {
-    return 0.2;
-}
-
-fn default_specie_mod() -> i32 {
-    return 500;
-} */
-
-fn default_born_eng() -> f32 {
-    return 1.0;
-}
-
-fn default_false() -> bool {
-    return false;
+fn default_plant_life() -> f32 {
+    return 128.0;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -70,7 +34,7 @@ pub struct Settings {
     pub agent_size_max: i32,
     pub show_network: bool,
     pub show_specie: bool,
-    #[serde(default = "default_false")]
+    //#[serde(default = "default_false")]
     pub show_generation: bool,
     pub show_cells: bool,
     pub show_res_rad: bool,
@@ -98,7 +62,9 @@ pub struct Settings {
     pub grid_size: u32,
     pub follow_mode: bool,
     //#[serde(default = "default_res_prob")]
-    pub resource_probability: f32,
+    pub plant_probability: f32,
+    //#[serde(default = "default_plant_life")]
+    pub plant_lifetime: f32,
     //#[serde(default = "default_growth")]
     pub growth: f32,
     //#[serde(default = "default_water_lvl")]
@@ -115,7 +81,7 @@ pub struct Settings {
     pub mut_change_val: f32,
     //#[serde(default = "default_specie_mod")]
     pub rare_specie_mod: i32,
-    #[serde(default = "default_born_eng")]
+    //#[serde(default = "default_born_eng")]
     pub born_eng: f32,
 }
 
@@ -123,15 +89,15 @@ impl Default for Settings {
 
     fn default() -> Self {
         Self {
-            world_w: WORLD_W as i32,
-            world_h: WORLD_H as i32,
+            world_w: 3000,
+            world_h: 2000,
             agent_eng_bar: true,
-            agent_init_num: 70,
-            res_init_num: 50,
+            agent_init_num: 100,
+            res_init_num: 100,
             res_balance: 2,
             res_detection_radius: 200.0,
             agent_min_num: 20,
-            res_min_num: 5,
+            res_min_num: 15,
             agent_rotate: 50.0,
             agent_speed: 40.0,
             agent_size_min: 2,
@@ -142,34 +108,35 @@ impl Default for Settings {
             show_generation: false,
             show_cells: false,
             show_res_rad: false,
-            mutations: 0.2,
-            neurolink_rate: 0.066,
+            mutations: 0.1,
+            neurolink_rate: 0.2,
             damage: 50.0,
             base_energy_cost: 0.2,
             move_energy_cost: 0.25,
-            attack_energy_cost: 0.2,
-            size_cost: 1.5,
-            base_hp: 200,
-            size_to_hp: 70.0,
+            attack_energy_cost: 0.15,
+            size_cost: 1.8,
+            base_hp: 300,
+            size_to_hp: 55.0,
             res_num: 70.0,
-            hidden_nodes_num: 4,
+            hidden_nodes_num: 5,
             neuro_duration: 0.25,
-            atk_to_eng: 0.9,
-            eat_to_eng: 8.0,
+            atk_to_eng: 1.4,
+            eat_to_eng: 10.0,
             ranking_size: 20,
             repro_points: 300.0,
-            repro_time: 75.0,
+            repro_time: 150.0,
             new_one_probability: 0.1,
             grid_size: 50,
             follow_mode: false,
-            resource_probability: 0.5,
+            plant_probability: 0.5,
+            plant_lifetime: 128.0,
             growth: 5.0,
             water_lvl: 0,
-            mut_add_link: 0.05,
-            mut_del_link: 0.05,
-            mut_add_node: 0.03,
+            mut_add_link: 0.02,
+            mut_del_link: 0.02,
+            mut_add_node: 0.01,
             mut_change_val: 0.05,
-            mut_del_node: 0.03,
+            mut_del_node: 0.01,
             rare_specie_mod: 750,
             born_eng: 1.0,
        }

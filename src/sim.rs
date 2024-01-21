@@ -1,10 +1,10 @@
 #![allow(unused)]
 
 use crate::agent::*;
-use crate::part::*;
+//use crate::part::*;
 use crate::camera::*;
 use crate::neuro::MyPos2;
-use crate::resource::Resource;
+use crate::plant::Plant;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
@@ -223,7 +223,7 @@ impl Simulation {
 
     fn update_res(&mut self) {
         let settings = get_settings();
-        let mut new_resources: Vec<Resource> = vec![];
+        let mut new_resources: Vec<Plant> = vec![];
         for (_, res) in self.resources.get_iter_mut() {
             match res.update_cloning(&mut self.physics) {
                 None => {},
@@ -291,8 +291,8 @@ impl Simulation {
                     if power1 > power2 {
                         let mut a = (agent.power as f32 + agent.size)/2.0;
                         a = a + a*random_unit();
-                        let mut d = (target.shell as f32 + target.size)/2.0;
-                        d = d + d*random_unit();
+                        let mut d = target.shell as f32;
+                        //d = d + d*random_unit();
                         let mut dmg = (a - d) * dt * settings.damage;
                         //let def = 1.3-(target.shell as f32/10.0);
                         //dmg = dmg * def;
@@ -537,7 +537,7 @@ impl Simulation {
             let xy = get_signals().resize_world.unwrap();
             let mut settings = get_settings();
             settings.world_w = xy.x as i32; settings.world_h = xy.y as i32;
-            set_global_settings(settings.clone());
+            set_settings(settings.clone());
             self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
             self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
             let mut signals = get_signals();
@@ -624,7 +624,7 @@ impl Simulation {
                                 let mut settings = sim_state.settings.to_owned();
                                 settings.world_h = sim_state.world_size.y as i32;
                                 settings.world_w = sim_state.world_size.x as i32;
-                                set_global_settings(settings);
+                                set_settings(settings);
                                 self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
                                 for agent_sketch in sim_state.agents.iter() {
                                     let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
@@ -834,6 +834,7 @@ impl Simulation {
             let powers: f32 = self.powers.iter().sum::<f32>()/l2;
             let speeds: f32 = self.speeds.iter().sum::<f32>()/l2;
             let eyes: f32 = self.eyes.iter().sum::<f32>()/l2;
+            let shells: f32 = self.shells.iter().sum::<f32>()/l2;
             let mutations: f32 = self.mutations.iter().sum::<f32>()/l2;
             self.powers.clear();
             self.speeds.clear();
@@ -841,11 +842,13 @@ impl Simulation {
             self.mutations.clear();
             self.lifetimes.clear();
             self.sizes.clear();
+            self.shells.clear();
             self.sim_state.lifetime.push([(next-1) as f64, avg as f64]);
             self.sim_state.sizes.push([(next-1) as f64, sizes as f64]);
             self.sim_state.powers.push([(next-1) as f64, powers as f64]);
             self.sim_state.speeds.push([(next-1) as f64, speeds as f64]);
             self.sim_state.eyes.push([(next-1) as f64, eyes as f64]);
+            self.sim_state.shells.push([(next-1) as f64, shells as f64]);
             self.sim_state.mutations.push([(next-1) as f64, mutations as f64]);
             self.sim_state.stats.add_data("New Creatures", (next-1, self.borns[0] as f64));
             self.sim_state.stats.add_data("Born Creatures", (next-1, self.borns[1] as f64));
