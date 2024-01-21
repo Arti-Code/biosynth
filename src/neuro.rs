@@ -396,23 +396,19 @@ impl Network {
 
     fn create_nodes2(&mut self, input: usize, input_labels: Vec<&str>, hidden: Vec<usize>, output: usize, output_labels: Vec<&str>) {
         let deep_n = (hidden.len()+1);
-        //let hi = (self.margins.y_max / input as f32);
         let hi = 100.0 / (input+1) as f32;
         let ho = 100.0 / (output+1) as f32;
-        //let ho = (self.margins.y_max / output as f32);
-        //let hd = (self.margins.y_max / hidden as f32);
         let wd = (100/deep_n) as i32;
-        //let h0 = 0;
         for i in 0..input {
             let node = Node::new(IVec2::new(0, (hi+hi*i as f32) as i32), NeuronTypes::INPUT, input_labels[i]);
             let id = node.id;
             self.nodes.insert(id, node);
         }
+        
         for deep in 0..hidden.len() {
-            let hd = 100.0 / hidden[deep] as f32;
+            let hd = 100.0 / (hidden[deep]+1) as f32;
             for d in 0..hidden[deep] {
-                let node = Node::new(IVec2::new(wd*(deep as i32 +1), (hd+hd*d as f32) as i32), NeuronTypes::DEEP, "");
-                //let node = Node::new(rand_position(self.margins.x_min, self.margins.x_max, self.margins.y_min, self.margins.y_max), NeuronTypes::DEEP);
+                let node = Node::new(IVec2::new(wd*(deep as i32+1), (hd+hd*d as f32) as i32), NeuronTypes::DEEP, "");
                 let id = node.id;
                 self.nodes.insert(id, node);
             }
