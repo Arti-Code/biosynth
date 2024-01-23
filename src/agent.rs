@@ -261,7 +261,7 @@ impl Agent {
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
         let settings = get_settings();
-        return 40.0 + settings.agent_vision_range*(eyes as f32)/10.0;
+        return 80.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
     pub fn calc_vision_angle(eyes: i32) -> f32 {

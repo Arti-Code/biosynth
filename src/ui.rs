@@ -131,6 +131,7 @@ impl UISystem {
             self.build_resize_world_window(egui_ctx);
             self.build_borns_plot_window(egui_ctx, &sim_state);
             self.build_side_panel(egui_ctx, &sim_state);
+            self.build_deaths_window(egui_ctx, &sim_state)
         });
     }
 
@@ -223,6 +224,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Population").strong().color(Color32::WHITE)).clicked() {
                         self.state.born_plot = !self.state.born_plot;
+                    }
+                    if ui.button(RichText::new("Deaths").strong().color(Color32::WHITE)).clicked() {
+                        self.state.deaths = !self.state.deaths;
                     }
                 });
 
@@ -1235,7 +1239,7 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut plant_lifetime = settings.plant_probability;
+                let mut plant_lifetime = settings.plant_lifetime;
                 column[0].label(RichText::new("PLANT LIFETIME").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut plant_lifetime, 0.0..=500.0).step_by(0.01)).changed() {
                     settings.plant_lifetime = plant_lifetime;
@@ -1245,10 +1249,10 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut resource_probability = settings.plant_probability;
+                let mut plant_probability = settings.plant_probability;
                 column[0].label(RichText::new("PLANT RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut resource_probability, 0.0..=1.0).step_by(0.01)).changed() {
-                    settings.plant_probability = resource_probability;
+                if column[1].add(Slider::new(&mut plant_probability, 0.0..=1.0).step_by(0.01)).changed() {
+                    settings.plant_probability = plant_probability;
                     signals.new_settings = true;
                 }
             });
@@ -1498,8 +1502,8 @@ impl UISystem {
         if !self.state.plot {
             return;
         }
-        Window::new("PLOT").default_size(UIVec2::new(300.0, 300.0)).show(egui_ctx, |ui| {
-            let my_plot = Plot::new("Plot").legend(Legend::default());
+        Window::new("BORNS").default_size(UIVec2::new(300.0, 300.0)).show(egui_ctx, |ui| {
+            let my_plot = Plot::new("Borns").legend(Legend::default());
             let graph = state.lifetime.clone();
             let sizes = state.sizes.clone();
             let powers = state.powers.clone();
@@ -1514,6 +1518,22 @@ impl UISystem {
                 plot_ui.line(Line::new(PlotPoints::from(eyes)).name("eye").color(Color32::RED));
                 plot_ui.line(Line::new(PlotPoints::from(shells)).name("shell").color(Color32::DARK_GRAY));
                 plot_ui.line(Line::new(PlotPoints::from(mutations)).name("mutation").color(Color32::LIGHT_BLUE));
+            });
+            let plot_rect = Some(inner.response.rect);
+        });
+    }
+
+    fn build_deaths_window(&mut self, egui_ctx: &Context, state: &SimState) {
+        if !self.state.deaths {
+            return;
+        }
+        Window::new("DEATHS").default_size(UIVec2::new(300.0, 300.0)).show(egui_ctx, |ui| {
+            let my_plot = Plot::new("Deaths").legend(Legend::default());
+            let d = state.stats.get_data_as_slice("Deaths");
+            let k = state.stats.get_data_as_slice("Kills");
+            let inner = my_plot.show(ui, |plot_ui| {
+                plot_ui.line(Line::new(PlotPoints::from(d)).name("death").color(Color32::BLUE));
+                plot_ui.line(Line::new(PlotPoints::from(k)).name("kill").color(Color32::RED));
             });
             let plot_rect = Some(inner.response.rect);
         });
@@ -1603,6 +1623,7 @@ pub struct UIState {
     pub plot: bool,
     pub born_plot: bool,
     pub side_panel: bool,
+    pub deaths: bool,
 }
 
 impl UIState {
@@ -1636,6 +1657,7 @@ impl UIState {
             plot: false,
             born_plot: false,
             side_panel: false,
+            deaths: false,
         }
     }
 }

@@ -61,6 +61,7 @@ pub struct Simulation {
     plot_x: i32,
     stats: Stats,
     borns: [i32; 4],
+    deaths: [i32; 2],
 }
 
 impl Simulation {
@@ -103,6 +104,7 @@ impl Simulation {
             plot_x: 0,
             stats: Stats::new(),
             borns: [0, 0, 0, 0],
+            deaths: [0, 0],
         }
     }
 
@@ -112,6 +114,8 @@ impl Simulation {
         self.sim_state.stats.add_data_type("Born Creatures");
         self.sim_state.stats.add_data_type("Rank Creatures");
         self.sim_state.stats.add_data_type("Zero Creatures");
+        self.sim_state.stats.add_data_type("Deaths");
+        self.sim_state.stats.add_data_type("Kills");
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
@@ -188,9 +192,10 @@ impl Simulation {
                 self.mutations.push(agent.mutations as f32);
                 self.shells.push(agent.shell as f32);
                 let mut sketch = agent.get_sketch();
-                sketch.points = (sketch.points * 0.3).round();
+                sketch.points = (sketch.points * 0.5).round();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
+                self.deaths[0] += 1;
             }
         }
         self.agents.agents.retain(|_, agent| agent.alife == true);
@@ -336,6 +341,8 @@ impl Simulation {
             let killer = self.agents.agents.get_mut(killer_rbh).unwrap();
             killer.points += 350.0;
             killer.kills += 1;
+            self.deaths[0] += 1;
+            self.deaths[1] += 1;
         }
     }
 
@@ -854,7 +861,10 @@ impl Simulation {
             self.sim_state.stats.add_data("Born Creatures", (next-1, self.borns[1] as f64));
             self.sim_state.stats.add_data("Rank Creatures", (next-1, self.borns[2] as f64));
             self.sim_state.stats.add_data("Zero Creatures", (next-1, self.borns[3] as f64));
+            self.sim_state.stats.add_data("Deaths", (next-1, self.deaths[0] as f64));
+            self.sim_state.stats.add_data("Kills", (next-1, self.deaths[1] as f64));
             self.borns = [0, 0, 0, 0];
+            self.deaths = [0, 0];
         }
         if (self.sim_state.sim_time-self.last_autosave).round() >= 1000.0 {
             self.last_autosave = self.sim_state.sim_time.round();
