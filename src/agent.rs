@@ -732,18 +732,25 @@ impl Agent {
             color: WHITE,
             ..Default::default()
         };
-        let mut info: String;
-        if settings.show_specie && settings.show_generation {
-            info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
-        } else if settings.show_specie {
+        //let mut info: String;
+        let mut info = "".to_string();
+        let mut info_gen = "".to_string();
+        if settings.show_specie {
             info = format!("{}", self.specie.to_uppercase());
-        } else if settings.show_generation {
-            info = format!("[{}]", self.generation);
-        } else {
-            return;
+        } 
+        if settings.show_generation {
+            info_gen = format!("[{}]", self.generation);
         }
-        let txt_center = get_text_center(&info, Some(*font), 10, 1.0, 0.0);
-        draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 8.0, text_cfg.clone());
+        let mut row = 1;
+        if settings.show_specie {
+            let txt_center = get_text_center(&info, Some(*font), 14, 1.0, 0.0);
+            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 16.0, text_cfg.clone());
+            row += 1;
+        }
+        if settings.show_generation {
+            let txt_center = get_text_center(&info_gen, Some(*font), 18, 1.0, 0.0);
+            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (16.0*row as f32), text_cfg.clone());
+        }
     }
 
     fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {
@@ -765,7 +772,7 @@ impl Agent {
             Some(body) => {
                 let dt = get_frame_time();
                 let dir = Vec2::from_angle(self.rot);
-                let rel_speed = ((self.speed as f32) - (self.shell as f32)/2.0);
+                let rel_speed = ((self.speed as f32) - (self.shell as f32)/6.0);
                 let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
                 if self.run {
                     v *= 1.5;
