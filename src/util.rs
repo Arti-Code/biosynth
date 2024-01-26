@@ -82,13 +82,13 @@ pub fn random_color() -> color::Color {
     ];
     //let colors = vec![RED, GREEN, BLUE, YELLOW, ORANGE, GRAY, SKYBLUE, LIME, ];
     let num = colors.len();
-    let c = rand::gen_range(0, num);
+    let c = rand::gen_range(0, num-1);
     return colors[c];
 }
 
 pub fn random_color5() -> color::Color {
     let colors = [RED, BLUE, GREEN, YELLOW, WHITE];
-    let c = rand::gen_range(0, 5);
+    let c = rand::gen_range(0, 4);
     return colors[c];
 }
 
@@ -253,7 +253,7 @@ pub fn create_name(num: usize) -> String {
     let mut name = String::new();
     let size = names_list.len();
     for locus in 0..num {
-        let i = rand::gen_range(0, size);
+        let i = rand::gen_range(0, size-1);
         let voice = names_list.get(i).unwrap();
         name.insert_str(locus*2, voice);
     }
