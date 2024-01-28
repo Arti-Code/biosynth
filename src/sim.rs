@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use crate::agent::*;
-//use crate::part::*;
 use crate::camera::*;
 use crate::neuro::MyPos2;
 use crate::plant::Plant;
@@ -26,6 +25,7 @@ use base64::prelude::*;
 use crate::monit::PerformanceMonitor;
 use crate::stats::Stats;
 use crate::settings::*;
+use crate::signals::*;
 
 pub struct Simulation {
     pub simulation_name: String,

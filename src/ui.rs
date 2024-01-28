@@ -25,6 +25,8 @@ use crate::agent::*;
 use crate::neuro::*;
 use crate::globals::*;
 use crate::settings::*;
+use crate::stats::*;
+use crate::signals::*;
 
 
 struct TempValues {
@@ -107,6 +109,7 @@ impl UISystem {
                 Some(agent) => {
                     self.build_inspect_window(egui_ctx, agent);
                     self.build_inspect_network(egui_ctx, &agent.network);
+                    self.build_ancestors_window(egui_ctx, agent);
                     //self.build_attributes_window(egui_ctx, agent);
                     //self.build_eng_cost_window(egui_ctx, agent);
                 },
@@ -202,6 +205,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
                         self.state.ranking = !self.state.ranking;
+                    }
+                    if ui.button(RichText::new("Ancestors").strong().color(Color32::WHITE)).clicked() {
+                        self.state.ancestors = !self.state.ancestors;
                     }
                     if ui.button(RichText::new("Resource").strong().color(Color32::WHITE)).clicked() {
                         self.state.resource = !self.state.resource;
@@ -849,6 +855,19 @@ impl UISystem {
         }
     }
 
+    fn build_ancestors_window(&self, egui_ctx: &Context, agent: &Agent) {
+        if self.state.ancestors {
+            let ancestors = agent.ancestors();
+            Window::new(RichText::new("Ancestors").strong().color(Color32::WHITE)).default_pos((435.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
+                for a in ancestors.iter() {
+                    let (name, gen, time) = a.get_name_gen_time();
+                    ui.horizontal(|row| {
+                        row.label(RichText::new(format!("{} | G:{} | T:{}", name.to_uppercase(), gen, time)).strong().color(Color32::WHITE));
+                    });
+                }
+            });
+        }
+    }
 
     fn build_res_window(&self, egui_ctx: &Context, res: &Plant) {
         if self.state.resource {
@@ -1596,6 +1615,7 @@ impl LogoImage {
 
 
 pub struct UIState {
+    pub ancestors: bool,
     pub new_sim_name: String,
     pub performance: bool,
     pub inspect: bool,
@@ -1630,6 +1650,7 @@ impl UIState {
 
     pub fn new() -> Self {
         Self {
+            ancestors: false,
             new_sim_name: String::new(),
             performance: false,
             inspect: false,

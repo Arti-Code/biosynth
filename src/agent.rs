@@ -18,104 +18,9 @@ use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use crate::settings::*;
+use crate::stats::*;
+use crate::misc::*;
 
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct NeuroMap {
-    pub sensors: HashMap<String, u64>,
-    pub effectors: HashMap<String, u64>,
-    signals: HashMap<u64, f32>,
-    actions: HashMap<String, f32>,
-}
-
-impl NeuroMap {
-
-    pub fn new() -> Self {
-        Self { 
-            sensors: HashMap::new(), 
-            effectors: HashMap::new(),
-            signals: HashMap::new(),
-            actions: HashMap::new(), 
-        }
-    }
-
-    pub fn add_sensor(&mut self, name: &str, node_key: u64) {
-        self.sensors.insert(name.to_string(), node_key);
-    }
-
-    pub fn add_sensors(&mut self, pairs: Vec<(u64, String)>) {
-        for (k, s) in pairs.iter() {
-            self.add_sensor(s, *k);
-        }
-    }
-
-    pub fn add_effector(&mut self, name: &str, node_key: u64) {
-        self.effectors.insert(name.to_string(), node_key);
-    }
-
-    pub fn add_effectors(&mut self, pairs: Vec<(u64, String)>) {
-        for (k, s) in pairs.iter() {
-            self.add_effector(s, *k);
-        }
-    }
-
-    pub fn send_signals(&self, network: &mut Network) {
-        //self.signals = HashMap::new();
-        let mut input_values: Vec<(u64, f32)> = vec![];
-        for (k, v) in self.signals.iter() {
-            input_values.push((*k, *v));
-        }
-        network.input(input_values);
-    }
-
-    pub fn recv_actions(&mut self, network: &Network) {
-        self.actions = HashMap::new();
-        for (k, v) in self.effectors.iter() {
-            self.actions.insert(k.to_owned(), network.get_node_value(v).unwrap());
-        }
-    }
-
-    pub fn set_signal(&mut self, name: &str, value: f32) {
-        let node_key = self.sensors.get(name).unwrap();
-        self.signals.insert(*node_key, value);
-    }
-
-    pub fn get_action(&self, name: &str) -> f32 {
-        return *self.actions.get(name).unwrap();
-    }
-
-    pub fn get_signal_list(&self) -> Vec<(String, f32)> {
-        let mut signal_list: Vec<(String, f32)> = vec![];
-        for (s, k) in self.sensors.iter() {
-            let v = self.signals.get(k).unwrap();
-            signal_list.push((s.to_owned(), *v));
-        }
-        return signal_list;
-    }
-
-    pub fn get_action_list(&self) -> Vec<(String, f32)> {
-        let mut action_list: Vec<(String, f32)> = vec![];
-        for (s, v) in self.actions.iter() {
-            action_list.push((s.to_owned(), *v));
-        }
-        return action_list;
-    }
-
-}
-
-
-#[derive(Clone)]
-pub struct EnergyCost {
-    pub basic: f32,
-    pub movement: f32,
-    pub attack: f32,
-}
-
-impl Default for EnergyCost {
-    fn default() -> Self {
-        EnergyCost{basic: 0., movement: 0., attack: 0.}
-    }
-}
 
 #[derive(Clone)]
 pub struct Agent {
@@ -141,7 +46,7 @@ pub struct Agent {
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
     pub contact_resource: bool,
-    pub detected: Option<Detected>,
+    //pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_family: Option<bool>,
     pub enemy_position: Option<Vec2>,
@@ -167,7 +72,7 @@ pub struct Agent {
     pub mutations: i32,
     pub eyes: i32,
     pub mood: Color,
-    //parts: Vec<Box<dyn AgentPart>>,
+    ancestors: Ancestors,
     pub eng_cost: EnergyCost,
     blocked: f32,
 }
@@ -222,7 +127,7 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: 0,
-            detected: None,
+            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
@@ -251,10 +156,11 @@ impl Agent {
             mutations: gen_range(0, 10),
             eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            //parts,
+            ancestors: Ancestors::new(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };
+        agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
         return agent;
     }
@@ -280,6 +186,7 @@ impl Agent {
             let mut name = self.specie.to_owned();
             name.replace_range(i..=i+1, &s);
             self.specie = name.to_owned();
+            self.ancestors.add_ancestor(Ancestor::new(&self.specie, self.generation as i32, 0));
             if random_unit_unsigned() < 0.25 {
                 self.color_second = random_color();
             } else if random_unit_unsigned() < 0.25 {
@@ -287,6 +194,10 @@ impl Agent {
             }
         }
 
+    }
+
+    pub fn ancestors(&self) -> Vec<Ancestor> {
+        return self.ancestors.get_ancestors();
     }
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
@@ -332,7 +243,7 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: gen,
-            detected: None,
+            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
@@ -361,7 +272,7 @@ impl Agent {
             mutations: sketch.mutations,
             eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            //parts,
+            ancestors: sketch.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };
@@ -1012,7 +923,7 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: self.generation + 1,
-            detected: None,
+            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
@@ -1041,7 +952,7 @@ impl Agent {
             mutations: self.mutations,
             eyes: self.eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            //parts,
+            ancestors: self.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
         };
@@ -1070,24 +981,11 @@ impl Agent {
             shell: self.shell,
             mutations: self.mutations,
             eyes: self.eyes,
+            ancestors: self.ancestors.to_owned(),
         }
     }
 }
 
-
-#[derive(Clone)]
-pub struct Detected {
-    pub target_handle: RigidBodyHandle,
-    pub dist: f32,
-}
-
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum MyShapeType {
-    Ball,
-    Cuboid,
-    Segment,
-}
 
 
 
@@ -1110,6 +1008,8 @@ pub struct AgentSketch {
     pub mutations: i32,
     #[serde(default = "default_mutation")]
     pub eyes: i32,
+    #[serde(default="default_ancestors")]
+    pub ancestors: Ancestors,
 }
 
 pub fn default_mutation() -> i32 {
@@ -1121,26 +1021,8 @@ pub fn default_color() -> [f32; 4] {
     return [c.r, c.g, c.b, c.a];
 }
 
-#[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
-pub struct Ancestor {
-    pub name: String,
-    pub generation: u32,
-}
-
-pub struct Ancestors {
-    list: HashSet<Ancestor>,
-}
-
-impl Ancestors {
-    
-    pub fn new() -> Self {
-        Ancestors {
-            list: HashSet::new(),
-        }
-    }
-
-    pub fn insert_ancestor(&mut self, ancestor: Ancestor) {
-        self.list.insert(ancestor);
-    }
-
-}
+fn default_ancestors() -> Ancestors {
+    let mut ancestors = Ancestors::new();
+    ancestors.add_ancestor(Ancestor::new("--forgotten--", 0, 0));
+    return ancestors;
+} 

@@ -12,6 +12,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::{self, *};
 use std::fs;
 use crate::globals::*;
+use crate::stats::*;
 use crate::util::*;
 use ::rand::{Rng, thread_rng};
 use crate::settings::*;
@@ -50,14 +51,14 @@ pub fn generate_id() -> u64 {
 
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
-struct Margins {
+struct NeuroMargins {
     pub x_min: f32,
     pub x_max: f32,
     pub y_min: f32,
     pub y_max: f32,
 }
 
-impl Debug for Margins {
+impl Debug for NeuroMargins {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("").field(&self.x_min).field(&self.x_max).field(&self.y_min).field(&self.y_max).finish()
     }
@@ -100,7 +101,7 @@ pub struct Link {
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
-    margins: Margins,
+    margins: NeuroMargins,
     pub input_keys: Vec<u64>,
     pub output_keys: Vec<u64>,
     //duration: f32
@@ -327,7 +328,7 @@ impl Network {
             nodes: HashMap::new(),
             links: HashMap::new(),
             //timer: 0.0,
-            margins: Margins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 },
+            margins: NeuroMargins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 },
             input_keys: vec![],
             output_keys: vec![],
             //duration,
@@ -567,7 +568,7 @@ impl Network {
             nodes: nodes_map,
             links: links_map,
             //timer: 0.0,
-            margins: Margins { x_min: 25.0, x_max: 25.0, y_min: 375.0, y_max: 375.0 },
+            margins: NeuroMargins { x_min: 25.0, x_max: 25.0, y_min: 375.0, y_max: 375.0 },
             input_keys: self.input_keys.to_owned(),
             output_keys: self.output_keys.to_owned(),
             //duration: self.duration,
@@ -836,7 +837,7 @@ pub struct NetworkSketch {
     nodes: HashMap<u64, NodeSketch>,
     links: HashMap<u64, LinkSketch>,
     //duration: f32,
-    margins: Margins,
+    margins: NeuroMargins,
 }
 
 impl NetworkSketch {
@@ -844,7 +845,7 @@ impl NetworkSketch {
     pub fn from_sketch(&self) -> Network {
         let mut nodes: HashMap<u64, Node> = HashMap::new();
         let mut links: HashMap<u64, Link> = HashMap::new();
-        let margins = Margins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 };
+        let margins = NeuroMargins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 };
         for (key, sketch_node) in self.nodes.iter() {
             let node = Node::from_sketch(sketch_node.to_owned());
             nodes.insert(*key, node);
