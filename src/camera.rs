@@ -1,5 +1,6 @@
 use crate::globals::*;
 use macroquad::prelude::*;
+use crate::settings::*;
 
 pub fn create_camera() -> Camera2D {
     let settings = get_settings();

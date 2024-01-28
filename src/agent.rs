@@ -9,7 +9,7 @@ use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
 use crate::globals::*;
-use crate::part::*;
+//use crate::part::*;
 use macroquad::{color, prelude::*};
 use macroquad::rand::*;
 use rapier2d::geometry::*;
@@ -17,107 +17,10 @@ use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
-//use serde_json;
-//use std::fs;
+use crate::settings::*;
+use crate::stats::*;
+use crate::misc::*;
 
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct NeuroMap {
-    pub sensors: HashMap<String, u64>,
-    pub effectors: HashMap<String, u64>,
-    signals: HashMap<u64, f32>,
-    actions: HashMap<String, f32>,
-}
-
-impl NeuroMap {
-
-    pub fn new() -> Self {
-        Self { 
-            sensors: HashMap::new(), 
-            effectors: HashMap::new(),
-            signals: HashMap::new(),
-            actions: HashMap::new(), 
-        }
-    }
-
-    pub fn add_sensor(&mut self, name: &str, node_key: u64) {
-        self.sensors.insert(name.to_string(), node_key);
-    }
-
-    pub fn add_sensors(&mut self, pairs: Vec<(u64, String)>) {
-        for (k, s) in pairs.iter() {
-            self.add_sensor(s, *k);
-        }
-    }
-
-    pub fn add_effector(&mut self, name: &str, node_key: u64) {
-        self.effectors.insert(name.to_string(), node_key);
-    }
-
-
-    pub fn add_effectors(&mut self, pairs: Vec<(u64, String)>) {
-        for (k, s) in pairs.iter() {
-            self.add_effector(s, *k);
-        }
-    }
-
-    pub fn send_signals(&self, network: &mut Network) {
-        //self.signals = HashMap::new();
-        let mut input_values: Vec<(u64, f32)> = vec![];
-        for (k, v) in self.signals.iter() {
-            input_values.push((*k, *v));
-        }
-        network.input(input_values);
-    }
-
-    pub fn recv_actions(&mut self, network: &Network) {
-        self.actions = HashMap::new();
-        for (k, v) in self.effectors.iter() {
-            self.actions.insert(k.to_owned(), network.get_node_value(v).unwrap());
-        }
-    }
-
-    pub fn set_signal(&mut self, name: &str, value: f32) {
-        let node_key = self.sensors.get(name).unwrap();
-        self.signals.insert(*node_key, value);
-    }
-
-    pub fn get_action(&self, name: &str) -> f32 {
-        return *self.actions.get(name).unwrap();
-    }
-
-    pub fn get_signal_list(&self) -> Vec<(String, f32)> {
-        let mut signal_list: Vec<(String, f32)> = vec![];
-        for (s, k) in self.sensors.iter() {
-            let v = self.signals.get(k).unwrap();
-            signal_list.push((s.to_owned(), *v));
-        }
-        return signal_list;
-    }
-
-    pub fn get_action_list(&self) -> Vec<(String, f32)> {
-        let mut action_list: Vec<(String, f32)> = vec![];
-        for (s, v) in self.actions.iter() {
-            action_list.push((s.to_owned(), *v));
-        }
-        return action_list;
-    }
-
-}
-
-
-#[derive(Clone)]
-pub struct EnergyCost {
-    pub basic: f32,
-    pub movement: f32,
-    pub attack: f32,
-}
-
-impl Default for EnergyCost {
-    fn default() -> Self {
-        EnergyCost{basic: 0., movement: 0., attack: 0.}
-    }
-}
 
 #[derive(Clone)]
 pub struct Agent {
@@ -143,12 +46,13 @@ pub struct Agent {
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
     pub contact_resource: bool,
-    pub detected: Option<Detected>,
+    //pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_family: Option<bool>,
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub enemy_size: Option<f32>,
+    enemy_mood: Option<Color>,
     pub resource: Option<RigidBodyHandle>,
     pub resource_position: Option<Vec2>,
     pub resource_dir: Option<f32>,
@@ -168,8 +72,9 @@ pub struct Agent {
     pub mutations: i32,
     pub eyes: i32,
     pub mood: Color,
-    parts: Vec<Box<dyn AgentPart>>,
+    ancestors: Ancestors,
     pub eng_cost: EnergyCost,
+    blocked: f32,
 }
 
 
@@ -188,20 +93,20 @@ impl Agent {
         let color = random_color();
         let color_second = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "RED", "GRE", "BLU"];
+        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
-        let hid = settings.hidden_nodes_num;
-        network.build(inp_labs.len(), inp_labs, vec![hid], out_labs.len(), out_labs, settings.neurolink_rate);
+        let mut hid = settings.hidden_nodes_num;
+        let hid1 = rand::gen_range(1, hid);
+        let hid2 = rand::gen_range(1, hid);
+        //let hid3 = rand::gen_range(1, hid);
+        network.build(inp_labs.len(), inp_labs, vec![hid1, hid2], out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        let parts: Vec<Box<dyn AgentPart>> = vec![];
-        //let tail = Tail::new(Vec2::from_angle(PI)*size, size*0.7, color);
-        //let tail = Box::new(tail);
+        //let parts: Vec<Box<dyn AgentPart>> = vec![];
         let eng = size * settings.size_to_hp + settings.base_hp as f32;
-        //parts.push(tail);
         let mut agent = Agent {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
@@ -222,10 +127,11 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: 0,
-            detected: None,
+            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
+            enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
             resource: None,
@@ -250,20 +156,48 @@ impl Agent {
             mutations: gen_range(0, 10),
             eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            parts,
+            ancestors: Ancestors::new(),
             eng_cost: EnergyCost::default(),
+            blocked: 0.0,
         };
+        agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
         return agent;
     }
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
         let settings = get_settings();
-        return 100.0 + settings.agent_vision_range*(eyes as f32)/10.0;
+        return 80.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
     pub fn calc_vision_angle(eyes: i32) -> f32 {
         return 1.8*PI * ((11.0 - eyes as f32)/11.0);
+    }
+
+    pub fn get_mood(&self) -> Color {
+        return self.mood.to_owned();
+    }
+
+    fn mod_specie(&mut self) {
+        let settings = get_settings();
+        if rand::gen_range(0, settings.rare_specie_mod) == 0 {
+            let s = create_name(1);
+            let i = rand::gen_range(0, 3)*2;
+            let mut name = self.specie.to_owned();
+            name.replace_range(i..=i+1, &s);
+            self.specie = name.to_owned();
+            self.ancestors.add_ancestor(Ancestor::new(&self.specie, self.generation as i32, 0));
+            if random_unit_unsigned() < 0.25 {
+                self.color_second = random_color();
+            } else if random_unit_unsigned() < 0.25 {
+                self.color = random_color();
+            }
+        }
+
+    }
+
+    pub fn ancestors(&self) -> Vec<Ancestor> {
+        return self.ancestors.get_ancestors();
     }
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
@@ -287,7 +221,7 @@ impl Agent {
         };
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
-        let parts: Vec<Box<dyn AgentPart>> = vec![];
+        //let parts: Vec<Box<dyn AgentPart>> = vec![];
         let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
         let mut agent = Agent {
             key,
@@ -309,10 +243,11 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: gen,
-            detected: None,
+            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
+            enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
             resource: None,
@@ -337,9 +272,11 @@ impl Agent {
             mutations: sketch.mutations,
             eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            parts,
+            ancestors: sketch.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
+            blocked: 0.0,
         };
+        agent.mod_specie();
         agent.mutate();
         agent.calc_hp();
         return agent;
@@ -357,24 +294,24 @@ impl Agent {
         if selected {
             self.draw_info(&font);
             self.draw_target(selected);
-        } else if settings.show_specie {
+        } else {
             self.draw_info(&font);
         }
-        for part in self.parts.iter() {
-            part.draw_part(self.pos, self.rot);
-        }
+        //źfor part in self.parts.iter() {
+        //    part.draw_part(self.pos, self.rot);
+        //}
     }    
 
     fn draw_body(&self) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let rv = Vec2::from_angle(self.rot+PI);
-        let x1 = x0+rv.x*self.size*0.8;
-        let y1 = y0+rv.y*self.size*0.8;
+        let x1 = x0+rv.x*self.size;
+        let y1 = y0+rv.y*self.size;
         let shell = self.size + (self.shell as f32)*0.4;
-        draw_circle(x0, y0, shell, self.color_second);
-        draw_circle(x1, y1, shell*0.6, self.color_second);
-        draw_circle(x1, y1, self.size*0.6, self.color);
+        draw_circle(x0, y0, shell, LIGHTGRAY);
+        draw_circle(x1, y1, shell*0.6, LIGHTGRAY);
+        draw_circle(x1, y1, self.size*0.6, self.color_second);
         draw_circle(x0, y0, self.size, self.color);
         draw_circle(x0, y0, self.size/2.0, self.mood);
         if self.run {
@@ -395,21 +332,45 @@ impl Agent {
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
         let dt = get_frame_time();
         self.lifetime += dt;
-        for part in self.parts.iter_mut() {
-            //part.update_part();
-        }
+        //for part in self.parts.iter_mut() {
+        //    //part.update_part();
+        //}
         if self.analize_timer.update(dt) {
             self.watch(physics);
             self.update_contacts(other, physics);
+            self.update_enemy_mood(other);
             self.analize();
         }
 
         self.update_physics(physics);
+        if self.pos.x.is_nan() || self.pos.y.is_nan() {
+            self.alife = false;
+            return self.alife;
+        }
         //self.calc_timers(dt);
         //self.network.update();
         self.calc_energy(dt);
         return self.alife;
     }
+
+    fn update_enemy_mood(&mut self, other: &HashMap<RigidBodyHandle, Agent>) {
+        match self.enemy {
+            None => {
+                self.enemy_mood = Some(Color::new(0.0, 0.0, 0.0, 1.0));
+            },
+            Some(rbh) => {
+                match other.get(&rbh) {
+                    None => {
+                        self.enemy_mood = Some(Color::new(0.0, 0.0, 0.0, 1.0));
+                    },
+                    Some(agent) => {
+                        self.enemy_mood = Some(agent.get_mood());
+                    },
+                }
+            },
+        }
+    }
+
 
     pub fn eat(&self) -> Vec<RigidBodyHandle> {
         let mut hits: Vec<RigidBodyHandle> = vec![];
@@ -505,11 +466,19 @@ impl Agent {
                 f
             }
         };
-
+        let wall = self.blocked;
+        self.blocked = 0.0;
         let hp = self.eng/self.max_eng;
         let red = self.mood.r;
         let blu = self.mood.b;
         let gre = self.mood.g;
+        let en_color = match self.enemy_mood {
+            None => Color::new(0.0, 0.0, 0.0, 1.0),
+            Some(color) => color,
+        };
+        let e_r = en_color.r;
+        let e_g = en_color.g;
+        let e_b = en_color.b;
         //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
         //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
         let mut pain = 0.0;
@@ -529,9 +498,14 @@ impl Agent {
         self.neuro_map.set_signal("RER", resr);
         self.neuro_map.set_signal("RED", res_dist);
         self.neuro_map.set_signal("PAI", pain);
+        self.neuro_map.set_signal("WAL", wall);
         self.neuro_map.set_signal("RED", red);
         self.neuro_map.set_signal("GRE", gre);
         self.neuro_map.set_signal("BLU", blu);
+        self.neuro_map.set_signal("E-R", e_r);
+        self.neuro_map.set_signal("E-G", e_g);
+        self.neuro_map.set_signal("E-B", e_b);
+        
     }
 
     fn analize(&mut self) {
@@ -660,6 +634,7 @@ impl Agent {
     }
 
     fn draw_info(&self, font: &Font) {
+        let settings = get_settings();
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let text_cfg = TextParams {
@@ -668,9 +643,25 @@ impl Agent {
             color: WHITE,
             ..Default::default()
         };
-        let info = format!("{} [{}]", self.specie.to_uppercase(), self.generation);
-        let txt_center = get_text_center(&info, Some(*font), 10, 1.0, 0.0);
-        draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 8.0, text_cfg.clone());
+        //let mut info: String;
+        let mut info = "".to_string();
+        let mut info_gen = "".to_string();
+        if settings.show_specie {
+            info = format!("{}", self.specie.to_uppercase());
+        } 
+        if settings.show_generation {
+            info_gen = format!("[{}]", self.generation);
+        }
+        let mut row = 1;
+        if settings.show_specie {
+            let txt_center = get_text_center(&info, Some(*font), 14, 1.0, 0.0);
+            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 16.0, text_cfg.clone());
+            row += 1;
+        }
+        if settings.show_generation {
+            let txt_center = get_text_center(&info_gen, Some(*font), 18, 1.0, 0.0);
+            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (16.0*row as f32), text_cfg.clone());
+        }
     }
 
     fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {
@@ -692,7 +683,7 @@ impl Agent {
             Some(body) => {
                 let dt = get_frame_time();
                 let dir = Vec2::from_angle(self.rot);
-                let rel_speed = ((self.speed as f32) - (self.shell as f32)/2.0);
+                let rel_speed = ((self.speed as f32) - (self.shell as f32)/6.0);
                 let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
                 if self.run {
                     v *= 1.5;
@@ -709,25 +700,26 @@ impl Agent {
     fn check_edges(&mut self, body: &mut RigidBody) {
         let settings = get_settings();
         let (mut raw_pos, rot ) = iso_to_vec2_rot(body.position());
-        let mut out_of_edge = false;
-        if raw_pos.x < -0.0 {
+        let mut out_of_edge: f32 = 0.0;
+        if raw_pos.x <= 0.0 {
             raw_pos.x = 0.0;
-            out_of_edge = true;
-        } else if raw_pos.x > settings.world_w as f32 + 0.0 {
+            out_of_edge = 1.0;
+        } else if raw_pos.x >= settings.world_w as f32 + 0.0 {
             raw_pos.x = settings.world_w as f32;
-            out_of_edge = true;
+            out_of_edge = 1.0;
         }
-        if raw_pos.y < -0.0 {
+        if raw_pos.y <= 0.0 {
             raw_pos.y = 0.0;
-            out_of_edge = true;
-        } else if raw_pos.y > settings.world_h as f32 + 0.0 {
+            out_of_edge = 1.0;
+        } else if raw_pos.y >= settings.world_h as f32 + 0.0 {
             raw_pos.y = settings.world_h as f32;
-            out_of_edge = true;
+            out_of_edge = 1.0;
         }
-        if out_of_edge {
+        if out_of_edge == 1.0 {
             body.set_position(make_isometry(raw_pos.x, raw_pos.y, rot+PI), true);
-            //body.set_linvel([0.0, 0.0].into(), true);
-            //self.vel = 0.0;
+        }
+        if out_of_edge == 1.0 {
+            self.blocked = 1.0;
         }
     }
 
@@ -857,28 +849,31 @@ impl Agent {
         self.check_alife();
     }
 
-    fn mutate_one(v: i32) -> i32 {
+    fn mutate_one(v: i32, m: f32) -> i32 {
         let mut vm: i32 = v;
-        let mut r = rand::gen_range(0, 20);
-        if r == 1 {
-            vm += 1;
-        } else if r == 2 {
-            vm -= 1;
+        if random_unit_unsigned() < m {
+            let mut r = rand::gen_range(0, 2);
+            if r == 1 {
+                vm += 1;
+            } else if r == 0 {
+                vm -= 1;
+            }
+            vm = clamp(vm, 1_i32, 10_i32);
         }
-        vm = clamp(vm, 1_i32, 10_i32);
         return vm;
     }
 
     pub fn mutate(&mut self) {
         let settings = get_settings();
-        self.size = Self::mutate_one(self.size as i32) as f32;
-        self.power = Self::mutate_one(self.power);
-        self.speed = Self::mutate_one(self.speed);
-        self.shell = Self::mutate_one(self.shell);
-        self.mutations = Self::mutate_one(self.mutations);
-        self.eyes = Self::mutate_one(self.eyes);
         let m = ((self.mutations - 5) as f32) / 10.0;
-        self.network.mutate(settings.mutations + settings.mutations*m);
+        let mut_rate = settings.mutations + settings.mutations * m;
+        self.mutations = Self::mutate_one(self.mutations, mut_rate);
+        self.size = Self::mutate_one(self.size as i32, mut_rate) as f32;
+        self.power = Self::mutate_one(self.power, mut_rate);
+        self.speed = Self::mutate_one(self.speed, mut_rate);
+        self.shell = Self::mutate_one(self.shell, mut_rate);
+        self.eyes = Self::mutate_one(self.eyes, mut_rate);
+        self.network.mutate(m);
         self.calc_hp();
         self.vision_angle = Self::calc_vision_angle(self.eyes);
         self.vision_range = Self::calc_vision_range(self.eyes);
@@ -888,7 +883,7 @@ impl Agent {
         let settings = get_settings();
         let eng = self.size * settings.size_to_hp + settings.base_hp as f32;
         self.max_eng = eng;
-        self.eng = eng*0.5;
+        self.eng = eng*settings.born_eng;
     }
 
     pub fn replicate(&self, physics: &mut Physics) -> Agent {
@@ -907,7 +902,7 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        let mut parts: Vec<Box<dyn AgentPart>> = vec![];
+        //let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         let mut agent = Agent {
             key,
             pos: pos + random_unit_vec2()*30.0,
@@ -928,10 +923,11 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: self.generation + 1,
-            detected: None,
+            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
+            enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
             resource: None,
@@ -956,9 +952,11 @@ impl Agent {
             mutations: self.mutations,
             eyes: self.eyes,
             mood: Color::new(0.0, 0.0, 0.0, 1.0),
-            parts,
+            ancestors: self.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
+            blocked: 0.0,
         };
+        agent.mod_specie();
         agent.mutate();
         agent.calc_hp();
         return agent;
@@ -983,24 +981,11 @@ impl Agent {
             shell: self.shell,
             mutations: self.mutations,
             eyes: self.eyes,
+            ancestors: self.ancestors.to_owned(),
         }
     }
 }
 
-
-#[derive(Clone)]
-pub struct Detected {
-    pub target_handle: RigidBodyHandle,
-    pub dist: f32,
-}
-
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum MyShapeType {
-    Ball,
-    Cuboid,
-    Segment,
-}
 
 
 
@@ -1023,6 +1008,8 @@ pub struct AgentSketch {
     pub mutations: i32,
     #[serde(default = "default_mutation")]
     pub eyes: i32,
+    #[serde(default="default_ancestors")]
+    pub ancestors: Ancestors,
 }
 
 pub fn default_mutation() -> i32 {
@@ -1034,26 +1021,8 @@ pub fn default_color() -> [f32; 4] {
     return [c.r, c.g, c.b, c.a];
 }
 
-#[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
-pub struct Ancestor {
-    pub name: String,
-    pub generation: u32,
-}
-
-pub struct Ancestors {
-    list: HashSet<Ancestor>,
-}
-
-impl Ancestors {
-    
-    pub fn new() -> Self {
-        Ancestors {
-            list: HashSet::new(),
-        }
-    }
-
-    pub fn insert_ancestor(&mut self, ancestor: Ancestor) {
-        self.list.insert(ancestor);
-    }
-
-}
+fn default_ancestors() -> Ancestors {
+    let mut ancestors = Ancestors::new();
+    ancestors.add_ancestor(Ancestor::new("--forgotten--", 0, 0));
+    return ancestors;
+} 

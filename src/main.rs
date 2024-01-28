@@ -1,5 +1,5 @@
 //#![allow(unused)]
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 mod camera;
 mod neuro;
@@ -8,26 +8,30 @@ mod timer;
 mod ui;
 mod util;
 mod physics;
-mod part;
+//mod part;
 mod agent;
 mod collector;
-mod food;
+mod misc;
 mod globals;
-mod resource;
-mod neural;
+mod plant;
 mod terrain;
-//mod agent2;
+mod settings;
 mod monit;
+mod stats;
+mod signals;
 
 use std::env;
 //use std::path::Path;
 //use std::path::PathBuf;
 use crate::sim::*;
 use crate::globals::*;
+use crate::stats::*;
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
+use crate::signals::*;
 use util::MyIcon;
 use util::generate_seed;
+use crate::settings::*;
 
 
 fn app_configuration() -> Conf {
@@ -49,7 +53,7 @@ fn app_configuration() -> Conf {
 }
 
 fn setup() {
-    set_global_settings(Settings::default());
+    set_settings(Settings::default());
     set_global_signals(Signals::new());
     set_mutations(MutationStats::new(0.0, 0.0));
 }

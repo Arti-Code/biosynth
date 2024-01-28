@@ -1,10 +1,9 @@
 #![allow(unused)]
 
 use crate::agent::*;
-use crate::part::*;
 use crate::camera::*;
 use crate::neuro::MyPos2;
-use crate::resource::Resource;
+use crate::plant::Plant;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
@@ -12,9 +11,9 @@ use crate::physics::*;
 use crate::collector::*;
 use crate::globals::*;
 use crate::terrain::*;
+use base64::engine;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
-//use rapier2d::na::coordinates;
 use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -22,9 +21,11 @@ use serde::{Serialize, Deserialize};
 use serde_json;
 use std::fs;
 use std::path::Path;
-use bincode;
+use base64::prelude::*;
 use crate::monit::PerformanceMonitor;
-
+use crate::stats::Stats;
+use crate::settings::*;
+use crate::signals::*;
 
 pub struct Simulation {
     pub simulation_name: String,
@@ -49,6 +50,18 @@ pub struct Simulation {
     coord_timer: Timer,
     monitor: PerformanceMonitor,
     //tail: Tail,
+    lifetimes: Vec<f32>,
+    lifetime_stats: Vec<[i32; 2]>,
+    sizes: Vec<f32>,
+    eyes: Vec<f32>,
+    speeds: Vec<f32>,
+    powers: Vec<f32>,
+    mutations: Vec<f32>,
+    shells: Vec<f32>,
+    plot_x: i32,
+    stats: Stats,
+    borns: [i32; 4],
+    deaths: [i32; 2],
 }
 
 impl Simulation {
@@ -79,9 +92,30 @@ impl Simulation {
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
             coord_timer: Timer::new(0.25, true, true, true),
-            //tail: Tail::new(vec2(400., 400.), 7., PI/2.0, RED),
             monitor: PerformanceMonitor::new(1.0),
+            lifetimes: vec![],
+            lifetime_stats: vec![],
+            sizes: vec![],
+            eyes: vec![],
+            speeds: vec![],
+            powers: vec![],
+            mutations: vec![],
+            shells: vec![],
+            plot_x: 0,
+            stats: Stats::new(),
+            borns: [0, 0, 0, 0],
+            deaths: [0, 0],
         }
+    }
+
+    fn init_stats(&mut self) {
+        self.borns = [0, 0, 0, 0];
+        self.sim_state.stats.add_data_type("New Creatures");
+        self.sim_state.stats.add_data_type("Born Creatures");
+        self.sim_state.stats.add_data_type("Rank Creatures");
+        self.sim_state.stats.add_data_type("Zero Creatures");
+        self.sim_state.stats.add_data_type("Deaths");
+        self.sim_state.stats.add_data_type("Kills");
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
@@ -127,6 +161,8 @@ impl Simulation {
         let settings = get_settings();
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
+        self.plot_x = (self.sim_state.sim_time/100.0) as i32;
+        self.init_stats();
     }
 
     fn update_agents(&mut self) {
@@ -147,10 +183,19 @@ impl Simulation {
                 }
             }
             if !agent.update(&agents, &mut self.physics) {
+                let lf = agent.lifetime.round();
+                self.lifetimes.push(lf);
+                self.sizes.push(agent.size);
+                self.eyes.push(agent.eyes as f32);
+                self.speeds.push(agent.speed as f32);
+                self.powers.push(agent.power as f32);
+                self.mutations.push(agent.mutations as f32);
+                self.shells.push(agent.shell as f32);
                 let mut sketch = agent.get_sketch();
-                sketch.points = sketch.points.sqrt().round();
+                sketch.points = (sketch.points * 0.5).round();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
+                self.deaths[0] += 1;
             }
         }
         self.agents.agents.retain(|_, agent| agent.alife == true);
@@ -183,7 +228,7 @@ impl Simulation {
 
     fn update_res(&mut self) {
         let settings = get_settings();
-        let mut new_resources: Vec<Resource> = vec![];
+        let mut new_resources: Vec<Plant> = vec![];
         for (_, res) in self.resources.get_iter_mut() {
             match res.update_cloning(&mut self.physics) {
                 None => {},
@@ -203,13 +248,6 @@ impl Simulation {
         if self.resources.count() < settings.res_min_num {
             self.resources.add_many_resources(2, &mut self.physics);
         }
-        //let dt = get_frame_time();
-        //let settings = get_settings();
-        //let res_num = settings.res_num;
-        //let res_prob = (res_num*dt)/(self.resources.count() as f32+1.0);
-        //if rand::gen_range(0.0, 1.0) < res_prob {
-        //    self.resources.add_many_resources(1, &mut self.physics);
-        //}
     }
 
     fn update_coordinates(&mut self) {
@@ -235,7 +273,9 @@ impl Simulation {
         self.eat();
         self.update_agents();
         self.update_rank();
-        self.agents.populate(&mut self.physics);
+        let n = self.agents.populate(&mut self.physics);
+        self.borns[0] += n;
+        self.borns[1] += n;
         self.monitor.monitor();
         self.physics.step();
     }
@@ -256,8 +296,8 @@ impl Simulation {
                     if power1 > power2 {
                         let mut a = (agent.power as f32 + agent.size)/2.0;
                         a = a + a*random_unit();
-                        let mut d = (target.shell as f32 + target.size)/2.0;
-                        d = d + d*random_unit();
+                        let mut d = target.shell as f32;
+                        //d = d + d*random_unit();
                         let mut dmg = (a - d) * dt * settings.damage;
                         //let def = 1.3-(target.shell as f32/10.0);
                         //dmg = dmg * def;
@@ -301,6 +341,8 @@ impl Simulation {
             let killer = self.agents.agents.get_mut(killer_rbh).unwrap();
             killer.points += 350.0;
             killer.kills += 1;
+            self.deaths[0] += 1;
+            self.deaths[1] += 1;
         }
     }
 
@@ -363,7 +405,6 @@ impl Simulation {
         //self.draw_grid();
         self.draw_agents();
         self.draw_res();
-        //self.tail.draw(Vec2::ZERO, PI/2.0);
     }
 
     pub fn draw_terrain(&self) {
@@ -435,7 +476,6 @@ impl Simulation {
         if self.signals.new_sim {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
-            //self.app_state = AppState::RESTART;
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
@@ -444,7 +484,7 @@ impl Simulation {
             self.signals.save_selected = false;
             match self.selected {
                 Some(handle) => {
-                    self.save_agent_sketch(handle);
+                    self.save_encoded_agent(handle);
                 },
                 None => {},
             }
@@ -462,6 +502,7 @@ impl Simulation {
                     signals.load_sim_name = None;
                     set_global_signals(signals);
                     self.load_sim(&sim_name, false);
+                    self.init_stats();
                 },
             }
         }
@@ -480,7 +521,7 @@ impl Simulation {
         if sign3.load_agent_name.is_some() {
             match sign3.load_agent_name {
                 Some(agent_file_name) => {
-                    self.load_agent(&agent_file_name);
+                    self.load_encoded_agent(&agent_file_name);
                     let mut signals = get_signals();
                     signals.load_agent_name = None;
                     set_global_signals(signals);
@@ -499,60 +540,46 @@ impl Simulation {
                 None => {},
             }
         }
+        if get_signals().resize_world.is_some() {
+            let xy = get_signals().resize_world.unwrap();
+            let mut settings = get_settings();
+            settings.world_w = xy.x as i32; settings.world_h = xy.y as i32;
+            set_settings(settings.clone());
+            self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
+            self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
+            let mut signals = get_signals();
+            signals.resize_world = None;
+            set_global_signals(signals);
+        }
     }
 
     fn save_sim(&self) {
         let data = SimulationSave::from_sim(self);
-        let s = serde_json::to_string_pretty(&data);
-        let s2 = serde_json::to_string(&data);
         let p = format!("saves/simulations/{}/", self.simulation_name.to_lowercase());
-        //let de = bincode::encode();
-        match s2 {
+        match serde_json::to_string(&data) {
             Ok(serial) => {
-                let encoded = bincode::serialize(&serial);
-                match encoded {
-                    Err(_e) => println!("Error encoding simulation"),
-                    Ok(encoded) => {
-                        let path = Path::new(&p).join(format!("{}.sim", self.simulation_name.to_lowercase()));
-                        let path_n = Path::new(&p).join(format!("{}.sim", data.sim_time));
-                        match fs::write(path, &encoded) {
-                            Ok(_) => {},
-                            Err(_) => {
-                                println!("Could not write bin file");
-                            },
-                        }
-
-                    }
-                }
-            },
-            Err(_) => {},
-        }
-        match s {
-            Ok(save) => {
                 match fs::DirBuilder::new().recursive(true).create(p) {
                     Ok(_) => {
-                        let f_n = format!("saves/simulations/{}/{}.json", self.simulation_name.to_lowercase(), data.sim_time as i32);
-                        let f = format!("saves/simulations/{}/last.json", self.simulation_name.to_lowercase());
-                        match fs::write(f_n, save.clone()) {
-                            Ok(_) => {println!("SAVED");},
-                            Err(_) => println!("ERROR"),
-                        }
-                        match fs::write(f, save.clone()) {
-                            Ok(_) => {println!("SAVED");},
-                            Err(_) => println!("ERROR"),
+                        let f_n = format!("saves/simulations/{}/{}.sim", self.simulation_name.to_lowercase(), data.sim_time as i32);
+                        let f = format!("saves/simulations/{}/last.sim", self.simulation_name.to_lowercase());
+                        let encoded = BASE64_STANDARD.encode(serial.as_bytes());
+                        match fs::write(f.clone(), &encoded) {
+                            Ok(_) => {
+                                println!("Simulation saved as last.sim.");
+                            },
+                            Err(e) => {
+                                println!("{}", e);
+                                println!("{}", f.clone());
+                            },
                         }
                     },
-                    Err(_) => {
-                        let f = format!("saves/simulations/{}/last.json", self.simulation_name.to_lowercase());
-                        match fs::write(f, save) {
-                            Ok(_) => {println!("SAVED EXIST");},
-                            Err(_) => println!("ERROR EXIST"),
-                        }
+                    Err(e) => {
+                        error!("Error creating path: {}", e);
                     },
                 }
             },
-            Err(_) => {
-                warn!("ERROR PATH");
+            Err(e) => {
+                error!("Failed to serialize simulation: {:?}", e);
             },
         }
     }
@@ -575,7 +602,7 @@ impl Simulation {
             f = sim_name.to_string().to_lowercase();
             path = Path::new(sim_name);
         } else {
-            f = format!("saves/simulations/{}/last.json", sim_name);
+            f = format!("saves/simulations/{}/last.sim", sim_name);
             path = Path::new(&f);
         }
         match fs::read_to_string(path) {
@@ -583,29 +610,37 @@ impl Simulation {
                 warn!("can't read from {}", path.to_str().unwrap());
             },
             Ok(save) => {
-                //let decoded: String = bincode::deserialize(save.as_bytes()).expect("can't decode file");
-                match serde_json::from_str::<SimulationSave>(&save) {
+                match BASE64_STANDARD.decode(save.clone().into_bytes()) {
                     Err(_) => {
-                        println!("error during deserialization of saved sim... [{}]", &f);
+                        println!("error during decoding of saved sim...");
                     },
-                    Ok(sim_state) => {
-                        self.clear_sim();
-                        for agent_sketch in sim_state.agents.iter() {
-                            let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
-                            self.agents.add_agent(agent);
+                    Ok(decoded) => {
+                        let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
+                        match serde_json::from_str::<SimulationSave>(&save) {
+                            Err(_) => {
+                                println!("error during deserialization of saved sim... [{}]", &f);
+                            },
+                            Ok(sim_state) => {
+                                self.clear_sim();
+                                self.simulation_name = sim_state.simulation_name.to_owned();
+                                self.sim_state.sim_name = sim_state.simulation_name.to_owned();
+                                self.sim_state.sim_time = sim_state.sim_time;
+                                self.plot_x = sim_state.sim_time as i32 / 100;
+                                self.last_autosave = sim_state.last_autosave;
+                                self.world_size = sim_state.world_size.to_vec2();
+                                let mut settings = sim_state.settings.to_owned();
+                                settings.world_h = sim_state.world_size.y as i32;
+                                settings.world_w = sim_state.world_size.x as i32;
+                                set_settings(settings);
+                                self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
+                                for agent_sketch in sim_state.agents.iter() {
+                                    let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
+                                    self.agents.add_agent(agent);
+                                }
+                                self.ranking = sim_state.ranking.to_owned();
+                            },
                         }
-                        self.ranking = sim_state.ranking.to_owned();
-                        self.sim_state.sim_time = sim_state.sim_time;
-                        self.last_autosave = sim_state.last_autosave;
-                        self.simulation_name = sim_state.simulation_name.to_owned();
-                        self.sim_state.sim_name = sim_state.simulation_name.to_owned();
-                        self.world_size = sim_state.world_size.to_vec2();
-                        self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
-                        let mut settings = sim_state.settings.to_owned();
-                        settings.world_h = sim_state.world_size.y as i32;
-                        settings.world_w = sim_state.world_size.x as i32;
-                        set_global_settings(settings);
-                    },
+                    }
                 }
             }
         }
@@ -630,6 +665,36 @@ impl Simulation {
         }
     }
 
+    fn load_encoded_agent(&mut self, file_name: &str) {
+        let f = format!("saves/agents/{}", file_name);
+        let path = Path::new(&f);
+        match fs::read_to_string(path) {
+            Err(_) => { println!("ERROR: can't load saved agent"); },
+            Ok(save) => {
+                match BASE64_STANDARD.decode(save.clone().into_bytes()) {
+                    Err(_) => println!("ERROR: can't decode base64 of saved agent"),
+                    Ok(decoded) => {
+                        let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
+                        match serde_json::from_str::<AgentSketch>(&save) {
+                            Ok(agent_save) => {
+                                let mut agent = Agent::from_sketch(agent_save.clone(), &mut self.physics);
+                                let settings = get_settings();
+                                agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
+                                self.agents.add_agent(agent);
+                            },
+                            Err(_) => {
+
+                            },
+                        }
+                    },
+                    Err(_) => {
+                        println!("WARNING: failed to parse save as json; treating it as raw binary");
+                    },
+                }
+            }
+        }
+    }
+
     fn delete_agent(&mut self, file_name: &str) {
         let f = format!("saves/agents/{}", file_name);
         let path = Path::new(&f);
@@ -638,6 +703,36 @@ impl Simulation {
                 println!("error during removing agent");
             },
             Ok(_) => {},
+        }
+    }
+
+
+
+    fn save_encoded_agent(&self, handle: RigidBodyHandle) {
+        match self.agents.get(handle) {
+            Some(agent) => {
+                let agent_sketch = agent.get_sketch();
+                let serialized = serde_json::to_string(&agent_sketch);
+                match serialized {
+                    Ok(serialized_agent) => {
+                        let encoded = BASE64_STANDARD.encode(serialized_agent.as_bytes());
+                        let path_str = format!("saves/agents/{}-{}.agent", agent.specie.to_uppercase(), agent.generation);
+                        let path = Path::new(&path_str);
+                        match fs::write(path, encoded.clone()) {
+                            Ok(_) => {},
+                            Err(e) => {
+                                eprintln!("Couldn't write encoded agent: {}", e);
+                            },
+                        }
+                    },
+                    Err(_) => {
+                        eprintln!("Failed to serialize agent");
+                    },
+                }
+            },
+            None => {
+                warn!("WARN: agent not selected");
+            },
         }
     }
 
@@ -732,14 +827,45 @@ impl Simulation {
         self.sim_state.sources_num = self.resources.resources.len() as i32;
         self.sim_state.physics_num = self.physics.get_bodies_num() as i32;
         (self.sim_state.rigid_num, self.sim_state.colliders_num) = self.physics.get_bodies_and_colliders_num();
-        let mut kin_eng = 0.0;
-        let mut total_mass = 0.0;
-        for (_, rb) in self.physics.get_objects_iter() {
-            kin_eng += rb.kinetic_energy();
-            total_mass += rb.mass();
-        }
+        let kin_eng = 0.0;
+        let total_mass = 0.0;
         self.sim_state.total_eng = kin_eng;
         self.sim_state.total_mass = total_mass;
+        let l = self.sim_state.lifetime.len() as i32;
+        let x = self.sim_state.sim_time as i32/100;
+        let next = x-self.plot_x;
+        if l < next {
+            let l2 = self.lifetimes.len() as f32;
+            let avg: f32 = self.lifetimes.iter().sum::<f32>()/l2;
+            let sizes: f32 = self.sizes.iter().sum::<f32>()/l2;
+            let powers: f32 = self.powers.iter().sum::<f32>()/l2;
+            let speeds: f32 = self.speeds.iter().sum::<f32>()/l2;
+            let eyes: f32 = self.eyes.iter().sum::<f32>()/l2;
+            let shells: f32 = self.shells.iter().sum::<f32>()/l2;
+            let mutations: f32 = self.mutations.iter().sum::<f32>()/l2;
+            self.powers.clear();
+            self.speeds.clear();
+            self.eyes.clear();
+            self.mutations.clear();
+            self.lifetimes.clear();
+            self.sizes.clear();
+            self.shells.clear();
+            self.sim_state.lifetime.push([(next-1) as f64, avg as f64]);
+            self.sim_state.sizes.push([(next-1) as f64, sizes as f64]);
+            self.sim_state.powers.push([(next-1) as f64, powers as f64]);
+            self.sim_state.speeds.push([(next-1) as f64, speeds as f64]);
+            self.sim_state.eyes.push([(next-1) as f64, eyes as f64]);
+            self.sim_state.shells.push([(next-1) as f64, shells as f64]);
+            self.sim_state.mutations.push([(next-1) as f64, mutations as f64]);
+            self.sim_state.stats.add_data("New Creatures", (next-1, self.borns[0] as f64));
+            self.sim_state.stats.add_data("Born Creatures", (next-1, self.borns[1] as f64));
+            self.sim_state.stats.add_data("Rank Creatures", (next-1, self.borns[2] as f64));
+            self.sim_state.stats.add_data("Zero Creatures", (next-1, self.borns[3] as f64));
+            self.sim_state.stats.add_data("Deaths", (next-1, self.deaths[0] as f64));
+            self.sim_state.stats.add_data("Kills", (next-1, self.deaths[1] as f64));
+            self.borns = [0, 0, 0, 0];
+            self.deaths = [0, 0];
+        }
         if (self.sim_state.sim_time-self.last_autosave).round() >= 1000.0 {
             self.last_autosave = self.sim_state.sim_time.round();
             self.save_sim();
@@ -756,6 +882,10 @@ impl Simulation {
         if self.population_timer.update(dt) {
             if random_unit_unsigned() < settings.new_one_probability  {
                 self.agent_from_zero();
+            }
+        }
+        if self.population_timer.update(dt) {
+            if random_unit_unsigned() < settings.new_one_probability  {
                 self.agent_from_sketch();
             }
         }
@@ -763,6 +893,8 @@ impl Simulation {
 
     fn agent_from_zero(&mut self) {
         self.agents.add_many_agents(1, &mut self.physics);
+        self.borns[0] += 1;
+        self.borns[3] += 1;
     }
 
     fn agent_from_sketch(&mut self) {
@@ -777,6 +909,8 @@ impl Simulation {
         agent_sketch.points -= agent_sketch.points*0.5;
         agent_sketch.points = agent_sketch.points.round();
         self.agents.add_agent(agent);
+        self.borns[0] += 1;
+        self.borns[2] += 1;
     }
 
     fn calc_selection_time(&mut self) {

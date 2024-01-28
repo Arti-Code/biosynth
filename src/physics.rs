@@ -1,6 +1,5 @@
 #![allow(unused)]
 
-use crate::globals::get_settings;
 use crate::util::*;
 use macroquad::prelude::*;
 use rapier2d::na::*;
@@ -8,11 +7,7 @@ use rapier2d::prelude::*;
 use std::collections::hash_set::{Iter};
 use std::collections::{HashMap, HashSet};
 use std::io;
-//use core::iter::traits::{Iterator, IteratorMut};
-    
-
-//use std::result::IterMut;
-
+use crate::settings::*;
 
 pub struct Physics {
     pub core: PhysicsCore,
@@ -204,7 +199,7 @@ impl PhysicsCore {
     }
 
     fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
-        let pos = Isometry2::new(Vector2::new(position.x, position.y), rotation);
+        let pos = make_isometry(position.x, position.y, rotation);
         let dynamic_body = RigidBodyBuilder::dynamic().position(pos)
             .linear_damping(linear_damping).angular_damping(angular_damping).build();
         return self.rigid_bodies.insert(dynamic_body);
