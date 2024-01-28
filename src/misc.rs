@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::collections::HashMap;
 
 //use rapier2d::dynamics::RigidBodyHandle;
