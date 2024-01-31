@@ -372,14 +372,23 @@ impl Simulation {
         for (id, dmg) in hits.iter() {
             if *dmg > 0.0 {
                 let eat = *dmg;
-                let agent = self.agents.agents.get_mut(id).unwrap();
-                agent.add_energy(eat);
-                if eat > 0.0 {
-                    agent.points += eat*0.1;
+                match self.agents.agents.get_mut(id) {
+                    Some(agent) => {
+
+                        agent.add_energy(eat);
+                        if eat > 0.0 {
+                            agent.points += eat*0.1;
+                        }
+                    },
+                    None => {
+                        warn!("can't find eater agent");
+                    }
                 }
             } else {
                 match self.resources.resources.get_mut(id) {
-                    None => println!("[WARN]: resource not exist"),
+                    None => {
+                        warn!("resource not exist");
+                    },
                     Some(source) => {
                         let damage = *dmg;
                         source.drain_eng(damage.abs());

@@ -564,20 +564,27 @@ impl Agent {
         if self.attacking {
             yaw_color = RED;
             if self.attack_visual {
-                l1 = self.pos + left * self.size*1.8;
-                r1 = self.pos + right * self.size*1.8;
+                l1 = self.pos + left * self.size*2.0;
+                r1 = self.pos + right * self.size*2.0;
             }
+            draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
+            draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
         } else if self.eating {
             yaw_color = BLUE;
             if self.eat_visual {
-                left = Vec2::from_angle(self.rot-PI/16.0);
-                right = Vec2::from_angle(self.rot+PI/16.0);
-                l1 = self.pos + left * self.size*1.5;
-                r1 = self.pos + right * self.size*1.5;
+                left = Vec2::from_angle(self.rot-PI/18.0);
+                right = Vec2::from_angle(self.rot+PI/18.0);
             }
+            l1 = self.pos + left * self.size*1.1;
+            r1 = self.pos + right * self.size*1.1;
+            draw_circle(l1.x, l1.y, self.size*0.33, yaw_color);
+            draw_circle(r1.x, r1.y, self.size*0.33, yaw_color);
+            //draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
+            //draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
+        } else {
+            draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
+            draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
         }
-        draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
-        draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
     }
 
     fn draw_eyes(&self, selected: bool) {
