@@ -9,11 +9,17 @@
 
 * * *
 
+##### v0.8
+
+- [x] better attack/eat visuals
+- [x] modify size importance in attacking  
+- [x] modify size importance in eating  
+
 ##### v0.4
 
 - [x] integration with rapier physics engine
 - [x] neural network
-- [x] genethic algorithm
+- [x] genetic algorithm
 
 ##### v0.3
 
@@ -21,8 +27,10 @@
 - [x] energy source agents detection
 - [x] agents ability to consume energy source
 - [x] large world size
-- [x] improve custom camera translation controll
+- [x] improve custom camera translation control
 - [x] reset camera transformations
+- [x] camera movement
+- [x] camera zoom in/zoom out
 - [ ] camera transformation info window
 - [x] camera translation
 - [x] camera zoom-in / zoom-out
@@ -32,8 +40,6 @@
 ##### v0.2
 
 - [x] visual detection in range
-- [ ] ~~camera movement~~
-- [ ] ~~camera zoom in/zoom out~~
 - [x] circles collision
 - [x] using parry2d
 - [x] custom font

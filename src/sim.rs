@@ -1,31 +1,28 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use crate::agent::*;
 use crate::camera::*;
-use crate::neuro::MyPos2;
 use crate::plant::Plant;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
 use crate::physics::*;
 use crate::collector::*;
-use crate::globals::*;
 use crate::terrain::*;
-use base64::engine;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
 use std::collections::HashMap;
 use std::f32::consts::PI;
-use serde::{Serialize, Deserialize};
 use serde_json;
 use std::fs;
 use std::path::Path;
 use base64::prelude::*;
 use crate::monit::PerformanceMonitor;
-use crate::stats::Stats;
+//use crate::stats::Stats;
 use crate::settings::*;
 use crate::signals::*;
+use crate::sketch::*;
 
 pub struct Simulation {
     pub simulation_name: String,
@@ -49,9 +46,8 @@ pub struct Simulation {
     pub terrain: Terrain,
     coord_timer: Timer,
     monitor: PerformanceMonitor,
-    //tail: Tail,
     lifetimes: Vec<f32>,
-    lifetime_stats: Vec<[i32; 2]>,
+    //lifetime_stats: Vec<[i32; 2]>,
     sizes: Vec<f32>,
     eyes: Vec<f32>,
     speeds: Vec<f32>,
@@ -59,7 +55,7 @@ pub struct Simulation {
     mutations: Vec<f32>,
     shells: Vec<f32>,
     plot_x: i32,
-    stats: Stats,
+    //stats: Stats,
     borns: [i32; 4],
     deaths: [i32; 2],
 }
@@ -94,7 +90,7 @@ impl Simulation {
             coord_timer: Timer::new(0.25, true, true, true),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
-            lifetime_stats: vec![],
+            //lifetime_stats: vec![],
             sizes: vec![],
             eyes: vec![],
             speeds: vec![],
@@ -102,7 +98,7 @@ impl Simulation {
             mutations: vec![],
             shells: vec![],
             plot_x: 0,
-            stats: Stats::new(),
+            //stats: Stats::new(),
             borns: [0, 0, 0, 0],
             deaths: [0, 0],
         }
@@ -289,18 +285,15 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 if let Some(target) = self.agents.agents.get(tg) {
-                    let pow1 = agent.size + agent.power as f32;
-                    let pow2 = target.size + target.power as f32;
+                    let pow1 = 0.5*agent.size + agent.power as f32;
+                    let pow2 = 0.5*target.size + target.power as f32;
                     let power1 = pow1 + pow1*random_unit();
                     let power2 = pow2 + pow2*random_unit();
                     if power1 > power2 {
-                        let mut a = (agent.power as f32 + agent.size)/2.0;
+                        let mut a = (agent.power as f32 + agent.size*0.5)/1.5;
                         a = a + a*random_unit();
-                        let mut d = target.shell as f32;
-                        //d = d + d*random_unit();
+                        let d = target.shell as f32 * 1.5;
                         let mut dmg = (a - d) * dt * settings.damage;
-                        //let def = 1.3-(target.shell as f32/10.0);
-                        //dmg = dmg * def;
                         if dmg > 0.0 {
                             if hits.contains_key(id) {
                                 let (old_dmg, _) = *hits.get_mut(id).unwrap();
@@ -355,7 +348,7 @@ impl Simulation {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
                 if let Some(_target) = self.resources.resources.get(tg) {
-                    let power1 = agent.size + agent.size*random_unit();
+                    let power1 = agent.size + 7.5*random_unit();
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
@@ -451,7 +444,7 @@ impl Simulation {
         }
     }
 
-    fn draw_grid(&self) {
+/*     fn draw_grid(&self) {
         let settings = get_settings();
         let cell_size = settings.grid_size;
         let w = self.world_size.x;
@@ -463,7 +456,7 @@ impl Simulation {
                 draw_circle((x * cell_size) as f32, (y * cell_size) as f32, 1.0, LIGHTGRAY);
             }
         }
-    }
+    } */
 
     pub fn check_signals(&mut self) {
         let sign = get_signals();
@@ -554,13 +547,13 @@ impl Simulation {
     }
 
     fn save_sim(&self) {
-        let data = SimulationSave::from_sim(self);
+        let data = SimulationSketch::from_sim(self);
         let p = format!("saves/simulations/{}/", self.simulation_name.to_lowercase());
         match serde_json::to_string(&data) {
             Ok(serial) => {
                 match fs::DirBuilder::new().recursive(true).create(p) {
                     Ok(_) => {
-                        let f_n = format!("saves/simulations/{}/{}.sim", self.simulation_name.to_lowercase(), data.sim_time as i32);
+                        //let f_n = format!("saves/simulations/{}/{}.sim", self.simulation_name.to_lowercase(), data.sim_time as i32);
                         let f = format!("saves/simulations/{}/last.sim", self.simulation_name.to_lowercase());
                         let encoded = BASE64_STANDARD.encode(serial.as_bytes());
                         match fs::write(f.clone(), &encoded) {
@@ -616,7 +609,7 @@ impl Simulation {
                     },
                     Ok(decoded) => {
                         let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
-                        match serde_json::from_str::<SimulationSave>(&save) {
+                        match serde_json::from_str::<SimulationSketch>(&save) {
                             Err(_) => {
                                 println!("error during deserialization of saved sim... [{}]", &f);
                             },
@@ -646,7 +639,7 @@ impl Simulation {
         }
     } 
 
-    fn load_agent(&mut self, file_name: &str) {
+/*     fn load_agent(&mut self, file_name: &str) {
         let f = format!("saves/agents/{}", file_name);
         let path = Path::new(&f);
         match fs::read_to_string(path) {
@@ -663,7 +656,7 @@ impl Simulation {
                 }
             }
         }
-    }
+    } */
 
     fn load_encoded_agent(&mut self, file_name: &str) {
         let f = format!("saves/agents/{}", file_name);
@@ -686,9 +679,6 @@ impl Simulation {
 
                             },
                         }
-                    },
-                    Err(_) => {
-                        println!("WARNING: failed to parse save as json; treating it as raw binary");
                     },
                 }
             }
@@ -736,7 +726,7 @@ impl Simulation {
         }
     }
 
-    fn save_agent_sketch(&self, handle: RigidBodyHandle) {
+/*     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
         match self.agents.get(handle) {
             Some(agent) => {
                 let agent_sketch = agent.get_sketch();
@@ -755,7 +745,7 @@ impl Simulation {
             },
             None => println!("WARN: agent not selected"),
         }
-    }
+    } */
 
     pub fn input(&mut self) {
         self.mouse_input();
@@ -953,44 +943,3 @@ impl Simulation {
 
 }
 
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SimulationSave {
-    pub simulation_name: String,
-    pub world_size: MyPos2,
-    pub sim_time: f64,
-    last_autosave: f64,
-    pub agents: Vec<AgentSketch>,
-    pub ranking: Vec<AgentSketch>,
-    settings: Settings,
-    terrain: SerializedTerrain,
-}
-
-impl SimulationSave {
-    
-    pub fn from_sim(sim: &Simulation) -> Self {
-        let mut agents: Vec<AgentSketch> = vec![];
-        let mut ranking: Vec<AgentSketch> = vec![];
-        for (_, agent) in sim.agents.get_iter() {
-            let sketch = agent.get_sketch();
-            agents.push(sketch);
-        }
-        for sketch in sim.ranking.iter() {
-            let sketch2 = sketch.to_owned();
-            ranking.push(sketch2);
-        }
-        let settings = get_settings();
-        Self { 
-            simulation_name: sim.simulation_name.to_owned(), 
-            world_size: MyPos2::from_vec(&sim.world_size), 
-            sim_time: sim.sim_state.sim_time.round(), 
-            agents: agents.to_owned(), 
-            ranking: ranking.to_owned(),
-            last_autosave: sim.sim_state.sim_time.round(),
-            settings: settings.to_owned(),
-            terrain: SerializedTerrain::new(&sim.terrain),
-
-        }
-    }
-
-}

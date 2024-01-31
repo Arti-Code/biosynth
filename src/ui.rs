@@ -27,6 +27,7 @@ use crate::globals::*;
 use crate::settings::*;
 use crate::stats::*;
 use crate::signals::*;
+use crate::sketch::*;
 
 
 struct TempValues {
@@ -122,13 +123,13 @@ impl UISystem {
                 None => {},
             }
             self.build_about_window(egui_ctx);
-            self.build_settings_window(egui_ctx, signals);
-            self.build_agent_settings_window(egui_ctx, signals);
+            self.build_settings_enviro_window(egui_ctx, signals);
+            self.build_settings_agent_window(egui_ctx, signals);
             self.build_ranking_window(egui_ctx, ranking);
             self.build_load_sim_window(egui_ctx);
             self.build_main_menu_win(egui_ctx);
             self.build_load_agent_window(egui_ctx);
-            self.build_neuro_settings_window(egui_ctx, signals);
+            self.build_settings_neuro_window(egui_ctx, signals);
             self.build_info_window(egui_ctx);
             self.build_plot_window(egui_ctx, &sim_state);
             self.build_resize_world_window(egui_ctx);
@@ -991,7 +992,7 @@ impl UISystem {
         }
     }
 
-    fn build_agent_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+    fn build_settings_agent_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if !self.state.set_agent {
             return;
         }
@@ -1141,7 +1142,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut rare_specie_mod = settings.rare_specie_mod;
                 column[0].label(RichText::new("SPECIE MODIFY RARITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut rare_specie_mod, 0..=1000)).changed() {
+                if column[1].add(Slider::new(&mut rare_specie_mod, 0..=10000).step_by(100.0)).changed() {
                     settings.rare_specie_mod = rare_specie_mod;
                     signals.new_settings = true;
                 }
@@ -1168,12 +1169,12 @@ impl UISystem {
         set_settings(settings.clone());
     }
 
-    fn build_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+    fn build_settings_enviro_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if !self.state.environment {
             return;
         }
         let mut settings = get_settings();
-        Window::new("SETTINGS").id("settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
+        Window::new("ENVIROMENT SETTINGS").id("enviroment_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
@@ -1210,7 +1211,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_init_num: i32 = settings.res_init_num as i32;
                 column[0].label(RichText::new("RES INIT NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_init_num, 0..=250)).changed() {
+                if column[1].add(Slider::new(&mut res_init_num, 0..=500)).changed() {
                     settings.res_init_num = res_init_num as usize;
                     signals.new_settings = true;
                 }
@@ -1220,7 +1221,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_min_num: i32 = settings.res_min_num as i32;
                 column[0].label(RichText::new("RES MIN NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_min_num, 0..=100)).changed() {
+                if column[1].add(Slider::new(&mut res_min_num, 0..=500)).changed() {
                     settings.res_min_num = res_min_num as usize;
                     signals.new_settings = true;
                 }
@@ -1240,7 +1241,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_balance: i32 = settings.res_balance as i32;
                 column[0].label(RichText::new("RES BALANCE NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_balance, 0..=50)).changed() {
+                if column[1].add(Slider::new(&mut res_balance, 0..=20)).changed() {
                     settings.res_balance = res_balance as usize;
                     signals.new_settings = true;
                 }
@@ -1300,7 +1301,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut new_one_probability = settings.new_one_probability;
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.3).step_by(0.01)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.8).step_by(0.01)).changed() {
                     settings.new_one_probability = new_one_probability;
                     signals.new_settings = true;
                 }
@@ -1378,7 +1379,7 @@ impl UISystem {
         set_settings(settings.clone());
     }
 
-    fn build_neuro_settings_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+    fn build_settings_neuro_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if !self.state.neuro_settings {
             return;
         }

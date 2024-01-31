@@ -5,9 +5,8 @@ use std::f32::consts::PI;
 use std::{fs, io};
 use std::path::Path;
 use std::time::{UNIX_EPOCH, SystemTime};
-use crate::agent::AgentSketch;
 use crate::globals::*;
-use crate::sim::SimulationSave;
+use crate::sketch::SimulationSketch;
 use crate::stats::Stats;
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
@@ -16,6 +15,7 @@ use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
 use rapier2d::na::{Isometry2, Vector2, Translation, Point2, Const};
 use crate::settings::*;
+use crate::sketch::*;
 
 static NAME_LIST: [&str; 529] = [
     "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",
@@ -387,11 +387,11 @@ impl MyIcon {
     }
 }
 
-pub fn saved_sim_to_sketch(path: &Path) -> Option<SimulationSave> {
+pub fn saved_sim_to_sketch(path: &Path) -> Option<SimulationSketch> {
     let sim = match fs::read_to_string(path) {
         Err(_) => { None },
         Ok(save) => {
-            match serde_json::from_str::<SimulationSave>(&save) {
+            match serde_json::from_str::<SimulationSketch>(&save) {
                 Err(_) => {
                     println!("error during deserialization of saved sim...");
                     return None;

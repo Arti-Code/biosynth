@@ -2,24 +2,20 @@
 
 
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::f32::consts::PI;
 use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
 use crate::physics::*;
-use crate::globals::*;
-//use crate::part::*;
-use macroquad::{color, prelude::*};
+use macroquad::prelude::*;
 use macroquad::rand::*;
 use rapier2d::geometry::*;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
-use std::fmt::Debug;
-use serde::{Serialize, Deserialize};
 use crate::settings::*;
 use crate::stats::*;
 use crate::misc::*;
+use crate::sketch::*;
 
 
 #[derive(Clone)]
@@ -46,7 +42,6 @@ pub struct Agent {
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
     pub contact_resource: bool,
-    //pub detected: Option<Detected>,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_family: Option<bool>,
     pub enemy_position: Option<Vec2>,
@@ -75,6 +70,8 @@ pub struct Agent {
     ancestors: Ancestors,
     pub eng_cost: EnergyCost,
     blocked: f32,
+    attack_visual: bool,
+    eat_visual: bool,
 }
 
 
@@ -83,7 +80,6 @@ impl Agent {
     
     pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
-        //let key = gen_range(u64::MIN, u64::MAX);
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let rot = random_rotation();
         let eyes = gen_range(0, 10);
@@ -95,18 +91,16 @@ impl Agent {
         let mut network = Network::new(1.0);
         let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
-        let mut hid = settings.hidden_nodes_num;
+        let hid = settings.hidden_nodes_num;
         let hid1 = rand::gen_range(1, hid);
         let hid2 = rand::gen_range(1, hid);
-        //let hid3 = rand::gen_range(1, hid);
         network.build(inp_labs.len(), inp_labs, vec![hid1, hid2], out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        //let parts: Vec<Box<dyn AgentPart>> = vec![];
-        let eng = size * settings.size_to_hp + settings.base_hp as f32;
+
         let mut agent = Agent {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
@@ -127,7 +121,6 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: 0,
-            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
@@ -159,6 +152,8 @@ impl Agent {
             ancestors: Ancestors::new(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
+            attack_visual: false,
+            eat_visual: false,
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
@@ -275,6 +270,8 @@ impl Agent {
             ancestors: sketch.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
+            attack_visual: false,
+            eat_visual: false,
         };
         agent.mod_specie();
         agent.mutate();
@@ -297,7 +294,7 @@ impl Agent {
         } else {
             self.draw_info(&font);
         }
-        //źfor part in self.parts.iter() {
+        //for part in self.parts.iter() {
         //    part.draw_part(self.pos, self.rot);
         //}
     }    
@@ -412,7 +409,7 @@ impl Agent {
                 dist/self.vision_range
             },
         };
-        let mut tg_ang = match self.enemy_dir {
+        let tg_ang = match self.enemy_dir {
             None => 0.0,
             Some(dir) => {
                 dir
@@ -440,7 +437,7 @@ impl Agent {
                 dist/self.vision_range
             },
         };
-        let mut res_ang = match self.resource_dir {
+        let res_ang = match self.resource_dir {
             None => 0.0,
             Some(dir) => {
                 dir
@@ -546,7 +543,8 @@ impl Agent {
         } else {
             self.eating = false;
         }
-
+        self.eat_visual = !self.eat_visual;
+        self.attack_visual = !self.attack_visual;
         let r = clamp(self.neuro_map.get_action("RED"), 0.0, 1.0);
         let g = clamp(self.neuro_map.get_action("GRE"), 0.0, 1.0);
         let b = clamp(self.neuro_map.get_action("BLU"), 0.0, 1.0);
@@ -556,17 +554,27 @@ impl Agent {
     }
 
     fn draw_front(&self) {
-        let left = Vec2::from_angle(self.rot-PI/10.0);
-        let right = Vec2::from_angle(self.rot+PI/10.0);
-        let l0 = self.pos + left*self.size;
-        let r0 = self.pos + right*self.size;
-        let l1 = self.pos + left*self.size*1.7;
-        let r1 = self.pos + right*self.size*1.7;
         let mut yaw_color = LIGHTGRAY;
+        let mut left: Vec2 = Vec2::from_angle(self.rot-PI/10.0);
+        let mut right: Vec2 = Vec2::from_angle(self.rot+PI/10.0);
+        let l0 = self.pos + left * self.size;
+        let r0 = self.pos + right * self.size;
+        let mut l1 = self.pos + left * self.size*1.5;
+        let mut r1 = self.pos + right * self.size*1.5;
         if self.attacking {
             yaw_color = RED;
+            if self.attack_visual {
+                l1 = self.pos + left * self.size*1.8;
+                r1 = self.pos + right * self.size*1.8;
+            }
         } else if self.eating {
             yaw_color = BLUE;
+            if self.eat_visual {
+                left = Vec2::from_angle(self.rot-PI/16.0);
+                right = Vec2::from_angle(self.rot+PI/16.0);
+                l1 = self.pos + left * self.size*1.5;
+                r1 = self.pos + right * self.size*1.5;
+            }
         }
         draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
         draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
@@ -602,7 +610,7 @@ impl Agent {
         }
     }
 
-    fn draw_target(&self, selected: bool) {
+    fn draw_target(&self, _selected: bool) {
         if let Some(_rb) = self.enemy {
             if let Some(enemy_position) = self.enemy_position {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
@@ -683,7 +691,7 @@ impl Agent {
             Some(body) => {
                 let dt = get_frame_time();
                 let dir = Vec2::from_angle(self.rot);
-                let rel_speed = ((self.speed as f32) - (self.shell as f32)/6.0);
+                //let rel_speed = self.speed as f32 - (self.shell as f32)/6.0;
                 let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
                 if self.run {
                     v *= 1.5;
@@ -852,7 +860,7 @@ impl Agent {
     fn mutate_one(v: i32, m: f32) -> i32 {
         let mut vm: i32 = v;
         if random_unit_unsigned() < m {
-            let mut r = rand::gen_range(0, 2);
+            let r = rand::gen_range(0, 2);
             if r == 1 {
                 vm += 1;
             } else if r == 0 {
@@ -887,7 +895,7 @@ impl Agent {
     }
 
     pub fn replicate(&self, physics: &mut Physics) -> Agent {
-        let settings = get_settings();
+        //let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let color = self.color.to_owned();
         let color_second = self.color_second.to_owned();
@@ -896,7 +904,7 @@ impl Agent {
         let pos = self.pos;
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
         let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), interactions);
-        let mut network = self.network.replicate();
+        let network = self.network.replicate();
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
@@ -955,6 +963,8 @@ impl Agent {
             ancestors: self.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
+            attack_visual: false,
+            eat_visual: false,
         };
         agent.mod_specie();
         agent.mutate();
@@ -986,43 +996,3 @@ impl Agent {
     }
 }
 
-
-
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AgentSketch {
-    pub specie: String,
-    pub generation: u32,
-    pub size: f32,
-    pub shape: MyShapeType,
-    pub color: [f32; 4],
-    #[serde(default = "default_color")]
-    pub color_second: [f32; 4],
-    pub network: NetworkSketch,
-    pub points: f32,
-    pub neuro_map: NeuroMap,
-    pub power: i32,
-    pub speed: i32,
-    pub shell: i32,
-    #[serde(default = "default_mutation")]
-    pub mutations: i32,
-    #[serde(default = "default_mutation")]
-    pub eyes: i32,
-    #[serde(default="default_ancestors")]
-    pub ancestors: Ancestors,
-}
-
-pub fn default_mutation() -> i32 {
-    return gen_range(0, 10);
-}
-
-pub fn default_color() -> [f32; 4] {
-    let c = random_color();
-    return [c.r, c.g, c.b, c.a];
-}
-
-fn default_ancestors() -> Ancestors {
-    let mut ancestors = Ancestors::new();
-    ancestors.add_ancestor(Ancestor::new("--forgotten--", 0, 0));
-    return ancestors;
-} 

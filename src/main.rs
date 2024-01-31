@@ -19,6 +19,7 @@ mod settings;
 mod monit;
 mod stats;
 mod signals;
+mod sketch;
 
 use std::env;
 //use std::path::Path;
