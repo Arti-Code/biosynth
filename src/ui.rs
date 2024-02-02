@@ -903,6 +903,8 @@ impl UISystem {
                     let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
                     let rect = response.rect;
                     let zero = rect.left_top().to_vec2()+offset;
+                    let (input_node_keys, hidden_node_keys, output_node_keys) = network.get_node_keys_by_type();
+                    
                     for (_, link) in network.links.iter() {
                         let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
                         let ui_coord0 = vec2_to_uivec2(&coord0);

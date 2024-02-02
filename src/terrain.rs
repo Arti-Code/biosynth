@@ -1,18 +1,8 @@
 #![allow(unused)]
 
 
-use std::collections::HashMap;
-use std::f32::consts::PI;
-use crate::neuro::*;
-use crate::timer::*;
 use crate::util::*;
-use crate::physics::*;
-use crate::globals::*;
-use macroquad::{color, prelude::*};
-use macroquad::rand::*;
-use rapier2d::geometry::*;
-use rapier2d::na::Vector2;
-use rapier2d::prelude::{RigidBody, RigidBodyHandle};
+use macroquad::prelude::*;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use noise::{*, utils::{NoiseMap, PlaneMapBuilder, NoiseMapBuilder}};
@@ -31,7 +21,7 @@ impl Cell {
         }
     }
 
-    pub fn set_cell(&mut self, altitude: f32) {
+    pub fn _set_cell(&mut self, altitude: f32) {
         self.alt = clamp(altitude, 0.0, 20.0) as u8;
     }
 
@@ -46,7 +36,7 @@ impl Cell {
         }
         let alt = self.alt as f32;
         let c = (alt * 8.0 + 50.0) as u8;
-        let mut color = color_u8!(c, c, c, 255);
+        let color = color_u8!(c, c, c, 255);
         return color;
     }
 
@@ -184,7 +174,7 @@ pub struct SerializedTerrain {
 impl SerializedTerrain {
 
     pub fn new(terrain: &Terrain) -> Self {
-        let mut serialized_terrain = SerializedTerrain {
+        let serialized_terrain = SerializedTerrain {
             cell_size: terrain.cell_size,
             columns_num: terrain.width,
             rows_num: terrain.height,

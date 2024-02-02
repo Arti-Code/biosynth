@@ -7,7 +7,7 @@ mod sim;
 mod timer;
 mod ui;
 mod util;
-mod physics;
+mod phyx;
 //mod part;
 mod agent;
 mod collector;
@@ -20,7 +20,7 @@ mod monit;
 mod stats;
 mod signals;
 mod sketch;
-mod physics_misc;
+
 
 use std::env;
 use crate::sim::*;

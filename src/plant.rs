@@ -5,8 +5,8 @@ use macroquad::{prelude::*, color};
 use rapier2d::prelude::*;
 use crate::timer::Timer;
 use crate::util::*;
-use crate::physics::*;
-use crate::physics_misc::*;
+use crate::phyx::physics::Physics;
+use crate::phyx::physics_misc::PhysicsMaterial;
 use crate::settings::*;
 
 

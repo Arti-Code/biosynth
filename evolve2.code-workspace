@@ -10,6 +10,7 @@
 			"ipos",
 			"lacunarity",
 			"neurolink",
+			"phyx",
 			"resl",
 			"xfactor"
 		],
@@ -17,6 +18,7 @@
 			"childs",
 			"lacunarity",
 			"neurolink",
+			"phyx",
 			"resl",
 			"unmultiplied",
 			"xfactor"

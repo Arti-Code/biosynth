@@ -4,7 +4,8 @@
 use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 use crate::util::*;
-use crate::physics::*;
+use crate::phyx::physics::Physics;
+use crate::phyx::physics_misc::PhysicsMaterial;
 use crate::agent::*;
 use crate::globals::*;
 use crate::plant::*;

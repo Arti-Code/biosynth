@@ -6,7 +6,6 @@ use std::f32::consts::PI;
 use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
-use crate::physics::*;
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use rapier2d::geometry::*;
@@ -16,8 +15,8 @@ use crate::settings::*;
 use crate::stats::*;
 use crate::misc::*;
 use crate::sketch::*;
-use crate::physics_misc::*;
-
+use crate::phyx::physics::Physics;
+use crate::phyx::physics_misc::PhysicsMaterial;
 
 #[derive(Clone)]
 pub struct Agent {

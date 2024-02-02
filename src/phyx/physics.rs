@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+//mod physics_misc;
+
 use crate::util::*;
 use macroquad::prelude::*;
 use rapier2d::na::*;
@@ -8,7 +10,7 @@ use std::collections::hash_set::{Iter};
 use std::collections::{HashMap, HashSet};
 use std::io;
 use crate::settings::*;
-use crate::physics_misc::*;
+use super::physics_misc::*;
 
 pub struct Physics {
     pub core: PhysicsCore,
@@ -132,7 +134,7 @@ impl PhysicsCore {
         let params = IntegrationParameters {
             prediction_distance: 0.02,
             allowed_linear_error: 0.01,
-            dt: 1.0/30.0,
+            dt: 1.0/45.0,
             ..Default::default()
         };
         Self {

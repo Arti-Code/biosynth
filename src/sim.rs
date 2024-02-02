@@ -6,7 +6,7 @@ use crate::plant::Plant;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
-use crate::physics::*;
+//use crate::physics::*;
 use crate::collector::*;
 use crate::terrain::*;
 use macroquad::camera::Camera2D;
@@ -23,6 +23,7 @@ use crate::monit::PerformanceMonitor;
 use crate::settings::*;
 use crate::signals::*;
 use crate::sketch::*;
+use crate::phyx::physics::Physics;
 
 pub struct Simulation {
     pub simulation_name: String,
@@ -603,10 +604,10 @@ impl Simulation {
                         println!("error during decoding of saved sim...");
                     },
                     Ok(decoded) => {
-                        let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
+                        let save = String::from_utf8(decoded).expect("error during converting from utf8");
                         match serde_json::from_str::<SimulationSketch>(&save) {
                             Err(_) => {
-                                println!("error during deserialization of saved sim... [{}]", &f);
+                                println!("can't deserialize saved sim... [{}]", &f);
                             },
                             Ok(sim_state) => {
                                 self.clear_sim();
