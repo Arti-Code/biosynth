@@ -23,8 +23,6 @@ mod sketch;
 mod physics_misc;
 
 use std::env;
-//use std::path::Path;
-//use std::path::PathBuf;
 use crate::sim::*;
 use crate::globals::*;
 use crate::stats::*;

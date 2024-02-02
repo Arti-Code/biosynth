@@ -453,20 +453,6 @@ impl Simulation {
         }
     }
 
-/*     fn draw_grid(&self) {
-        let settings = get_settings();
-        let cell_size = settings.grid_size;
-        let w = self.world_size.x;
-        let h = self.world_size.y;
-        let col_num = (w / cell_size as f32).floor() as u32;
-        let row_num = (h / cell_size as f32).floor() as u32;
-        for x in 0..col_num + 1 {
-            for y in 0..row_num + 1 {
-                draw_circle((x * cell_size) as f32, (y * cell_size) as f32, 1.0, LIGHTGRAY);
-            }
-        }
-    } */
-
     pub fn check_signals(&mut self) {
         let sign = get_signals();
         let sign2 = sign.clone();
@@ -648,25 +634,6 @@ impl Simulation {
         }
     } 
 
-/*     fn load_agent(&mut self, file_name: &str) {
-        let f = format!("saves/agents/{}", file_name);
-        let path = Path::new(&f);
-        match fs::read_to_string(path) {
-            Err(_) => { println!("ERROR: can't load saved agent"); },
-            Ok(save) => {
-                match serde_json::from_str::<AgentSketch>(&save) {
-                    Err(_) => println!("ERROR: can't deserialize saved agent"),
-                    Ok(agent_sketch) => {
-                        let mut agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
-                        let settings = get_settings();
-                        agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
-                        self.agents.add_agent(agent);
-                    },
-                }
-            }
-        }
-    } */
-
     fn load_encoded_agent(&mut self, file_name: &str) {
         let f = format!("saves/agents/{}", file_name);
         let path = Path::new(&f);
@@ -734,27 +701,6 @@ impl Simulation {
             },
         }
     }
-
-/*     fn save_agent_sketch(&self, handle: RigidBodyHandle) {
-        match self.agents.get(handle) {
-            Some(agent) => {
-                let agent_sketch = agent.get_sketch();
-                let s = serde_json::to_string_pretty(&agent_sketch);
-                match s {
-                    Ok(js) => {
-                        let path_str = format!("saves/agents/{}-{}.json", agent.specie.to_uppercase(), agent.generation);
-                        let path = Path::new(&path_str);
-                        match fs::write(path, js.clone()) {
-                            Ok(_) => {},
-                            Err(_) => println!("ERROR: can't save agent"),
-                        }
-                    },
-                    Err(_) => println!("ERROR: can't serialize agent sketch"),
-                }
-            },
-            None => println!("WARN: agent not selected"),
-        }
-    } */
 
     pub fn input(&mut self) {
         self.mouse_input();

@@ -195,12 +195,6 @@ impl UISystem {
                     if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.inspect = !self.state.inspect;
                     }
-                    //if ui.button(RichText::new("Attributes").strong().color(Color32::WHITE)).clicked() {
-                    //    self.state.attributes = !self.state.attributes;
-                    //}
-                    //if ui.button(RichText::new("Energy Cost").strong().color(Color32::WHITE)).clicked() {
-                    //    self.state.energy_cost = !self.state.energy_cost;
-                    //}
                     if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
                         self.state.mouse = !self.state.mouse;
                     }
@@ -463,12 +457,6 @@ impl UISystem {
                                 }
                             },
                         }
-                        //match serde_json::from_str::<AgentSketch>(&file) {
-                        //    Ok(sketch) => {
-                        //        sketches.push(sketch.clone());
-                        //    },
-                        //    Err(_) => {},
-                        //}
                     },
                     Err(e) => {
                         eprintln!("Error reading save file: {:?}", e);
@@ -1629,21 +1617,6 @@ impl UISystem {
     }
     
 }
-
-/* struct LogoImage {
-    texture: Option<TextureHandle>,
-}
-
-impl LogoImage {
-    fn ui(&mut self, ui: &mut Ui) {
-        let texture: &TextureHandle = self.texture.get_or_insert_with(|| {
-            ui.ctx().load_texture("my-image", ColorImage::example(), Default::default())
-        });
-        ui.add(egui_macroquad::egui::Image::new(texture, texture.size_vec2()));
-        ui.image(texture, texture.size_vec2());
-    }
-} */
-
 
 pub struct UIState {
     pub ancestors: bool,
