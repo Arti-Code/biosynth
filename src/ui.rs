@@ -1229,40 +1229,40 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_init_num: i32 = settings.res_init_num as i32;
-                column[0].label(RichText::new("RES INIT NUMBER").color(Color32::WHITE).strong());
+                let mut res_init_num: i32 = settings.plant_init_num as i32;
+                column[0].label(RichText::new("PLANT INIT NUMBER").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut res_init_num, 0..=500)).changed() {
-                    settings.res_init_num = res_init_num as usize;
+                    settings.plant_init_num = res_init_num as usize;
                     signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_min_num: i32 = settings.res_min_num as i32;
-                column[0].label(RichText::new("RES MIN NUMBER").color(Color32::WHITE).strong());
+                let mut res_min_num: i32 = settings.plant_min_num as i32;
+                column[0].label(RichText::new("PLANT MIN NUMBER").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut res_min_num, 0..=500)).changed() {
-                    settings.res_min_num = res_min_num as usize;
+                    settings.plant_min_num = res_min_num as usize;
                     signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_detection_radius: f32 = settings.res_detection_radius;
-                column[0].label(RichText::new("RES DETECTION RANGE").color(Color32::WHITE).strong());
+                let mut res_detection_radius: f32 = settings.plant_detection_radius;
+                column[0].label(RichText::new("PLANT DETECTION RANGE").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut res_detection_radius, 0.0..=500.0).step_by(5.0)).changed() {
-                    settings.res_detection_radius = res_detection_radius;
+                    settings.plant_detection_radius = res_detection_radius;
                     signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_balance: i32 = settings.res_balance as i32;
-                column[0].label(RichText::new("RES BALANCE NUMBER").color(Color32::WHITE).strong());
+                let mut res_balance: i32 = settings.plant_balance as i32;
+                column[0].label(RichText::new("PLANT BALANCE NUMBER").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut res_balance, 0..=20)).changed() {
-                    settings.res_balance = res_balance as usize;
+                    settings.plant_balance = res_balance as usize;
                     signals.new_settings = true;
                 }
             });
@@ -1369,10 +1369,10 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(120., 75.));
                 column[1].set_max_size(UIVec2::new(120., 75.));
-                let mut show_res_rad: bool = settings.show_res_rad;
-                column[0].label(RichText::new("SHOW RES RADIUS").color(Color32::WHITE).strong());
+                let mut show_res_rad: bool = settings.show_plant_rad;
+                column[0].label(RichText::new("SHOW PLANT RADIUS").color(Color32::WHITE).strong());
                 if column[1].add(Checkbox::without_text(&mut show_res_rad)).changed() {
-                    settings.show_res_rad = show_res_rad;
+                    settings.show_plant_rad = show_res_rad;
                     //signals.new_settings = true;
                 }
             });

@@ -20,6 +20,7 @@ mod monit;
 mod stats;
 mod signals;
 mod sketch;
+mod physics_misc;
 
 use std::env;
 //use std::path::Path;

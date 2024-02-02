@@ -241,7 +241,7 @@ impl Simulation {
         for res in new_resources.iter() {
             self.resources.add_resource(res.to_owned())
         }
-        if self.resources.count() < settings.res_min_num {
+        if self.resources.count() < settings.plant_min_num {
             self.resources.add_many_resources(2, &mut self.physics);
         }
     }
@@ -417,7 +417,7 @@ impl Simulation {
     fn draw_res(&self) {
         let settings = get_settings();
         for (_, res) in self.resources.get_iter() {
-            res.draw(settings.show_res_rad);
+            res.draw(settings.show_plant_rad);
         }
     }
 

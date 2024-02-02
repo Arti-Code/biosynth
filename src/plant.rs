@@ -6,7 +6,7 @@ use rapier2d::prelude::*;
 use crate::timer::Timer;
 use crate::util::*;
 use crate::physics::*;
-//use crate::globals::*;
+use crate::physics_misc::*;
 use crate::settings::*;
 
 
@@ -57,7 +57,7 @@ impl Plant {
         draw_circle(x0, y0, self.size, self.color);
         if show_range {
             let settings = get_settings();
-            draw_circle_lines(x0, y0, settings.res_detection_radius, 0.5, Color { r: 0.78, g: 0.78, b: 0.78, a: 0.25 });
+            draw_circle_lines(x0, y0, settings.plant_detection_radius, 0.5, Color { r: 0.78, g: 0.78, b: 0.78, a: 0.25 });
         }
     }
     pub fn update(&mut self, physics: &mut Physics){
@@ -110,8 +110,8 @@ impl Plant {
     pub fn update_cloning(&mut self, physics: &mut Physics) -> Option<Plant> {
         if self.clone_timer.update(get_frame_time()*sim_speed()) {
             let settings = get_settings();
-            let b = settings.res_balance as f32;
-            let n = physics.count_near_resources(self.physics_handle, settings.res_detection_radius) as f32;
+            let b = settings.plant_balance as f32;
+            let n = physics.count_near_resources(self.physics_handle, settings.plant_detection_radius) as f32;
             let mut p = settings.plant_probability;
             if n > b {
                 p = p - p*((n-b)/b);
