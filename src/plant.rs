@@ -61,7 +61,7 @@ impl Plant {
         }
     }
     pub fn update(&mut self, physics: &mut Physics){
-        let dt = get_frame_time();
+        let dt = get_frame_time()*sim_speed();
         let settings = get_settings();
         let mut resize = false;
         self.time -= dt;
@@ -108,7 +108,7 @@ impl Plant {
     }
 
     pub fn update_cloning(&mut self, physics: &mut Physics) -> Option<Plant> {
-        if self.clone_timer.update(get_frame_time()) {
+        if self.clone_timer.update(get_frame_time()*sim_speed()) {
             let settings = get_settings();
             let b = settings.res_balance as f32;
             let n = physics.count_near_resources(self.physics_handle, settings.res_detection_radius) as f32;

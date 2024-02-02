@@ -128,13 +128,19 @@ pub struct PhysicsCore {
 impl PhysicsCore {
 
     pub fn new() -> Self {
+        let params = IntegrationParameters {
+            prediction_distance: 0.02,
+            allowed_linear_error: 0.01,
+            dt: 1.0/30.0,
+            ..Default::default()
+        };
         Self {
             attract_num: 0,
             rigid_bodies: RigidBodySet::new(),
             bodies_keys: HashMap::new(),
             colliders: ColliderSet::new(),
             gravity: Vector2::new(0.0, 0.0),
-            integration_parameters: IntegrationParameters::default(),
+            integration_parameters: params,
             physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),
@@ -508,7 +514,7 @@ impl PhysicsMaterial {
     }
 
     pub fn high_inert() -> Self {
-        Self { friction: 2.0, restitution: 0.0, density: 10.0, linear_damping: 2.0, angular_damping: 1.0 }
+        Self { friction: 4.0, restitution: 0.0, density: 20.0, linear_damping: 1.0, angular_damping: 1.0 }
     }
 
 }

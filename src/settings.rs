@@ -12,8 +12,16 @@ pub fn get_settings() -> Settings {
     return storage::get::<Settings>().clone();
 }
 
+pub fn sim_speed() -> f32 {
+    return get_settings().sim_speed;
+}
+
 fn default_plant_life() -> f32 {
     return 128.0;
+}
+
+fn default_sim_speed() -> f32 {
+    return 1.0;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -83,6 +91,8 @@ pub struct Settings {
     pub rare_specie_mod: i32,
     //#[serde(default = "default_born_eng")]
     pub born_eng: f32,
+    #[serde(default = "default_sim_speed")]
+    pub sim_speed: f32,
 }
 
 impl Default for Settings {
@@ -114,31 +124,32 @@ impl Default for Settings {
             base_energy_cost: 0.2,
             move_energy_cost: 0.25,
             attack_energy_cost: 0.15,
-            size_cost: 1.8,
+            size_cost: 2.8,
             base_hp: 300,
             size_to_hp: 55.0,
             res_num: 70.0,
             hidden_nodes_num: 5,
             neuro_duration: 0.25,
-            atk_to_eng: 1.4,
+            atk_to_eng: 1.0,
             eat_to_eng: 10.0,
             ranking_size: 20,
             repro_points: 300.0,
-            repro_time: 150.0,
+            repro_time: 100.0,
             new_one_probability: 0.1,
             grid_size: 50,
             follow_mode: false,
             plant_probability: 0.5,
-            plant_lifetime: 128.0,
+            plant_lifetime: 308.0,
             growth: 5.0,
             water_lvl: 0,
             mut_add_link: 0.02,
             mut_del_link: 0.02,
             mut_add_node: 0.01,
-            mut_change_val: 0.05,
+            mut_change_val: 0.04,
             mut_del_node: 0.01,
-            rare_specie_mod: 750,
-            born_eng: 1.0,
+            rare_specie_mod: 4000,
+            born_eng: 0.8,
+            sim_speed: 1.0,
        }
     }
 

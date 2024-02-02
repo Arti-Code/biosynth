@@ -267,6 +267,26 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
+                let speed = sim_speed();
+                let time_label = format!("Speed Up {}", speed as i32 + 1);
+
+                menu::menu_button(ui, RichText::new("RUNTIME").strong(), |ui| {
+                    if ui.button(RichText::new("Standard Time").strong().color(Color32::GOLD)).clicked() {
+                        let mut settings = get_settings();
+                        settings.sim_speed = 1.0;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new(time_label).strong().color(Color32::GOLD)).clicked() {
+                        let mut settings = get_settings();
+                        settings.sim_speed += 1.0;
+                        set_settings(settings);
+                    }
+                });
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
 
                 menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
                     if ui.button(RichText::new("Network Inspector").strong().color(Color32::WHITE)).clicked() {
@@ -859,7 +879,7 @@ impl UISystem {
     fn build_ancestors_window(&self, egui_ctx: &Context, agent: &Agent) {
         if self.state.ancestors {
             let ancestors = agent.ancestors();
-            Window::new(RichText::new("Ancestors").strong().color(Color32::WHITE)).default_pos((435.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
+            Window::new(RichText::new("Ancestors").strong().color(Color32::WHITE)).default_pos((800.0, 0.0)).min_width(280.0).show(egui_ctx, |ui| {
                 for a in ancestors.iter() {
                     let (name, gen, time) = a.get_name_gen_time();
                     ui.horizontal(|row| {
@@ -1522,8 +1542,13 @@ impl UISystem {
         if !self.state.plot {
             return;
         }
-        Window::new("BORNS").default_size(UIVec2::new(300.0, 300.0)).show(egui_ctx, |ui| {
-            let my_plot = Plot::new("Borns").legend(Legend::default());
+        let w = 500.0; let h = 120.0;
+        Window::new("ATTRIBUTES").default_size(UIVec2::new(w, h)).default_pos(Pos2::new(SCREEN_WIDTH-w*2.0-20.0, SCREEN_HEIGHT-h)).show(egui_ctx, |ui| {
+            let legend = Legend {
+                position: plot::Corner::LeftTop,
+                ..Default::default()
+            };
+            let my_plot = Plot::new("attributes").legend(legend);
             let graph = state.lifetime.clone();
             let sizes = state.sizes.clone();
             let powers = state.powers.clone();
@@ -1563,8 +1588,13 @@ impl UISystem {
         if !self.state.born_plot {
             return;
         }
-        Window::new("BORNS").default_size(UIVec2::new(300.0, 300.0)).show(egui_ctx, |ui| {
-            let born_plot = Plot::new("BORNS").legend(Legend::default());
+        let w = 500.0; let h = 120.0;
+        Window::new("BORNS").default_size(UIVec2::new(w, h)).default_pos(Pos2::new(SCREEN_WIDTH-w, SCREEN_HEIGHT-h)).show(egui_ctx, |ui| {
+            let legend = Legend {
+                position: plot::Corner::LeftTop,
+                ..Default::default()
+            };
+            let born_plot = Plot::new("BORNS").legend(legend);
             let new_born = state.stats.get_data_as_slice("New Creatures");
             let born = state.stats.get_data_as_slice("Born Creatures");
             let rank_born = state.stats.get_data_as_slice("Rank Creatures");

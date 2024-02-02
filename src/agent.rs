@@ -34,7 +34,8 @@ pub struct Agent {
     color: Color,
     color_second: Color,
     pub shape: SharedShape,
-    analize_timer: Timer,
+    timer_analize: Timer,
+    timer_contact: Timer,
     pub network: Network,
     pub alife: bool,
     pub lifetime: f32,
@@ -116,7 +117,8 @@ impl Agent {
             color,
             color_second,
             shape,
-            analize_timer: Timer::new(settings.neuro_duration, true, true, true),
+            timer_analize: Timer::new(settings.neuro_duration, true, true, true),
+            timer_contact: Timer::new(0.07, true, true, true),
             network,
             alife: true,
             lifetime: 0.0,
@@ -233,7 +235,8 @@ impl Agent {
             color,
             color_second,
             shape,
-            analize_timer: Timer::new(settings.neuro_duration, true, true, true),
+            timer_analize: Timer::new(settings.neuro_duration, true, true, true),
+            timer_contact: Timer::new(0.07, true, true, true),
             network,
             alife: true,
             lifetime: 0.0,
@@ -327,16 +330,16 @@ impl Agent {
     }
 
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
-        let dt = get_frame_time();
+        let dt = get_frame_time()*sim_speed();
         self.lifetime += dt;
-        //for part in self.parts.iter_mut() {
-        //    //part.update_part();
-        //}
-        if self.analize_timer.update(dt) {
+        //if self.timer_contact.update(dt) {
+            //}
+        self.update_contacts(other, physics);
+        if self.timer_analize.update(dt) {
             self.watch(physics);
-            self.update_contacts(other, physics);
             self.update_enemy_mood(other);
             self.analize();
+            self.contacts_clear();
         }
 
         self.update_physics(physics);
@@ -344,8 +347,6 @@ impl Agent {
             self.alife = false;
             return self.alife;
         }
-        //self.calc_timers(dt);
-        //self.network.update();
         self.calc_energy(dt);
         return self.alife;
     }
@@ -380,7 +381,7 @@ impl Agent {
     }
 
     pub fn attack(&self) -> Vec<RigidBodyHandle> {
-        //let dt = get_frame_time();
+        //let dt = get_frame_time()*sim_speed();
         let mut hits: Vec<RigidBodyHandle> = vec![];
         if !self.attacking { return hits; }
         for (rbh, ang) in self.contacts.to_vec() {
@@ -696,7 +697,7 @@ impl Agent {
         self.mass = physics_data.mass;
         match physics.get_object_mut(self.physics_handle) {
             Some(body) => {
-                let dt = get_frame_time();
+                let dt = get_frame_time()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
                 //let rel_speed = self.speed as f32 - (self.shell as f32)/6.0;
                 let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
@@ -792,6 +793,12 @@ impl Agent {
                 self.contacts.push((contact, target_angle));
             }
         }
+    }
+
+    fn contacts_clear(&mut self) {
+        self.contacts.clear();
+        self.contact_agent = false;
+        self.contact_resource = false;
     }
 
     fn watch(&mut self, physics: &Physics) {
@@ -933,7 +940,8 @@ impl Agent {
             color,
             color_second,
             shape,
-            analize_timer: self.analize_timer.to_owned(),
+            timer_analize: self.timer_analize.to_owned(),
+            timer_contact: self.timer_contact.to_owned(),
             network,
             alife: true,
             lifetime: 0.0,
