@@ -77,7 +77,7 @@ impl Simulation {
             running: false,
             sim_time: 0.0,
             ui: UISystem::new(),
-            sim_state: SimState::new(),
+            sim_state: SimState::new(settings.stats_limit),
             signals: Signals::new(),
             selected: None,
             select_phase: 0.0,
@@ -100,7 +100,6 @@ impl Simulation {
             shells: vec![],
             points: vec![],
             plot_x: 0,
-            //stats: Stats::new(),
             borns: [0, 0, 0, 0],
             deaths: [0, 0],
         }
@@ -108,12 +107,16 @@ impl Simulation {
 
     fn init_stats(&mut self) {
         self.borns = [0, 0, 0, 0];
-        self.sim_state.stats.add_data_type("New Creatures");
-        self.sim_state.stats.add_data_type("Born Creatures");
-        self.sim_state.stats.add_data_type("Rank Creatures");
-        self.sim_state.stats.add_data_type("Zero Creatures");
-        self.sim_state.stats.add_data_type("Deaths");
-        self.sim_state.stats.add_data_type("Kills");
+        self.sim_state.stats.add_data_type("borns");
+        self.sim_state.stats.add_data_type("deaths");
+        self.sim_state.stats.add_data_type("kills");
+        self.sim_state.stats.add_data_type("points");
+        self.sim_state.stats.add_data_type("sizes");
+        self.sim_state.stats.add_data_type("eyes");
+        self.sim_state.stats.add_data_type("speeds");
+        self.sim_state.stats.add_data_type("powers");
+        self.sim_state.stats.add_data_type("mutations");
+        self.sim_state.stats.add_data_type("shells");
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
@@ -128,7 +131,7 @@ impl Simulation {
         self.agents.agents.clear();
         self.resources.resources.clear();
         self.sim_time = 0.0;
-        self.sim_state = SimState::new();
+        self.sim_state = SimState::new(settings.stats_limit);
         self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
         self.selected = None;
@@ -146,7 +149,7 @@ impl Simulation {
         self.resources = ResBox::new();
         self.ranking = vec![];
         self.sim_time = 0.0;
-        self.sim_state = SimState::new();
+        self.sim_state = SimState::new(200);
         self.sim_state.sim_name = String::from("");
         self.signals = Signals::new();
         self.selected = None;
@@ -801,20 +804,16 @@ impl Simulation {
             self.sizes.clear();
             self.shells.clear();
             self.sim_state.lifetime.push([(next-1) as f64, avg as f64]);
-            self.sim_state.sizes.push([(next-1) as f64, sizes as f64]);
-            self.sim_state.powers.push([(next-1) as f64, powers as f64]);
-            self.sim_state.speeds.push([(next-1) as f64, speeds as f64]);
-            self.sim_state.eyes.push([(next-1) as f64, eyes as f64]);
-            self.sim_state.shells.push([(next-1) as f64, shells as f64]);
-            self.sim_state.mutations.push([(next-1) as f64, mutations as f64]);
-            self.sim_state.points.push([(next-1) as f64, points as f64]);
-            self.sim_state.stats.add_data("New Creatures", (next-1, self.borns[0] as f64));
-            self.sim_state.stats.add_data("Born Creatures", (next-1, self.borns[1] as f64));
-            self.sim_state.stats.add_data("Rank Creatures", (next-1, self.borns[2] as f64));
-            self.sim_state.stats.add_data("Zero Creatures", (next-1, self.borns[3] as f64));
-            self.sim_state.stats.add_data("Deaths", (next-1, self.deaths[0] as f64));
-            self.sim_state.stats.add_data("Kills", (next-1, self.deaths[1] as f64));
-            
+            self.sim_state.stats.add_data("borns", (next-1, self.borns[1] as f64));
+            self.sim_state.stats.add_data("deaths", (next-1, self.deaths[0] as f64));
+            self.sim_state.stats.add_data("kills", (next-1, self.deaths[1] as f64));
+            self.sim_state.stats.add_data("points", (next-1, points as f64));
+            self.sim_state.stats.add_data("sizes", (next-1, sizes as f64));
+            self.sim_state.stats.add_data("eyes", (next-1, eyes as f64));
+            self.sim_state.stats.add_data("speeds", (next-1, speeds as f64));
+            self.sim_state.stats.add_data("powers", (next-1, powers as f64));
+            self.sim_state.stats.add_data("mutations", (next-1, mutations as f64));
+            self.sim_state.stats.add_data("shells", (next-1, shells as f64));
             self.borns = [0, 0, 0, 0];
             self.deaths = [0, 0];
         }

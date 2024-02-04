@@ -15,6 +15,7 @@
 - [x] modify size importance in attacking  
 - [x] modify size importance in eating
 - [x] ui major changes (side and bottom panels)  
+- [x] improved statistics
 
 ##### v0.4
 

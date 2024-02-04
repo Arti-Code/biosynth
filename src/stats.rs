@@ -1,5 +1,7 @@
-#![allow(unused)]
-use std::collections::HashMap;
+//#![allow(unused)]
+
+
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 use macroquad::experimental::collections::storage;
 use serde::{Serialize, Deserialize};
@@ -7,31 +9,39 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Stats {
-    data: HashMap<String, Vec<[f64; 2]>>,
+    limit: usize,
+    data: HashMap<String, VecDeque<[f64; 2]>>,
 }
 
 impl Stats {
 
-    pub fn new() -> Stats {
-        Stats {data: HashMap::new()}
+    pub fn new(limit: usize) -> Stats {
+        Stats {
+            limit,
+            data: HashMap::new()
+        }
     }
     
     pub fn add_data_type(&mut self, type_name: &str) {
-        self.data.insert(type_name.to_string(), vec![]);
+        self.data.insert(type_name.to_string(), VecDeque::new());
     }
     
     pub fn add_data(&mut self, type_name: &str, data_row: (i32, f64)) {
-        let mut data = self.data.get_mut(type_name).unwrap();
-        data.push([data_row.0 as f64, data_row.1 as f64]);
+        let data = self.data.get_mut(type_name).unwrap();
+        data.push_back([data_row.0 as f64, data_row.1 as f64]);
+        if data.len() > self.limit {
+            data.pop_front().unwrap();
+        }
     }
     
     pub fn get_data_as_slice(&self, type_name: &str) -> Vec<[f64; 2]> {
         let data = self.data.get(type_name).unwrap();
         let d = data.to_owned();
-        return d;
+        let v: Vec<[f64; 2]> = d.iter().map(|&x| x).collect();
+        return  v;
     }
 
-    pub fn list_types(&self) -> Vec<&str> {
+    pub fn _list_types(&self) -> Vec<&str> {
         let keys = self.data.keys().map(|s| s.as_ref()).collect();
         return keys;
     }

@@ -16,12 +16,12 @@ pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
 
-fn default_plant_life() -> f32 {
+/* fn default_plant_life() -> f32 {
     return 128.0;
-}
+} */
 
-fn default_sim_speed() -> f32 {
-    return 1.0;
+fn default_stats_limit() -> usize {
+    return 100;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -91,8 +91,10 @@ pub struct Settings {
     pub rare_specie_mod: i32,
     //#[serde(default = "default_born_eng")]
     pub born_eng: f32,
-    #[serde(default = "default_sim_speed")]
+    //#[serde(default = "default_sim_speed")]
     pub sim_speed: f32,
+    #[serde(default = "default_stats_limit")]
+    pub stats_limit: usize,
 }
 
 impl Default for Settings {
@@ -115,7 +117,7 @@ impl Default for Settings {
             agent_vision_range: 450.0,
             show_network: true,
             show_specie: true,
-            show_generation: false,
+            show_generation: true,
             show_cells: false,
             show_plant_rad: false,
             mutations: 0.1,
@@ -123,7 +125,7 @@ impl Default for Settings {
             damage: 50.0,
             base_energy_cost: 0.2,
             move_energy_cost: 0.25,
-            attack_energy_cost: 0.15,
+            attack_energy_cost: 0.1,
             size_cost: 1.5,
             base_hp: 300,
             size_to_hp: 55.0,
@@ -138,7 +140,7 @@ impl Default for Settings {
             new_one_probability: 0.2,
             grid_size: 50,
             follow_mode: false,
-            plant_probability: 0.5,
+            plant_probability: 0.8,
             plant_lifetime: 300.0,
             growth: 7.0,
             water_lvl: 0,
@@ -150,6 +152,7 @@ impl Default for Settings {
             rare_specie_mod: 1500,
             born_eng: 0.8,
             sim_speed: 1.0,
+            stats_limit: 100,
        }
     }
 

@@ -316,7 +316,7 @@ pub struct SimState {
 
 impl SimState {
 
-    pub fn new() -> Self {
+    pub fn new(limit: usize) -> Self {
         Self {
             sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
@@ -341,10 +341,15 @@ impl SimState {
             eyes: vec![],
             shells: vec![],
             mutations: vec![],
-            stats: Stats::new(),
+            stats: Stats::new(limit),
             points: vec![],
         }
     }
+
+    pub fn get_statistics(&self) ->  &Stats {
+        return &self.stats;
+    }
+
 }
 
 

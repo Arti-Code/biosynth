@@ -1402,18 +1402,13 @@ impl UISystem {
             position: plot::Corner::LeftTop,
             ..Default::default()
         };
+        let statistics = state.get_statistics();
         let born_plot = Plot::new("borns").legend(legend);
-        //let new_born = state.stats.get_data_as_slice("New Creatures");
-        let born = state.stats.get_data_as_slice("Born Creatures");
-        //let rank_born = state.stats.get_data_as_slice("Rank Creatures");
-        //let zero_born = state.stats.get_data_as_slice("Zero Creatures");
-        let points = state.points.clone();
-        let k = state.stats.get_data_as_slice("Kills");
+        let born = statistics.get_data_as_slice("borns");
+        let points = statistics.get_data_as_slice("points");
+        let k = statistics.get_data_as_slice("kills");
         let inner = born_plot.show(ui, |plot_ui| {
-            //plot_ui.line(Line::new(PlotPoints::from(new_born)).name("New Creatures").color(Color32::WHITE));
             plot_ui.line(Line::new(PlotPoints::from(born)).name("borns").color(Color32::GREEN));
-            //plot_ui.line(Line::new(PlotPoints::from(rank_born)).name("Rank Creatures").color(Color32::BLUE));
-            //plot_ui.line(Line::new(PlotPoints::from(zero_born)).name("Zero Creatures").color(Color32::YELLOW));
             plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
             plot_ui.line(Line::new(PlotPoints::from(k)).name("kills").color(Color32::RED));
         });
@@ -1427,13 +1422,13 @@ impl UISystem {
             ..Default::default()
         };
         let my_plot = Plot::new("attributes").legend(legend);
-        //let graph = state.lifetime.clone();
-        let sizes = state.sizes.clone();
-        let powers = state.powers.clone();
-        let speeds = state.speeds.clone();
-        let eyes = state.eyes.clone();
-        let shells = state.shells.clone();
-        let mutations = state.mutations.clone();
+        let statistics = state.get_statistics();
+        let sizes = statistics.get_data_as_slice("sizes");
+        let powers = statistics.get_data_as_slice("powers");
+        let speeds = statistics.get_data_as_slice("speeds");
+        let eyes = statistics.get_data_as_slice("eyes");
+        let shells = statistics.get_data_as_slice("shells");
+        let mutations = statistics.get_data_as_slice("mutations");
         let inner = my_plot.show(ui, |plot_ui| {
             plot_ui.line(Line::new(PlotPoints::from(sizes)).name("size").color(Color32::BLUE));
             plot_ui.line(Line::new(PlotPoints::from(powers)).name("power").color(Color32::GREEN));
