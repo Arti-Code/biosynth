@@ -1,7 +1,7 @@
 
 # LIVE^2^
 
-## ver 0.2
+## ver 0.8.3
 
 ### CHANGELOG
 
