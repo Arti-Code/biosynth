@@ -293,7 +293,7 @@ pub struct SimState {
     pub agents_num: i32,
     pub sources_num: i32,
     pub plants_num: i32,
-    //pub agents_num: i32,
+    pub points: Vec<[f64; 2]>, 
     pub physics_num: i32,
     pub rigid_num: usize,
     pub colliders_num: usize,
@@ -342,6 +342,7 @@ impl SimState {
             shells: vec![],
             mutations: vec![],
             stats: Stats::new(),
+            points: vec![],
         }
     }
 }

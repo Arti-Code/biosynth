@@ -1,4 +1,4 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 
 use std::collections::HashMap;
@@ -297,9 +297,6 @@ impl Agent {
         } else {
             self.draw_info(&font);
         }
-        //for part in self.parts.iter() {
-        //    part.draw_part(self.pos, self.rot);
-        //}
     }    
 
     fn draw_body(&self) {
@@ -423,7 +420,6 @@ impl Agent {
             },
         };
 
-        //tg_ang = tg_ang;
         let mut tgr: f32=0.0; let mut tgl: f32=0.0;
         if tg_ang > 0.0 {
             tgr = 1.0 - clamp(tg_ang, 0.0, 1.0);
@@ -444,7 +440,6 @@ impl Agent {
                 dir
             },
         };
-        //res_ang = res_ang/PI;
         let mut resr: f32=0.0; let mut resl: f32=0.0;
         if res_ang > 0.0 {
             resr = 1.0 - clamp(res_ang, 0.0, 1.0);
@@ -477,8 +472,6 @@ impl Agent {
         let e_r = en_color.r;
         let e_g = en_color.g;
         let e_b = en_color.b;
-        //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
-        //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
         let mut pain = 0.0;
         if self.pain { pain = 1.0; }
         self.pain = false;
@@ -580,8 +573,6 @@ impl Agent {
             r1 = self.pos + right * self.size*1.1;
             draw_circle(l1.x, l1.y, self.size*0.33, yaw_color);
             draw_circle(r1.x, r1.y, self.size*0.33, yaw_color);
-            //draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
-            //draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
         } else {
             draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
             draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
@@ -614,7 +605,6 @@ impl Agent {
             draw_line(vr0.x, vr0.y, vr1.x, vr1.y, 0.5, SKYBLUE);
             draw_smooth_arc(range, self.pos, self.rot, self.vision_angle/2.0, 10.0, 0.5, SKYBLUE);
             draw_smooth_arc(range*0.1, self.pos, self.rot+PI, PI-ang, 10.0, 0.5, ORANGE);
-            //draw_smooth_circle(range*0.1, self.pos, 3.0, 0.5, SKYBLUE);
         }
     }
 
@@ -924,7 +914,6 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        //let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         let mut agent = Agent {
             key,
             pos: pos + random_unit_vec2()*30.0,
@@ -946,7 +935,6 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: self.generation + 1,
-            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,

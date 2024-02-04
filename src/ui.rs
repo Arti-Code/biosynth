@@ -1,25 +1,23 @@
 #![allow(unused)]
 
-use std::f32::consts::PI;
-use std::fs::{self, File};
-use std::ops::RangeInclusive;
+use std::fs;
 use std::path::{Path, PathBuf};
-//use base64::engine::general_purpose::STANDARD;
 use egui_macroquad;
 use egui_macroquad::egui::*;
 use egui_macroquad::egui::plot::{Legend, PlotPoints, Line};
 use egui_macroquad::egui::widgets::{Slider, Button};
-use egui_macroquad::egui::Checkbox;
-use egui_macroquad::egui::Vec2 as UIVec2;
-use egui_macroquad::egui::FontFamily::Proportional;
-use egui_macroquad::egui::FontId;
-use egui_macroquad::egui::TextStyle::*;
-use egui_macroquad::egui::{CentralPanel, plot::Plot};
+use egui_macroquad::egui::{
+    Checkbox,
+    Vec2 as UIVec2,
+    FontFamily::Proportional,
+    FontId,
+    TextStyle::*,
+    plot::Plot,
+};
 use macroquad::prelude::*;
 use macroquad::math::vec2;
-use crate::plant::Plant;
-use base64::engine;
 use base64::prelude::*;
+use crate::plant::Plant;
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
@@ -86,11 +84,11 @@ impl UISystem {
     fn set_fonts_styles(&mut self, egui_ctx: &Context) {
         let mut style = (*egui_ctx.style()).clone();
         style.text_styles = [
-            (Heading, FontId::new(14.0, Proportional)),
-            (Name("Heading2".into()), FontId::new(12.0, Proportional)),
+            (Heading, FontId::new(13.0, Proportional)),
+            (Name("Heading2".into()), FontId::new(11.0, Proportional)),
             (Name("Context".into()), FontId::new(11.0, Proportional)),
-            (Body, FontId::new(11.0, Proportional)),
-            (Monospace, FontId::new(11.0, Proportional)),
+            (Body, FontId::new(10.0, Proportional)),
+            (Monospace, FontId::new(10.0, Proportional)),
             (Button, FontId::new(12.0, Proportional)),
             (Small, FontId::new(9.0, Proportional)),
         ].into();
@@ -103,16 +101,11 @@ impl UISystem {
             self.pointer_over = egui_ctx.is_pointer_over_area();
             self.build_top_menu(egui_ctx, &sim_state.sim_name, signals);
             self.build_quit_window(egui_ctx);
-            self.build_monit_window(egui_ctx, &sim_state);
             self.build_debug_window(egui_ctx, camera2d, &sim_state, agent);
             self.build_new_sim_window(egui_ctx, signals);
             match agent {
                 Some(agent) => {
-                    self.build_inspect_window(egui_ctx, agent);
-                    self.build_inspect_network(egui_ctx, &agent.network);
                     self.build_ancestors_window(egui_ctx, agent);
-                    //self.build_attributes_window(egui_ctx, agent);
-                    //self.build_eng_cost_window(egui_ctx, agent);
                 },
                 None => {},
             }
@@ -125,17 +118,14 @@ impl UISystem {
             self.build_about_window(egui_ctx);
             self.build_settings_enviro_window(egui_ctx, signals);
             self.build_settings_agent_window(egui_ctx, signals);
-            self.build_ranking_window(egui_ctx, ranking);
             self.build_load_sim_window(egui_ctx);
             self.build_main_menu_win(egui_ctx);
             self.build_load_agent_window(egui_ctx);
             self.build_settings_neuro_window(egui_ctx, signals);
             self.build_info_window(egui_ctx);
-            self.build_plot_window(egui_ctx, &sim_state);
             self.build_resize_world_window(egui_ctx);
-            self.build_borns_plot_window(egui_ctx, &sim_state);
-            self.build_side_panel(egui_ctx, &sim_state);
-            self.build_deaths_window(egui_ctx, &sim_state)
+            self.build_side_panel(egui_ctx, &sim_state, agent, ranking);
+            self.build_bottom_panel(egui_ctx, &sim_state);
         });
     }
 
@@ -190,7 +180,7 @@ impl UISystem {
 
                 menu::menu_button(ui, RichText::new("VIEW").strong(), |ui| {
                     if ui.button(RichText::new("Monitor").strong().color(Color32::WHITE)).clicked() {
-                        self.state.performance = !self.state.performance;
+                        self.state.monit = !self.state.monit;
                     }
                     if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.inspect = !self.state.inspect;
@@ -212,6 +202,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Side Panel").strong().color(Color32::WHITE)).clicked() {
                         self.state.side_panel = !self.state.side_panel;
+                    }
+                    if ui.button(RichText::new("Bottom Panel").strong().color(Color32::WHITE)).clicked() {
+                        self.state.bottom_panel = !self.state.bottom_panel;
                     }
                 });
 
@@ -382,30 +375,6 @@ impl UISystem {
         }
     }
 
-
-    fn build_monit_window(&self, egui_ctx: &Context, sim_state: &SimState) {
-        if self.state.performance {
-            let time = sim_state.sim_time;
-            let agents_num = sim_state.agents_num;
-            let sources_num = sim_state.sources_num;
-            let fps = sim_state.fps;
-            let dt = sim_state.dt;
-            //let rb = sim_state.rigid_num;
-            //let col = sim_state.colliders_num;
-            Window::new("MONITOR").default_pos((170.0, 0.0)).default_width(400.0).default_height(80.0).show(egui_ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new(format!("TIME: {}", time.round())).small());
-                    ui.label(RichText::new(format!("FPS: {}", fps)).small());
-                    ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).small());
-                    ui.label(RichText::new(format!("AGENTS: {}", agents_num)).small());
-                    ui.label(RichText::new(format!("SOURCES: {}", sources_num)).small());
-                    //ui.label(RichText::new(format!("RIGIDS: {}", rb)).small());
-                    //ui.label(RichText::new(format!("COLLIDERS: {}", col)).small());
-                })
-            });
-        }
-    }
-
     fn build_load_agent_window(&mut self, egui_ctx: &Context) {
         if self.state.load_agent {
             let mut signals = get_signals();
@@ -416,7 +385,7 @@ impl UISystem {
                 if let Ok(agent_dir) = entry {
                     let path = agent_dir.path();
                     if path.is_file() {
-                        let mut ext = path.extension();
+                        let ext = path.extension();
                         match ext {
                             None => {},
                             Some(ext) => {
@@ -624,7 +593,7 @@ impl UISystem {
                         columns[1].style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::RED);
                         columns[1].style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_RED;
                         columns[1].style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_RED;
-                        let text = columns[1].style_mut().text_styles();
+                        //let text = columns[1].style_mut().text_styles();
                         
                         if columns[1].add(Button::new(RichText::new("YES").strong()).min_size(UIVec2::new(75.0, 40.0))).clicked() {
                             std::process::exit(0);
@@ -741,11 +710,11 @@ impl UISystem {
     fn build_resize_world_window(&mut self, egui_ctx: &Context) {
         if self.state.resize_world {
             let win_w = 500.0; let win_h = 220.0;
-            let mut settings = get_settings();
+            //let mut settings = get_settings();
             let xy = self.temp_values.world_size.unwrap_or(vec2(1800.0, 900.0));
             let mut w = xy.x; let mut h = xy.y;
             Window::new("WORD RESIZE").default_pos((SCREEN_WIDTH / 2.0 - win_w/2.0, 100.0)).default_size([win_w, win_h]).show(egui_ctx, |ui| {
-                let title = self.title.clone().unwrap();
+                //let title = self.title.clone().unwrap();
                 ui.vertical_centered(|head| {
                     head.heading(RichText::new("WORD RESIZE").color(Color32::GREEN).strong());
                 });
@@ -791,79 +760,6 @@ impl UISystem {
         }
     }
 
-    fn build_inspect_window(&self, egui_ctx: &Context, agent: &Agent) {
-        if self.state.inspect {
-            let rot = agent.rot;
-            let size = agent.size;
-            let pos = agent.pos;
-            let name = agent.specie.to_owned();
-            let contacts_num = agent.contacts.len();
-            let lifetime = agent.lifetime.round();
-            let generation = agent.generation;
-            let childs = agent.childs;
-            let kills = agent.kills;
-            let attack = agent.attacking;
-            let eat = agent.eating;
-            let points = agent.points;
-            let run = agent.run;
-            let mut states: Vec<String> = vec![];
-            if attack { states.push("ATK".to_string()) }
-            if eat { states.push("EAT".to_string()) }
-            if run { states.push("RUN".to_string()) }
-            if contacts_num > 0 { states.push(format!("CON({})", contacts_num)) }
-            let mut status_txt = String::from("| ");
-            if states.len() == 0 { status_txt.push_str("... |"); }
-            for s in states {
-                status_txt.push_str(&s);
-                status_txt.push_str(" |");
-            }
-            let title_txt = format!("{}", name.to_uppercase());
-            let size = agent.size as i32;
-            let power = agent.power;
-            let speed = agent.speed;
-            let shell = agent.shell;
-            let mutations = agent.mutations;
-            let eyes = agent.eyes;
-            let name = &agent.specie;
-            let attributes = format!("size: {} | speed: {} | power: {} | shell: {} | mutation: {} | eyes: {}", size, speed, power, shell, mutations, eyes);
-            let title_txt = format!("Attributes: {}", name.to_uppercase()); 
-            Window::new(RichText::new(title_txt).strong().color(Color32::WHITE)).default_pos((435.0, 0.0)).min_width(380.0).show(egui_ctx, |ui| {
-                ui.horizontal(|row| {
-                    row.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::GREEN));
-                    row.separator();
-                    row.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
-                    row.separator();
-                    row.label(RichText::new("■■■").strong().color(color_to_color32(agent.mood)).monospace())
-                });
-                ui.horizontal(|row| {
-                    row.label(RichText::new(format!("GEN: [{}]", generation)).small());
-                    row.separator();
-                    row.label(RichText::new(format!("SIZE: [{}]", size)).small());
-                    row.separator();
-                    row.label(RichText::new(format!("TIME: [{}]", lifetime)).small());
-                    row.separator();
-                    row.label(RichText::new(format!("POINTS: [{}]", points.round())).small());
-                });
-                ui.horizontal(|row| {
-                    row.label(RichText::new(format!("CHILD: [{}]", childs)).small());
-                    row.separator();
-                    row.label(RichText::new(format!("KILLS: [{}]", kills)).small());
-                    row.separator();
-                    row.label(RichText::new(format!("ORIENT: [{}]", ((rot * 10.0).round()) / 10.0)).small());
-                    row.separator();
-                    row.label(RichText::new(format!("COORD: [X{}|Y{}]", pos.x.round(), pos.y.round())).small());
-                });
-                ui.horizontal(|row| {
-                    row.label(RichText::new(attributes).strong());
-                });
-                ui.horizontal(|row| {
-                    let txt = format!("BASE {} | MOVE {} | ATTACK {} ", agent.eng_cost.basic.round(), agent.eng_cost.movement.round(), agent.eng_cost.attack.round());
-                    row.label(RichText::new(txt).strong().color(Color32::RED));
-                });
-            });
-        }
-    }
-
     fn build_ancestors_window(&self, egui_ctx: &Context, agent: &Agent) {
         if self.state.ancestors {
             let ancestors = agent.ancestors();
@@ -893,63 +789,6 @@ impl UISystem {
         }
     }
 
-    fn build_inspect_network(&mut self, egui_ctx: &Context, network: &Network) {
-        if self.state.neuro_lab {
-            let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
-            let offset = UIVec2::new(0.0, 0.0);
-            Window::new("Network Inspector").default_pos((SCREEN_WIDTH-w, 0.0)).min_height(h).min_width(w).resizable(true)
-                .title_bar(true).show(egui_ctx, |ui| {
-                    
-                    let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
-                    let rect = response.rect;
-                    let zero = rect.left_top().to_vec2()+offset;
-                    let (input_node_keys, hidden_node_keys, output_node_keys) = network.get_node_keys_by_type();
-                    
-                    for (_, link) in network.links.iter() {
-                        let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
-                        let ui_coord0 = vec2_to_uivec2(&coord0);
-                        let ui_coord1 = vec2_to_uivec2(&coord1);
-                        let w = link.get_width()*1.2;
-                        let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
-                        let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
-                        let (_, color1) = link.get_colors();
-                        let c1 = color_to_color32(color1);
-                        let points1 = [p1, p2];
-                        painter.line_segment(points1, Stroke { color: c1, width: w });
-                    }
-                    for (key, node) in network.nodes.iter() {
-                        let (color0, color1) = node.get_colors();
-                        let r = node.get_size()*1.2;
-                        let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
-                        let p1 = vec2_to_pos2(&ipos);
-                        let c0 = color_to_color32(color1);
-                        let c1 = color_to_color32(color0);
-                        let label = node.get_label();
-                        let v = match network.get_node_value(key) {
-                            None => 0.0,
-                            Some(v) => v,
-                        };
-                        painter.circle_filled(p1, r,  Color32::BLACK);
-                        //painter.circle_filled(p1, r,  c1);
-                        let w = 0.75 + 0.24*r;
-                        painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
-                        let mut font = FontId::default();
-                        font.size = 8.0;
-                        let txt = format!("{}: {:.1}", label, v);
-                        match node.node_type {
-                            NeuronTypes::INPUT => {
-                                painter.text(p1+UIVec2{x: 8.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
-                            },
-                            NeuronTypes::OUTPUT => {
-                                painter.text(p1+UIVec2{x: -50.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
-                            },
-                            _ => {},
-                        }
-                    } 
-            });
-        }
-    }
-
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {
             Window::new("ABOUT").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(380.).min_width(300.)
@@ -965,7 +804,7 @@ impl UISystem {
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|author| {
-                    author.label(RichText::new("Artur Gwoździowski 2023").color(Color32::BLUE).strong());
+                    author.label(RichText::new("Artur Gwoździowski 2023-2024").color(Color32::GREEN).strong());
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|author| {
@@ -1498,120 +1337,278 @@ impl UISystem {
         set_settings(settings.clone());
     }
 
-    fn build_ranking_window(&mut self, egui_ctx: &Context, ranking: &Vec<AgentSketch>) {
-        if self.state.ranking {
-            Window::new("RANKING").default_pos((0.0, 0.0)).title_bar(true).default_width(120.0).show(egui_ctx, |ui| {
-                let mut i = 0;
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("NAME").strong());
-                    ui.separator();
-                    ui.label(RichText::new("GEN").strong());
-                    ui.separator();
-                    ui.label(RichText::new("PTS").strong());
-                });
-                ui.separator();
-                for rank in ranking.iter() {
-                    i += 1;
-                    ui.horizontal(|ui| {
-                        let msg1 = format!("{}. {}",i, rank.specie.to_uppercase());
-                        let msg2 = format!("{}", rank.generation);
-                        let msg3 = format!("{}", rank.points.round());
-                        ui.label(RichText::new(msg1).small());
-                        ui.separator();
-                        ui.label(RichText::new(msg2).small());
-                        ui.separator();
-                        ui.label(RichText::new(msg3).small());
-                    });
-                    ui.separator();
-                }
-            });
-        }
-    }
-
-    fn build_plot_window(&mut self, egui_ctx: &Context, state: &SimState) {
-        if !self.state.plot {
-            return;
-        }
-        let w = 500.0; let h = 120.0;
-        Window::new("ATTRIBUTES").default_size(UIVec2::new(w, h)).default_pos(Pos2::new(SCREEN_WIDTH-w*2.0-20.0, SCREEN_HEIGHT-h)).show(egui_ctx, |ui| {
-            let legend = Legend {
-                position: plot::Corner::LeftTop,
-                ..Default::default()
-            };
-            let my_plot = Plot::new("attributes").legend(legend);
-            let graph = state.lifetime.clone();
-            let sizes = state.sizes.clone();
-            let powers = state.powers.clone();
-            let speeds = state.speeds.clone();
-            let eyes = state.eyes.clone();
-            let shells = state.shells.clone();
-            let mutations = state.mutations.clone();
-            let inner = my_plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(PlotPoints::from(sizes)).name("size").color(Color32::BLUE));
-                plot_ui.line(Line::new(PlotPoints::from(powers)).name("power").color(Color32::GREEN));
-                plot_ui.line(Line::new(PlotPoints::from(speeds)).name("speed").color(Color32::YELLOW));
-                plot_ui.line(Line::new(PlotPoints::from(eyes)).name("eye").color(Color32::RED));
-                plot_ui.line(Line::new(PlotPoints::from(shells)).name("shell").color(Color32::DARK_GRAY));
-                plot_ui.line(Line::new(PlotPoints::from(mutations)).name("mutation").color(Color32::LIGHT_BLUE));
-            });
-            let plot_rect = Some(inner.response.rect);
-        });
-    }
-
-    fn build_deaths_window(&mut self, egui_ctx: &Context, state: &SimState) {
-        if !self.state.deaths {
-            return;
-        }
-        Window::new("DEATHS").default_size(UIVec2::new(300.0, 300.0)).show(egui_ctx, |ui| {
-            let my_plot = Plot::new("Deaths").legend(Legend::default());
-            let d = state.stats.get_data_as_slice("Deaths");
-            let k = state.stats.get_data_as_slice("Kills");
-            let inner = my_plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(PlotPoints::from(d)).name("death").color(Color32::BLUE));
-                plot_ui.line(Line::new(PlotPoints::from(k)).name("kill").color(Color32::RED));
-            });
-            let plot_rect = Some(inner.response.rect);
-        });
-    }
-
-    fn build_borns_plot_window(&mut self, egui_ctx: &Context, state: &SimState) {
-        if !self.state.born_plot {
-            return;
-        }
-        let w = 500.0; let h = 120.0;
-        Window::new("BORNS").default_size(UIVec2::new(w, h)).default_pos(Pos2::new(SCREEN_WIDTH-w, SCREEN_HEIGHT-h)).show(egui_ctx, |ui| {
-            let legend = Legend {
-                position: plot::Corner::LeftTop,
-                ..Default::default()
-            };
-            let born_plot = Plot::new("BORNS").legend(legend);
-            let new_born = state.stats.get_data_as_slice("New Creatures");
-            let born = state.stats.get_data_as_slice("Born Creatures");
-            let rank_born = state.stats.get_data_as_slice("Rank Creatures");
-            let zero_born = state.stats.get_data_as_slice("Zero Creatures");
-            let inner = born_plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(PlotPoints::from(new_born)).name("New Creatures").color(Color32::WHITE));
-                plot_ui.line(Line::new(PlotPoints::from(born)).name("Born Creatures").color(Color32::GREEN));
-                plot_ui.line(Line::new(PlotPoints::from(rank_born)).name("Rank Creatures").color(Color32::BLUE));
-                plot_ui.line(Line::new(PlotPoints::from(zero_born)).name("Zero Creatures").color(Color32::YELLOW));
-            });
-            let plot_rect = Some(inner.response.rect);
-        });
-    }
-
-    fn build_side_panel(&mut self, egui_ctx: &Context, state: &SimState) {
+    fn build_side_panel(&mut self, egui_ctx: &Context, state: &SimState, agent: Option<&Agent>, ranking: &Vec<AgentSketch>) {
         if !self.state.side_panel {
             return;
         }
-        SidePanel::left("Sidebar").width_range(300.0..=500.0).show(egui_ctx, |ui| {
-            ui.heading("Life Simulator");
-            let born_plot = Plot::new("BORNS").legend(Legend::default());
-            let new_born = vec![[0.0, 0.0], [1.0, 1.0], [2.0, 4.0], [3.0, 9.0], [4.0, 16.0]];
-            let inner = born_plot.show(ui, |plot_ui| {
-                plot_ui.line(Line::new(PlotPoints::from(new_born)).name("PLOT").color(Color32::WHITE));
-            });
-            self.build_borns_plot_window(egui_ctx, state);
+        SidePanel::left("Sidebar").width_range(100.0..=700.0).show(egui_ctx, |ui| {
+            if self.state.monit {
+                ui.vertical(|ui| {
+                    ui.collapsing("Monitor", |ui| {
+                        self.inside_monitor(ui, state)
+                    });
+                });
+            }
+            if self.state.inspect {
+                ui.vertical(|ui| {
+                    ui.collapsing("Inspect", |ui| {
+                        self.inside_agent_inspector(ui, agent);
+                    });
+                });
+            }
+            if self.state.neuro_lab {
+                ui.vertical(|ui| {
+                    ui.collapsing("Network", |ui| {
+                        self.inside_network(ui, agent);
+                    });
+                });
+            }
+            if self.state.ranking {
+                ui.vertical(|ui| {
+                    ui.collapsing("Ranking", |ui| {
+                        self.inside_ranking(ui, ranking);
+                    });
+                });
+            }
         });
+    }
+
+    fn build_bottom_panel(&mut self, egui_ctx: &Context, state: &SimState) {
+        if !self.state.bottom_panel {
+            return;
+        }
+        let col_num = self.state.plot as i32 + self.state.born_plot as i32;
+        let mut c: usize = 0;
+        TopBottomPanel::bottom("bottom").height_range(150.0..=300.0).show(egui_ctx, |ui| {
+            ui.columns(col_num as usize, |col| {
+                if self.state.born_plot {
+                    col[c].vertical(|ui| {
+                        self.inside_plot_borns(ui, state);
+                    });
+                    c += 1;
+                }
+                if self.state.plot {
+                    col[c].vertical(|ui| {
+                        self.inside_plot_attributes(ui, state);
+                    });
+                    c += 1;
+                }
+            });
+        });
+    }
+
+    fn inside_plot_borns(&mut self, ui: &mut Ui, state: &SimState) {
+        let legend = Legend {
+            position: plot::Corner::LeftTop,
+            ..Default::default()
+        };
+        let born_plot = Plot::new("borns").legend(legend);
+        //let new_born = state.stats.get_data_as_slice("New Creatures");
+        let born = state.stats.get_data_as_slice("Born Creatures");
+        //let rank_born = state.stats.get_data_as_slice("Rank Creatures");
+        //let zero_born = state.stats.get_data_as_slice("Zero Creatures");
+        let points = state.points.clone();
+        let k = state.stats.get_data_as_slice("Kills");
+        let inner = born_plot.show(ui, |plot_ui| {
+            //plot_ui.line(Line::new(PlotPoints::from(new_born)).name("New Creatures").color(Color32::WHITE));
+            plot_ui.line(Line::new(PlotPoints::from(born)).name("borns").color(Color32::GREEN));
+            //plot_ui.line(Line::new(PlotPoints::from(rank_born)).name("Rank Creatures").color(Color32::BLUE));
+            //plot_ui.line(Line::new(PlotPoints::from(zero_born)).name("Zero Creatures").color(Color32::YELLOW));
+            plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
+            plot_ui.line(Line::new(PlotPoints::from(k)).name("kills").color(Color32::RED));
+        });
+        _ = Some(inner.response.rect);
+    }
+
+    fn inside_plot_attributes(&mut self, ui: &mut Ui, state: &SimState) {
+        //let w = 500.0; let h = 120.0;
+        let legend = Legend {
+            position: plot::Corner::LeftTop,
+            ..Default::default()
+        };
+        let my_plot = Plot::new("attributes").legend(legend);
+        //let graph = state.lifetime.clone();
+        let sizes = state.sizes.clone();
+        let powers = state.powers.clone();
+        let speeds = state.speeds.clone();
+        let eyes = state.eyes.clone();
+        let shells = state.shells.clone();
+        let mutations = state.mutations.clone();
+        let inner = my_plot.show(ui, |plot_ui| {
+            plot_ui.line(Line::new(PlotPoints::from(sizes)).name("size").color(Color32::BLUE));
+            plot_ui.line(Line::new(PlotPoints::from(powers)).name("power").color(Color32::GREEN));
+            plot_ui.line(Line::new(PlotPoints::from(speeds)).name("speed").color(Color32::YELLOW));
+            plot_ui.line(Line::new(PlotPoints::from(eyes)).name("eye").color(Color32::RED));
+            plot_ui.line(Line::new(PlotPoints::from(shells)).name("shell").color(Color32::DARK_GRAY));
+            plot_ui.line(Line::new(PlotPoints::from(mutations)).name("mutation").color(Color32::LIGHT_BLUE));
+        });
+        _ = Some(inner.response.rect);
+    }
+
+    fn inside_monitor(&mut self, ui: &mut Ui, sim_state: &SimState) {
+        let time = sim_state.sim_time;
+        let agents_num = sim_state.agents_num;
+        let sources_num = sim_state.sources_num;
+        let fps = sim_state.fps;
+        let dt = sim_state.dt;
+        ui.horizontal(|ui| {
+            ui.set_max_height(16.0);
+            ui.label(RichText::new(format!("TIME: {}", time.round())).monospace());
+            ui.label(RichText::new(format!("FPS: {}", fps)).monospace());
+            ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).monospace());
+            ui.label(RichText::new(format!("AGENTS: {}", agents_num)).monospace());
+            ui.label(RichText::new(format!("PLANTS: {}", sources_num)).monospace());
+        });
+    }
+
+    fn inside_agent_inspector(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
+        if let Some(agent) = agent {
+            //let rot = agent.rot;
+            //let size = agent.size;
+            //let pos = agent.pos;
+            //let name = agent.specie.to_owned();
+            let contacts_num = agent.contacts.len();
+            let lifetime = agent.lifetime.round();
+            let generation = agent.generation;
+            let childs = agent.childs;
+            let kills = agent.kills;
+            let attack = agent.attacking;
+            let eat = agent.eating;
+            let points = agent.points;
+            let run = agent.run;
+            let mut states: Vec<String> = vec![];
+            if attack { states.push("ATK".to_string()) }
+            if eat { states.push("EAT".to_string()) }
+            if run { states.push("RUN".to_string()) }
+            if contacts_num > 0 { states.push(format!("CON({})", contacts_num)) }
+            let mut status_txt = String::from("| ");
+            if states.len() == 0 { status_txt.push_str("... |"); }
+            for s in states {
+                status_txt.push_str(&s);
+                status_txt.push_str(" |");
+            }
+            //let title_txt = format!("{}", name.to_uppercase());
+            let size = agent.size as i32;
+            let power = agent.power;
+            let speed = agent.speed;
+            let shell = agent.shell;
+            let mutations = agent.mutations;
+            let eyes = agent.eyes;
+            //let name = &agent.specie;
+            let attributes = format!("SIZ: {} | SPE: {} | POW: {} | DEF: {} | MUT: {} | VIS: {}", size, speed, power, shell, mutations, eyes);
+            //let title_txt = format!("Attributes: {}", name.to_uppercase()); 
+            ui.horizontal(|ui| {
+                ui.set_max_height(16.0);
+                ui.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::GREEN));
+                ui.separator();
+                ui.label(RichText::new("■■■").strong().color(color_to_color32(agent.mood)).monospace())
+            });
+            ui.horizontal(|ui| {
+                ui.set_max_height(16.0);
+                ui.label(RichText::new(format!("GEN: [{}]", generation)).monospace());
+                ui.separator();
+                ui.label(RichText::new(format!("TIME: [{}]", lifetime)).monospace());
+                ui.separator();
+                ui.label(RichText::new(format!("PTS: [{}]", points.round())).monospace());
+                ui.set_max_height(16.0);
+                ui.label(RichText::new(format!("CHILD: [{}]", childs)).monospace());
+                ui.separator();
+                ui.label(RichText::new(format!("KILLS: [{}]", kills)).monospace());
+            });
+            ui.horizontal(|ui| {
+                ui.set_max_height(16.0);
+                ui.label(RichText::new(attributes).strong());
+            });
+            ui.horizontal(|ui| {
+                ui.set_max_height(16.0);
+                let txt = format!("BASE {} | MOVE {} | ATTACK {} ", agent.eng_cost.basic.round(), agent.eng_cost.movement.round(), agent.eng_cost.attack.round());
+                ui.label(RichText::new(txt).strong().color(Color32::RED));
+                ui.separator();
+                ui.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
+            });
+        }
+    }
+
+    fn inside_network(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
+        if let Some(agent) = agent {
+            let network = &agent.network;
+            let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
+            let offset = UIVec2::new(0.0, 0.0);
+            let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
+            let rect = response.rect;
+            let zero = rect.left_top().to_vec2()+offset;
+            //let (input_node_keys, hidden_node_keys, output_node_keys) = network.get_node_keys_by_type();
+            
+            for (_, link) in network.links.iter() {
+                let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
+                let ui_coord0 = vec2_to_uivec2(&coord0);
+                let ui_coord1 = vec2_to_uivec2(&coord1);
+                let w = link.get_width()*1.2;
+                let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
+                let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
+                let (_, color1) = link.get_colors();
+                let c1 = color_to_color32(color1);
+                let points1 = [p1, p2];
+                painter.line_segment(points1, Stroke { color: c1, width: w });
+            }
+            for (key, node) in network.nodes.iter() {
+                let (_, color1) = node.get_colors();
+                let r = node.get_size()*1.2;
+                let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
+                let p1 = vec2_to_pos2(&ipos);
+                let c0 = color_to_color32(color1);
+                //let c1 = color_to_color32(color0);
+                let label = node.get_label();
+                let v = match network.get_node_value(key) {
+                    None => 0.0,
+                    Some(v) => v,
+                };
+                painter.circle_filled(p1, r,  Color32::BLACK);
+                //painter.circle_filled(p1, r,  c1);
+                let w = 0.75 + 0.24*r;
+                painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
+                let mut font = FontId::default();
+                font.size = 8.0;
+                let txt = format!("{}: {:.1}", label, v);
+                match node.node_type {
+                    NeuronTypes::INPUT => {
+                        painter.text(p1+UIVec2{x: 8.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
+                    },
+                    NeuronTypes::OUTPUT => {
+                        painter.text(p1+UIVec2{x: -50.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
+                    },
+                    _ => {},
+                }
+            } 
+        }
+    }
+
+    fn inside_ranking(&mut self, ui: &mut Ui, ranking: &Vec<AgentSketch>) {
+        if self.state.ranking {
+            let mut i = 0;
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("NAME").strong());
+                ui.separator();
+                ui.label(RichText::new("GEN").strong());
+                ui.separator();
+                ui.label(RichText::new("PTS").strong());
+            });
+            ui.separator();
+            for rank in ranking.iter() {
+                i += 1;
+                ui.horizontal(|ui| {
+                    let msg1 = format!("{}. {}",i, rank.specie.to_uppercase());
+                    let msg2 = format!("{}", rank.generation);
+                    let msg3 = format!("{}", rank.points.round());
+                    ui.label(RichText::new(msg1).monospace());
+                    ui.separator();
+                    ui.label(RichText::new(msg2).monospace());
+                    ui.separator();
+                    ui.label(RichText::new(msg3).monospace());
+                });
+                //ui.separator();
+            }
+        }
     }
 
     pub fn ui_draw(&self) {
@@ -1623,7 +1620,7 @@ impl UISystem {
 pub struct UIState {
     pub ancestors: bool,
     pub new_sim_name: String,
-    pub performance: bool,
+    pub monit: bool,
     pub inspect: bool,
     pub mouse: bool,
     pub quit: bool,
@@ -1649,6 +1646,7 @@ pub struct UIState {
     pub plot: bool,
     pub born_plot: bool,
     pub side_panel: bool,
+    pub bottom_panel: bool,
     pub deaths: bool,
 }
 
@@ -1658,7 +1656,7 @@ impl UIState {
         Self {
             ancestors: false,
             new_sim_name: String::new(),
-            performance: false,
+            monit: false,
             inspect: false,
             mouse: false,
             quit: false,
@@ -1685,6 +1683,7 @@ impl UIState {
             born_plot: false,
             side_panel: false,
             deaths: false,
+            bottom_panel: false,
         }
     }
 }

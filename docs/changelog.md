@@ -13,7 +13,8 @@
 
 - [x] better attack/eat visuals
 - [x] modify size importance in attacking  
-- [x] modify size importance in eating  
+- [x] modify size importance in eating
+- [x] ui major changes (side and bottom panels)  
 
 ##### v0.4
 

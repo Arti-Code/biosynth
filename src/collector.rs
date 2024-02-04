@@ -5,9 +5,7 @@ use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 use crate::util::*;
 use crate::phyx::physics::Physics;
-use crate::phyx::physics_misc::PhysicsMaterial;
 use crate::agent::*;
-use crate::globals::*;
 use crate::plant::*;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
@@ -44,8 +42,8 @@ impl AgentBox {
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
-            if agent.lifetime >= (settings.repro_time + settings.repro_time * (agent.childs*2) as f32) && (agent.eng/agent.max_eng) >= 0.75 {
-                let mut newbie = agent.replicate(physics).to_owned();
+            if agent.lifetime >= (settings.repro_time + settings.repro_time * agent.childs as f32) && (agent.eng/agent.max_eng) >= 0.75 {
+                let newbie = agent.replicate(physics).to_owned();
                 newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;
@@ -54,7 +52,7 @@ impl AgentBox {
         }
         loop {
             match newborns.pop() {
-                Some(mut newbie) => {
+                Some(newbie) => {
                     //newbie.network.mutate(settings.mutations);
                     counter += 1;
                     self.add_agent(newbie);

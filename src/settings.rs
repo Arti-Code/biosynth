@@ -133,7 +133,7 @@ impl Default for Settings {
             atk_to_eng: 1.0,
             eat_to_eng: 10.0,
             ranking_size: 20,
-            repro_points: 300.0,
+            repro_points: 30.0,
             repro_time: 100.0,
             new_one_probability: 0.2,
             grid_size: 50,

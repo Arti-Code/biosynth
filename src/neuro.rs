@@ -1,4 +1,4 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use macroquad::prelude::*;
 use macroquad::rand::*;
@@ -358,7 +358,6 @@ impl Network {
     }
     
     fn create_links(&mut self, links: f32) {
-        //let buf_links = self.links.
         let nodes_id2: Vec<u64> = self.nodes.keys().copied().collect();
         let nodes_id1: Vec<u64> = self.nodes.keys().copied().collect();
         for id in nodes_id1.iter().copied() {
@@ -415,36 +414,6 @@ impl Network {
             node.calc();
         }
     }
-
-/*     pub fn get_outputs(&self) -> Vec<(u64, String, f32)>{
-        let mut outputs: Vec<(u64, String, f32)> = vec![];
-        for key in self.output_keys.iter() {
-            let node = self.nodes.get(key).unwrap();
-            if node.active {
-                let val = node.val;
-                outputs.push((*key, node.label.to_owned(), val));
-            } else {
-                let val = 0.0;
-                outputs.push((*key, node.label.to_owned(), val));
-            }
-        }
-        return outputs;
-    } */
-
-/*     pub fn get_outputs2(&self) -> HashMap<String, f32>{
-        let mut outputs: HashMap<String, f32> = HashMap::new();
-        for key in self.output_keys.iter() {
-            let node = self.nodes.get(key).unwrap();
-            if node.active {
-                let val = clamp(node.val, 0.0, 1.0);
-                outputs.insert(node.label.to_owned(), val);
-            } else {
-                let val = 0.0;
-                outputs.insert(node.label.to_owned(), val);
-            }
-        }
-        return outputs;
-    } */
 
     fn get_node(&self, node_key: &u64) -> Option<&Node> {
         return self.nodes.get(node_key);
@@ -512,7 +481,6 @@ impl Network {
         let mut_link_add = settings.mut_add_link + settings.mut_add_link*m;
         let mut_link_del = settings.mut_del_link + settings.mut_del_link*m;
         let mut_change_val = settings.mut_change_val + settings.mut_change_val*m;
-        //let mut an: usize = 0; let mut dn: usize = 0; let mut al: usize = 0; let mut dl: usize = 0; let mut b: usize = 0; let mut w: usize = 0; let mut al2: usize = 0;
         self.delete_random_link(mut_link_del);
         let al = self.add_random_link(mut_link_add);
         let w = self.mutate_link_weight(mut_change_val);
@@ -595,8 +563,6 @@ impl Network {
     fn del_random_node(&mut self, mutation_rate: f32) -> (usize, usize) {
         let mut counter_n = 0;
         let mut counter_l = 0;
-        //let link_keys: Vec<u64> = self.links.keys().copied().collect();
-        //let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
         let mut nodes_to_del: Vec<u64> = vec![]; 
         let mut links_to_del: Vec<u64> = vec![]; 
         if random_unit_unsigned() < mutation_rate {

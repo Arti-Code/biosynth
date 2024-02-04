@@ -6,7 +6,6 @@ use crate::plant::Plant;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
-//use crate::physics::*;
 use crate::collector::*;
 use crate::terrain::*;
 use macroquad::camera::Camera2D;
@@ -59,6 +58,7 @@ pub struct Simulation {
     //stats: Stats,
     borns: [i32; 4],
     deaths: [i32; 2],
+    points: Vec<f32>
 }
 
 impl Simulation {
@@ -98,6 +98,7 @@ impl Simulation {
             powers: vec![],
             mutations: vec![],
             shells: vec![],
+            points: vec![],
             plot_x: 0,
             //stats: Stats::new(),
             borns: [0, 0, 0, 0],
@@ -189,7 +190,8 @@ impl Simulation {
                 self.mutations.push(agent.mutations as f32);
                 self.shells.push(agent.shell as f32);
                 let mut sketch = agent.get_sketch();
-                sketch.points = (sketch.points * 0.5).round();
+                self.points.push(agent.points);
+                sketch.points = (sketch.points).round();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
                 self.deaths[0] += 1;
@@ -323,7 +325,7 @@ impl Simulation {
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
                 agent1.add_energy(hp);
-                agent1.points += hp*0.01;
+                agent1.points += hp*0.001;
             } else {
                 agent1.add_energy(damage);
                 agent1.pain = true;
@@ -333,7 +335,7 @@ impl Simulation {
 
         for killer_rbh in killers.iter() {
             let killer = self.agents.agents.get_mut(killer_rbh).unwrap();
-            killer.points += 350.0;
+            killer.points += 30.0;
             killer.kills += 1;
             self.deaths[0] += 1;
             self.deaths[1] += 1;
@@ -378,7 +380,7 @@ impl Simulation {
 
                         agent.add_energy(eat);
                         if eat > 0.0 {
-                            agent.points += eat*0.1;
+                            agent.points += eat*0.01;
                         }
                     },
                     None => {
@@ -789,6 +791,8 @@ impl Simulation {
             let eyes: f32 = self.eyes.iter().sum::<f32>()/l2;
             let shells: f32 = self.shells.iter().sum::<f32>()/l2;
             let mutations: f32 = self.mutations.iter().sum::<f32>()/l2;
+            let points: f32 = self.points.iter().sum::<f32>()/self.points.len() as f32;
+            self.points.clear();
             self.powers.clear();
             self.speeds.clear();
             self.eyes.clear();
@@ -803,12 +807,14 @@ impl Simulation {
             self.sim_state.eyes.push([(next-1) as f64, eyes as f64]);
             self.sim_state.shells.push([(next-1) as f64, shells as f64]);
             self.sim_state.mutations.push([(next-1) as f64, mutations as f64]);
+            self.sim_state.points.push([(next-1) as f64, points as f64]);
             self.sim_state.stats.add_data("New Creatures", (next-1, self.borns[0] as f64));
             self.sim_state.stats.add_data("Born Creatures", (next-1, self.borns[1] as f64));
             self.sim_state.stats.add_data("Rank Creatures", (next-1, self.borns[2] as f64));
             self.sim_state.stats.add_data("Zero Creatures", (next-1, self.borns[3] as f64));
             self.sim_state.stats.add_data("Deaths", (next-1, self.deaths[0] as f64));
             self.sim_state.stats.add_data("Kills", (next-1, self.deaths[1] as f64));
+            
             self.borns = [0, 0, 0, 0];
             self.deaths = [0, 0];
         }
