@@ -35,10 +35,17 @@ impl Stats {
     }
     
     pub fn get_data_as_slice(&self, type_name: &str) -> Vec<[f64; 2]> {
-        let data = self.data.get(type_name).unwrap();
-        let d = data.to_owned();
-        let v: Vec<[f64; 2]> = d.iter().map(|&x| x).collect();
-        return  v;
+        match self.data.get(type_name) {
+            Some(data) => {
+                let d = data.to_owned();
+                let v: Vec<[f64; 2]> = d.iter().map(|&x| x).collect();
+                return  v;
+            },
+            None => {
+                eprintln!("No such data type {}", type_name.to_uppercase());
+                return vec![];
+            },
+        }
     }
 
     pub fn _list_types(&self) -> Vec<&str> {

@@ -185,11 +185,14 @@ impl UISystem {
                     if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
                         self.state.inspect = !self.state.inspect;
                     }
-                    if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
-                        self.state.mouse = !self.state.mouse;
+                    if ui.button(RichText::new("Neural Network").strong().color(Color32::WHITE)).clicked() {
+                        self.state.neuro_lab = !self.state.neuro_lab;
                     }
                     if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
                         self.state.ranking = !self.state.ranking;
+                    }
+                    if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
+                        self.state.mouse = !self.state.mouse;
                     }
                     if ui.button(RichText::new("Ancestors").strong().color(Color32::WHITE)).clicked() {
                         self.state.ancestors = !self.state.ancestors;
@@ -197,14 +200,8 @@ impl UISystem {
                     if ui.button(RichText::new("Resource").strong().color(Color32::WHITE)).clicked() {
                         self.state.resource = !self.state.resource;
                     }
-                    if ui.button(RichText::new("Print Mutations Stats").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::WHITE)).clicked() {
                         self.state.info = !self.state.info;
-                    }
-                    if ui.button(RichText::new("Side Panel").strong().color(Color32::WHITE)).clicked() {
-                        self.state.side_panel = !self.state.side_panel;
-                    }
-                    if ui.button(RichText::new("Bottom Panel").strong().color(Color32::WHITE)).clicked() {
-                        self.state.bottom_panel = !self.state.bottom_panel;
                     }
                 });
 
@@ -214,13 +211,13 @@ impl UISystem {
                 
                 menu::menu_button(ui, RichText::new("PLOTS").strong(), |ui| {
                     if ui.button(RichText::new("Attributes").strong().color(Color32::WHITE)).clicked() {
-                        self.state.plot = !self.state.plot;
+                        self.state.plot_attributes = !self.state.plot_attributes;
                     }
-                    if ui.button(RichText::new("Population").strong().color(Color32::WHITE)).clicked() {
-                        self.state.born_plot = !self.state.born_plot;
+                    if ui.button(RichText::new("Population/Kills").strong().color(Color32::WHITE)).clicked() {
+                        self.state.plot_population = !self.state.plot_population;
                     }
-                    if ui.button(RichText::new("Deaths").strong().color(Color32::WHITE)).clicked() {
-                        self.state.deaths = !self.state.deaths;
+                    if ui.button(RichText::new("Lifetime/Points").strong().color(Color32::WHITE)).clicked() {
+                        self.state.plot_lifetime = !self.state.plot_lifetime;
                     }
                 });
 
@@ -275,9 +272,12 @@ impl UISystem {
                 ui.add_space(10.0);
 
 
-                menu::menu_button(ui, RichText::new("NEUROLOGY").strong(), |ui| {
-                    if ui.button(RichText::new("Network Inspector").strong().color(Color32::WHITE)).clicked() {
-                        self.state.neuro_lab = !self.state.neuro_lab;
+                menu::menu_button(ui, RichText::new("PANELS").strong(), |ui| {
+                    if ui.button(RichText::new("Side Panel").strong().color(Color32::WHITE)).clicked() {
+                        self.state.side_panel = !self.state.side_panel;
+                    }
+                    if ui.button(RichText::new("Bottom Panel").strong().color(Color32::WHITE)).clicked() {
+                        self.state.bottom_panel = !self.state.bottom_panel;
                     }
                 });
 
@@ -290,7 +290,7 @@ impl UISystem {
                     if ui.button(RichText::new("Agent Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.set_agent = !self.state.set_agent;
                     }
-                    if ui.button(RichText::new("Sim Settings").strong().color(Color32::YELLOW)).clicked() {
+                    if ui.button(RichText::new("Enviroment Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.environment = !self.state.environment;
                     }
                     if ui.button(RichText::new("Neuro Settings").strong().color(Color32::YELLOW)).clicked() {
@@ -1377,24 +1377,46 @@ impl UISystem {
         if !self.state.bottom_panel {
             return;
         }
-        let col_num = self.state.plot as i32 + self.state.born_plot as i32;
+        let col_num = self.state.plot_attributes as i32 + self.state.plot_population as i32 + self.state.plot_lifetime as i32;
         let mut c: usize = 0;
         TopBottomPanel::bottom("bottom").height_range(150.0..=300.0).show(egui_ctx, |ui| {
             ui.columns(col_num as usize, |col| {
-                if self.state.born_plot {
+                if self.state.plot_population {
                     col[c].vertical(|ui| {
                         self.inside_plot_borns(ui, state);
                     });
                     c += 1;
                 }
-                if self.state.plot {
+                if self.state.plot_attributes {
                     col[c].vertical(|ui| {
                         self.inside_plot_attributes(ui, state);
                     });
                     c += 1;
                 }
+                if self.state.plot_lifetime {
+                    col[c].vertical(|ui| {
+                        self.inside_plot_lifetimes(ui, state);
+                    });
+                    c += 1;
+                }
             });
         });
+    }
+
+    fn inside_plot_lifetimes(&mut self, ui: &mut Ui, state: &SimState) {
+        let legend = Legend {
+            position: plot::Corner::LeftTop,
+            ..Default::default()
+        };
+        let statistics = state.get_statistics();
+        let plot_lifetimes = Plot::new("lifetimes").legend(legend);
+        let lifetimes = statistics.get_data_as_slice("lifetimes");
+        let points = statistics.get_data_as_slice("points");
+        let inner = plot_lifetimes.show(ui, |plot_ui| {
+            plot_ui.line(Line::new(PlotPoints::from(lifetimes)).name("lifetime").color(Color32::GREEN));
+            plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
+        });
+        _ = Some(inner.response.rect);
     }
 
     fn inside_plot_borns(&mut self, ui: &mut Ui, state: &SimState) {
@@ -1405,11 +1427,11 @@ impl UISystem {
         let statistics = state.get_statistics();
         let born_plot = Plot::new("borns").legend(legend);
         let born = statistics.get_data_as_slice("borns");
-        let points = statistics.get_data_as_slice("points");
+        //let points = statistics.get_data_as_slice("points");
         let k = statistics.get_data_as_slice("kills");
         let inner = born_plot.show(ui, |plot_ui| {
             plot_ui.line(Line::new(PlotPoints::from(born)).name("borns").color(Color32::GREEN));
-            plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
+            //plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
             plot_ui.line(Line::new(PlotPoints::from(k)).name("kills").color(Color32::RED));
         });
         _ = Some(inner.response.rect);
@@ -1638,8 +1660,9 @@ pub struct UIState {
     pub neuro_settings: bool,
     pub info: bool,
     pub resource: bool,
-    pub plot: bool,
-    pub born_plot: bool,
+    pub plot_attributes: bool,
+    pub plot_population: bool,
+    pub plot_lifetime: bool,
     pub side_panel: bool,
     pub bottom_panel: bool,
     pub deaths: bool,
@@ -1674,8 +1697,9 @@ impl UIState {
             neuro_settings: false,
             info: false,
             resource: false,
-            plot: false,
-            born_plot: false,
+            plot_attributes: false,
+            plot_population: false,
+            plot_lifetime: false,
             side_panel: false,
             deaths: false,
             bottom_panel: false,

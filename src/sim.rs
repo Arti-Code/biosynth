@@ -91,7 +91,7 @@ impl Simulation {
             coord_timer: Timer::new(0.25, true, true, true),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
-            //lifetime_stats: vec![],
+            //lifetimes: vec![],
             sizes: vec![],
             eyes: vec![],
             speeds: vec![],
@@ -111,6 +111,7 @@ impl Simulation {
         self.sim_state.stats.add_data_type("deaths");
         self.sim_state.stats.add_data_type("kills");
         self.sim_state.stats.add_data_type("points");
+        self.sim_state.stats.add_data_type("lifetimes");
         self.sim_state.stats.add_data_type("sizes");
         self.sim_state.stats.add_data_type("eyes");
         self.sim_state.stats.add_data_type("speeds");
@@ -299,7 +300,7 @@ impl Simulation {
                         let mut a = (agent.power as f32 + agent.size*0.5)/1.5;
                         a = a + a*random_unit();
                         let d = target.shell as f32 * 1.5;
-                        let mut dmg = (a - d) * dt * settings.damage;
+                        let mut dmg = (a/d) * dt * settings.damage;
                         if dmg > 0.0 {
                             if hits.contains_key(id) {
                                 let (old_dmg, _) = *hits.get_mut(id).unwrap();
@@ -804,6 +805,7 @@ impl Simulation {
             self.sizes.clear();
             self.shells.clear();
             self.sim_state.lifetime.push([(next-1) as f64, avg as f64]);
+            self.sim_state.stats.add_data("lifetimes", (next-1, avg as f64));
             self.sim_state.stats.add_data("borns", (next-1, self.borns[1] as f64));
             self.sim_state.stats.add_data("deaths", (next-1, self.deaths[0] as f64));
             self.sim_state.stats.add_data("kills", (next-1, self.deaths[1] as f64));

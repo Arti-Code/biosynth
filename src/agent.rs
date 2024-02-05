@@ -817,11 +817,11 @@ impl Agent {
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
         let size_cost = self.size * settings.size_cost;
-        let mut basic_loss = (self.shell as f32 + size_cost) * base_cost;
+        let mut basic_loss = (size_cost) * base_cost;
         if self.eating {
             basic_loss += size_cost * base_cost;
         }
-        let mut move_loss = self.vel * (self.speed as f32 + size_cost) * move_cost;
+        let mut move_loss = self.vel * (self.shell as f32 + self.speed as f32 + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
