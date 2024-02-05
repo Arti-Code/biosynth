@@ -5,7 +5,7 @@ use macroquad::rand::*;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
-use crate::stats::*;
+use crate::statistics::*;
 use crate::util::*;
 use crate::settings::*;
 

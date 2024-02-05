@@ -23,7 +23,7 @@ use crate::agent::*;
 use crate::neuro::*;
 use crate::globals::*;
 use crate::settings::*;
-use crate::stats::*;
+use crate::statistics::*;
 use crate::signals::*;
 use crate::sketch::*;
 

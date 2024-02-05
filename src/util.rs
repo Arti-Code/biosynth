@@ -7,7 +7,7 @@ use std::path::Path;
 use std::time::{UNIX_EPOCH, SystemTime};
 use crate::globals::*;
 use crate::sketch::SimulationSketch;
-use crate::stats::Stats;
+use crate::statistics::Statistics;
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
@@ -311,7 +311,7 @@ pub struct SimState {
     pub eyes: Vec<[f64; 2]>,
     pub shells: Vec<[f64; 2]>,
     pub mutations: Vec<[f64; 2]>,
-    pub stats: Stats,
+    pub stats: Statistics,
 }
 
 impl SimState {
@@ -341,12 +341,12 @@ impl SimState {
             eyes: vec![],
             shells: vec![],
             mutations: vec![],
-            stats: Stats::new(limit),
+            stats: Statistics::new(limit),
             points: vec![],
         }
     }
 
-    pub fn get_statistics(&self) ->  &Stats {
+    pub fn get_statistics(&self) ->  &Statistics {
         return &self.stats;
     }
 

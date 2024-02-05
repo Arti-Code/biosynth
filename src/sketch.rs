@@ -7,7 +7,7 @@ use macroquad::prelude::*;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use crate::settings::*;
-use crate::stats::*;
+use crate::statistics::*;
 use crate::misc::*;
 
 

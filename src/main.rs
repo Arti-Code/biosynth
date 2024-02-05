@@ -17,7 +17,7 @@ mod plant;
 mod terrain;
 mod settings;
 mod monit;
-mod stats;
+mod statistics;
 mod signals;
 mod sketch;
 
@@ -25,7 +25,7 @@ mod sketch;
 use std::env;
 use crate::sim::*;
 use crate::globals::*;
-use crate::stats::*;
+use crate::statistics::*;
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
 use crate::signals::*;

@@ -8,15 +8,15 @@ use serde::{Serialize, Deserialize};
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Stats {
+pub struct Statistics {
     limit: usize,
     data: HashMap<String, VecDeque<[f64; 2]>>,
 }
 
-impl Stats {
+impl Statistics {
 
-    pub fn new(limit: usize) -> Stats {
-        Stats {
+    pub fn new(limit: usize) -> Statistics {
+        Statistics {
             limit,
             data: HashMap::new()
         }

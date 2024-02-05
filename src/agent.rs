@@ -12,7 +12,7 @@ use rapier2d::geometry::*;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use crate::settings::*;
-use crate::stats::*;
+use crate::statistics::*;
 use crate::misc::*;
 use crate::sketch::*;
 use crate::phyx::physics::Physics;

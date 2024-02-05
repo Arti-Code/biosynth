@@ -8,6 +8,7 @@ use crate::ui::*;
 use crate::util::*;
 use crate::collector::*;
 use crate::terrain::*;
+use crate::Statistics;
 use macroquad::camera::Camera2D;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
@@ -58,7 +59,8 @@ pub struct Simulation {
     //stats: Stats,
     borns: [i32; 4],
     deaths: [i32; 2],
-    points: Vec<f32>
+    points: Vec<f32>,
+    statistics: Statistics,
 }
 
 impl Simulation {
@@ -102,6 +104,7 @@ impl Simulation {
             plot_x: 0,
             borns: [0, 0, 0, 0],
             deaths: [0, 0],
+            statistics: Statistics::new(settings.stats_limit),
         }
     }
 
