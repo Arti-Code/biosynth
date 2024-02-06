@@ -175,6 +175,10 @@ impl Agent {
         return self.mood.to_owned();
     }
 
+    pub fn get_nodes_links_num(&self) -> (i32, i32) {
+        return self.network.get_nodes_links_number();
+    }
+
     fn mod_specie(&mut self) {
         let settings = get_settings();
         if rand::gen_range(0, settings.rare_specie_mod) == 0 {

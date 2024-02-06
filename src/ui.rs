@@ -95,7 +95,7 @@ impl UISystem {
         egui_ctx.set_style(style);
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Plant>, ranking: &Vec<AgentSketch>) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Plant>, ranking: &Vec<AgentSketch>, statistics: &Statistics) {
         egui_macroquad::ui(|egui_ctx| {
             self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
@@ -125,7 +125,7 @@ impl UISystem {
             self.build_info_window(egui_ctx);
             self.build_resize_world_window(egui_ctx);
             self.build_side_panel(egui_ctx, &sim_state, agent, ranking);
-            self.build_bottom_panel(egui_ctx, &sim_state);
+            self.build_bottom_panel(egui_ctx, statistics);
         });
     }
 
@@ -218,6 +218,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Lifetime/Points").strong().color(Color32::WHITE)).clicked() {
                         self.state.plot_lifetime = !self.state.plot_lifetime;
+                    }
+                    if ui.button(RichText::new("Nodes/Links").strong().color(Color32::WHITE)).clicked() {
+                        self.state.plot_neuro = !self.state.plot_neuro;
                     }
                 });
 
@@ -1373,29 +1376,35 @@ impl UISystem {
         });
     }
 
-    fn build_bottom_panel(&mut self, egui_ctx: &Context, state: &SimState) {
+    fn build_bottom_panel(&mut self, egui_ctx: &Context, statistics: &Statistics) {
         if !self.state.bottom_panel {
             return;
         }
-        let col_num = self.state.plot_attributes as i32 + self.state.plot_population as i32 + self.state.plot_lifetime as i32;
+        let col_num = self.state.plot_attributes as i32 + self.state.plot_population as i32 + self.state.plot_lifetime as i32 + self.state.plot_neuro as i32;
         let mut c: usize = 0;
         TopBottomPanel::bottom("bottom").height_range(150.0..=300.0).show(egui_ctx, |ui| {
             ui.columns(col_num as usize, |col| {
                 if self.state.plot_population {
                     col[c].vertical(|ui| {
-                        self.inside_plot_borns(ui, state);
+                        self.inside_plot_borns(ui, statistics);
                     });
                     c += 1;
                 }
                 if self.state.plot_attributes {
                     col[c].vertical(|ui| {
-                        self.inside_plot_attributes(ui, state);
+                        self.inside_plot_attributes(ui, statistics);
                     });
                     c += 1;
                 }
                 if self.state.plot_lifetime {
                     col[c].vertical(|ui| {
-                        self.inside_plot_lifetimes(ui, state);
+                        self.inside_plot_lifetimes(ui, statistics);
+                    });
+                    c += 1;
+                }
+                if self.state.plot_neuro {
+                    col[c].vertical(|ui| {
+                        self.inside_plot_neuro(ui, statistics);
                     });
                     c += 1;
                 }
@@ -1403,12 +1412,12 @@ impl UISystem {
         });
     }
 
-    fn inside_plot_lifetimes(&mut self, ui: &mut Ui, state: &SimState) {
+    fn inside_plot_lifetimes(&mut self, ui: &mut Ui, statistics: &Statistics) {
         let legend = Legend {
             position: plot::Corner::LeftTop,
             ..Default::default()
         };
-        let statistics = state.get_statistics();
+        //let statistics = statistics.get_statistics();
         let plot_lifetimes = Plot::new("lifetimes").legend(legend);
         let lifetimes = statistics.get_data_as_slice("lifetimes");
         let points = statistics.get_data_as_slice("points");
@@ -1419,12 +1428,12 @@ impl UISystem {
         _ = Some(inner.response.rect);
     }
 
-    fn inside_plot_borns(&mut self, ui: &mut Ui, state: &SimState) {
+    fn inside_plot_borns(&mut self, ui: &mut Ui, statistics: &Statistics) {
         let legend = Legend {
             position: plot::Corner::LeftTop,
             ..Default::default()
         };
-        let statistics = state.get_statistics();
+        //let statistics = statistics.get_statistics();
         let born_plot = Plot::new("borns").legend(legend);
         let born = statistics.get_data_as_slice("borns");
         //let points = statistics.get_data_as_slice("points");
@@ -1437,14 +1446,29 @@ impl UISystem {
         _ = Some(inner.response.rect);
     }
 
-    fn inside_plot_attributes(&mut self, ui: &mut Ui, state: &SimState) {
+    fn inside_plot_neuro(&mut self, ui: &mut Ui, statistics: &Statistics) {
+        let legend = Legend {
+            position: plot::Corner::LeftTop,
+            ..Default::default()
+        };
+        let neuro_plot = Plot::new("neuro").legend(legend);
+        let nodes = statistics.get_data_as_slice("nodes");
+        let links = statistics.get_data_as_slice("links");
+        let inner = neuro_plot.show(ui, |plot_ui| {
+            plot_ui.line(Line::new(PlotPoints::from(nodes)).name("nodes").color(Color32::BLUE));
+            plot_ui.line(Line::new(PlotPoints::from(links)).name("links").color(Color32::GREEN));
+        });
+        _ = Some(inner.response.rect);
+    }
+
+    fn inside_plot_attributes(&mut self, ui: &mut Ui, statistics: &Statistics) {
         //let w = 500.0; let h = 120.0;
         let legend = Legend {
             position: plot::Corner::LeftTop,
             ..Default::default()
         };
         let my_plot = Plot::new("attributes").legend(legend);
-        let statistics = state.get_statistics();
+        //let statistics = statistics.get_statistics();
         let sizes = statistics.get_data_as_slice("sizes");
         let powers = statistics.get_data_as_slice("powers");
         let speeds = statistics.get_data_as_slice("speeds");
@@ -1663,6 +1687,7 @@ pub struct UIState {
     pub plot_attributes: bool,
     pub plot_population: bool,
     pub plot_lifetime: bool,
+    pub plot_neuro: bool,
     pub side_panel: bool,
     pub bottom_panel: bool,
     pub deaths: bool,
@@ -1700,6 +1725,7 @@ impl UIState {
             plot_attributes: false,
             plot_population: false,
             plot_lifetime: false,
+            plot_neuro: false,
             side_panel: false,
             deaths: false,
             bottom_panel: false,

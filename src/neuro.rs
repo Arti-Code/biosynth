@@ -330,6 +330,10 @@ impl Network {
         return pairs;
     }
 
+    pub fn get_nodes_links_number(&self) -> (i32, i32) {
+        return (self.nodes.len() as i32, self.links.len() as i32);
+    }
+
     fn create_nodes2(&mut self, input: usize, input_labels: Vec<&str>, hidden: Vec<usize>, output: usize, output_labels: Vec<&str>) {
         let deep_n = hidden.len()+1;
         let hi = 100.0 / (input+1) as f32;

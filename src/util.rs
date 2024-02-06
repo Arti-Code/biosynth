@@ -311,12 +311,12 @@ pub struct SimState {
     pub eyes: Vec<[f64; 2]>,
     pub shells: Vec<[f64; 2]>,
     pub mutations: Vec<[f64; 2]>,
-    pub stats: Statistics,
+    //pub stats: Statistics,
 }
 
 impl SimState {
 
-    pub fn new(limit: usize) -> Self {
+    pub fn new() -> Self {
         Self {
             sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
@@ -341,14 +341,14 @@ impl SimState {
             eyes: vec![],
             shells: vec![],
             mutations: vec![],
-            stats: Statistics::new(limit),
+            //stats: Statistics::new(limit),
             points: vec![],
         }
     }
 
-    pub fn get_statistics(&self) ->  &Statistics {
+    /* pub fn get_statistics(&self) ->  &Statistics {
         return &self.stats;
-    }
+    } */
 
 }
 

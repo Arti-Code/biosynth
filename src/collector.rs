@@ -30,15 +30,18 @@ impl AgentBox {
         }
     }
 
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut Physics) {
+    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut Physics) -> (i32, i32) {
+        let mut n = 0; let mut l = 0;
         for _ in 0..agents_num {
             let agent = Agent::new(physics_world);
-            _ = self.add_agent(agent);
+            let (n0, l0) = self.add_agent(agent);
+            n += n0; l += l0;
         }
+        return (n, l);
     }
 
-    pub fn populate(&mut self, physics: &mut Physics) -> i32 {
-        let mut counter: i32 = 0;
+    pub fn populate(&mut self, physics: &mut Physics) -> (i32, i32, i32) {
+        let mut counter: i32 = 0; let mut n = 0; let mut l = 0;
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
@@ -55,23 +58,25 @@ impl AgentBox {
                 Some(newbie) => {
                     //newbie.network.mutate(settings.mutations);
                     counter += 1;
-                    self.add_agent(newbie);
+                    let (n0, l0) = self.add_agent(newbie);
+                    n += n0; l += l0;
                 },
                 None => {
                     break;
                 }
             }
         }
-        return counter;
+        return (counter, n, l);
     }
 
-    pub fn add_agent(&mut self, mut agent: Agent) {
+    pub fn add_agent(&mut self, mut agent: Agent) -> (i32, i32) {
         let settings = get_settings();
         while agent.pos.x >= settings.world_w as f32 || agent.pos.y >= settings.world_h as f32 || agent.pos.x <= 0.0 || agent.pos.y <= 0.0 {
             agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
-        }            
-        self.agents.insert(agent.physics_handle, agent);
-        
+        }     
+        let nl_num = agent.get_nodes_links_num();       
+        self.agents.insert(agent.physics_handle, agent); 
+        return nl_num;
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Agent> {

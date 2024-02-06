@@ -60,6 +60,8 @@ pub struct Simulation {
     borns: [i32; 4],
     deaths: [i32; 2],
     points: Vec<f32>,
+    nodes: Vec<i32>,
+    links: Vec<i32>,
     statistics: Statistics,
 }
 
@@ -79,7 +81,7 @@ impl Simulation {
             running: false,
             sim_time: 0.0,
             ui: UISystem::new(),
-            sim_state: SimState::new(settings.stats_limit),
+            sim_state: SimState::new(),
             signals: Signals::new(),
             selected: None,
             select_phase: 0.0,
@@ -101,26 +103,32 @@ impl Simulation {
             mutations: vec![],
             shells: vec![],
             points: vec![],
+            nodes: vec![],
+            links: vec![],
             plot_x: 0,
             borns: [0, 0, 0, 0],
             deaths: [0, 0],
+
             statistics: Statistics::new(settings.stats_limit),
         }
     }
 
     fn init_stats(&mut self) {
+        self.statistics = Statistics::new(get_settings().stats_limit);
         self.borns = [0, 0, 0, 0];
-        self.sim_state.stats.add_data_type("borns");
-        self.sim_state.stats.add_data_type("deaths");
-        self.sim_state.stats.add_data_type("kills");
-        self.sim_state.stats.add_data_type("points");
-        self.sim_state.stats.add_data_type("lifetimes");
-        self.sim_state.stats.add_data_type("sizes");
-        self.sim_state.stats.add_data_type("eyes");
-        self.sim_state.stats.add_data_type("speeds");
-        self.sim_state.stats.add_data_type("powers");
-        self.sim_state.stats.add_data_type("mutations");
-        self.sim_state.stats.add_data_type("shells");
+        self.statistics.add_data_type("borns");
+        self.statistics.add_data_type("deaths");
+        self.statistics.add_data_type("kills");
+        self.statistics.add_data_type("points");
+        self.statistics.add_data_type("lifetimes");
+        self.statistics.add_data_type("sizes");
+        self.statistics.add_data_type("eyes");
+        self.statistics.add_data_type("speeds");
+        self.statistics.add_data_type("powers");
+        self.statistics.add_data_type("mutations");
+        self.statistics.add_data_type("shells");
+        self.statistics.add_data_type("nodes");
+        self.statistics.add_data_type("links");
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
@@ -135,7 +143,7 @@ impl Simulation {
         self.agents.agents.clear();
         self.resources.resources.clear();
         self.sim_time = 0.0;
-        self.sim_state = SimState::new(settings.stats_limit);
+        self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
         self.selected = None;
@@ -153,7 +161,7 @@ impl Simulation {
         self.resources = ResBox::new();
         self.ranking = vec![];
         self.sim_time = 0.0;
-        self.sim_state = SimState::new(200);
+        self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from("");
         self.signals = Signals::new();
         self.selected = None;
@@ -198,6 +206,9 @@ impl Simulation {
                 self.shells.push(agent.shell as f32);
                 let mut sketch = agent.get_sketch();
                 self.points.push(agent.points);
+                let (n, l) = agent.get_nodes_links_num();
+                self.nodes.push(n);
+                self.links.push(l);
                 sketch.points = (sketch.points).round();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
@@ -279,9 +290,11 @@ impl Simulation {
         self.eat();
         self.update_agents();
         self.update_rank();
-        let n = self.agents.populate(&mut self.physics);
-        self.borns[0] += n;
-        self.borns[1] += n;
+        let (i, _, _) = self.agents.populate(&mut self.physics);
+        self.borns[0] += i;
+        self.borns[1] += i;
+        //self.nodes.push(n);
+        //self.links.push(l);
         self.monitor.monitor();
         self.physics.step();
     }
@@ -799,6 +812,8 @@ impl Simulation {
             let shells: f32 = self.shells.iter().sum::<f32>()/l2;
             let mutations: f32 = self.mutations.iter().sum::<f32>()/l2;
             let points: f32 = self.points.iter().sum::<f32>()/self.points.len() as f32;
+            let nodes: f32 = self.nodes.iter().sum::<i32>() as f32/self.nodes.len() as f32;
+            let links: f32 = self.links.iter().sum::<i32>() as f32/self.links.len() as f32;
             self.points.clear();
             self.powers.clear();
             self.speeds.clear();
@@ -807,18 +822,22 @@ impl Simulation {
             self.lifetimes.clear();
             self.sizes.clear();
             self.shells.clear();
+            self.nodes.clear();
+            self.links.clear();
             self.sim_state.lifetime.push([(next-1) as f64, avg as f64]);
-            self.sim_state.stats.add_data("lifetimes", (next-1, avg as f64));
-            self.sim_state.stats.add_data("borns", (next-1, self.borns[1] as f64));
-            self.sim_state.stats.add_data("deaths", (next-1, self.deaths[0] as f64));
-            self.sim_state.stats.add_data("kills", (next-1, self.deaths[1] as f64));
-            self.sim_state.stats.add_data("points", (next-1, points as f64));
-            self.sim_state.stats.add_data("sizes", (next-1, sizes as f64));
-            self.sim_state.stats.add_data("eyes", (next-1, eyes as f64));
-            self.sim_state.stats.add_data("speeds", (next-1, speeds as f64));
-            self.sim_state.stats.add_data("powers", (next-1, powers as f64));
-            self.sim_state.stats.add_data("mutations", (next-1, mutations as f64));
-            self.sim_state.stats.add_data("shells", (next-1, shells as f64));
+            self.statistics.add_data("lifetimes", (next-1, avg as f64));
+            self.statistics.add_data("borns", (next-1, self.borns[1] as f64));
+            self.statistics.add_data("deaths", (next-1, self.deaths[0] as f64));
+            self.statistics.add_data("kills", (next-1, self.deaths[1] as f64));
+            self.statistics.add_data("points", (next-1, points as f64));
+            self.statistics.add_data("sizes", (next-1, sizes as f64));
+            self.statistics.add_data("eyes", (next-1, eyes as f64));
+            self.statistics.add_data("speeds", (next-1, speeds as f64));
+            self.statistics.add_data("powers", (next-1, powers as f64));
+            self.statistics.add_data("mutations", (next-1, mutations as f64));
+            self.statistics.add_data("shells", (next-1, shells as f64));
+            self.statistics.add_data("nodes", (next-1, nodes as f64));
+            self.statistics.add_data("links", (next-1, links as f64));
             self.borns = [0, 0, 0, 0];
             self.deaths = [0, 0];
         }
@@ -848,9 +867,11 @@ impl Simulation {
     }
 
     fn agent_from_zero(&mut self) {
-        self.agents.add_many_agents(1, &mut self.physics);
+        _ = self.agents.add_many_agents(1, &mut self.physics);
         self.borns[0] += 1;
         self.borns[3] += 1;
+        //self.nodes.push(n);
+        //self.links.push(l);
     }
 
     fn agent_from_sketch(&mut self) {
@@ -864,9 +885,11 @@ impl Simulation {
         let agent = Agent::from_sketch(s, &mut self.physics);
         agent_sketch.points -= agent_sketch.points*0.5;
         agent_sketch.points = agent_sketch.points.round();
-        self.agents.add_agent(agent);
+        _ = self.agents.add_agent(agent);
         self.borns[0] += 1;
         self.borns[2] += 1;
+        //self.nodes.push(n);
+        //self.links.push(l);
     }
 
     fn calc_selection_time(&mut self) {
@@ -887,7 +910,7 @@ impl Simulation {
             },
             None => None,
         };
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected_agent, selected_resource, &self.ranking);
+        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected_agent, selected_resource, &self.ranking, &self.statistics);
     }
 
     pub fn draw_ui(&self) {
