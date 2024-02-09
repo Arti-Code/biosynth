@@ -66,6 +66,7 @@ pub struct Simulation {
     population_plants: Vec<i32>,
     stats_timer: Timer,
     statistics: Statistics,
+    n: usize,
 }
 
 impl Simulation {
@@ -115,6 +116,7 @@ impl Simulation {
             population_plants: vec![],
             stats_timer: Timer::new(5.0, true, true, false),
             statistics: Statistics::new(settings.stats_limit),
+            n: 0,
         }
     }
 
@@ -322,7 +324,7 @@ impl Simulation {
                     if power1 > power2 {
                         let mut a = (agent.power as f32 + agent.size*0.5)/1.5;
                         a = a + a*random_unit();
-                        let d = target.shell as f32 * 1.5;
+                        let d = target.shell as f32 * 1.8;
                         let mut dmg = (a-d) * dt * settings.damage;
                         if dmg > 0.0 {
                             if hits.contains_key(id) {
@@ -378,7 +380,7 @@ impl Simulation {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
                     self.resources.resources.get(tg).inspect(|_target| {
-                        let power1 = agent.size + 7.5*random_unit();
+                        let power1 = agent.size + 5.0;
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
@@ -741,6 +743,47 @@ impl Simulation {
     fn keyboard_input(&mut self) {
         if is_key_pressed(KeyCode::Tab) {
             self.random_selection();
+        }
+        if is_key_pressed(KeyCode::Kp6) {
+            //println!("6");
+            let mut n = self.n + 1;
+            n = clamp(n, 0, self.agents.count()-1);
+            self.select_n(n);
+        }
+        if is_key_pressed(KeyCode::Kp4) {
+            let mut n = self.n - 1;
+            n = clamp(n, 0, self.agents.count()-1);
+            self.select_n(n);
+        }
+        if is_key_pressed(KeyCode::Kp5) {
+            self.select_n(0);
+        }
+    }
+
+/*     fn select_next(&mut self) {
+        self.n += 1;
+        match self.agents.get_iter().nth(self.n) {
+            Some((id, _)) => {
+                self.selected = Some(*id);
+            },
+            None => {
+                self.agents.get_iter().nth(0).inspect(|(id, _)| {
+                    self.selected = Some(**id);
+                });
+
+            }
+        }
+    } */
+
+    fn select_n(&mut self, n: usize) {
+        self.n = n;
+        match self.agents.get_iter().nth(self.n) {
+            Some((id, _)) => {
+                self.selected = Some(*id);
+            },
+            None => {
+                //println!("empty");
+            },
         }
     }
 

@@ -145,7 +145,7 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(5.0);
                 
-                menu::menu_button(ui, RichText::new("...").strong(), |ui| {
+                menu::menu_button(ui, RichText::new("MENU").strong(), |ui| {
                     if ui.button(RichText::new("New Simulation").strong().color(Color32::BLUE)).clicked() {
                         self.state.new_sim = true;
                     }
@@ -172,37 +172,6 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Quit").color(Color32::RED).strong()).clicked() {
                         self.state.quit = true;
-                    }
-                });
-
-                ui.add_space(10.0);
-                ui.separator();
-                ui.add_space(10.0);
-
-                menu::menu_button(ui, RichText::new("VIEW").strong(), |ui| {
-                    if ui.button(RichText::new("Monitor").strong().color(Color32::WHITE)).clicked() {
-                        self.state.monit = !self.state.monit;
-                    }
-                    if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
-                        self.state.inspect = !self.state.inspect;
-                    }
-                    if ui.button(RichText::new("Neural Network").strong().color(Color32::WHITE)).clicked() {
-                        self.state.neuro_lab = !self.state.neuro_lab;
-                    }
-                    if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
-                        self.state.ranking = !self.state.ranking;
-                    }
-                    if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
-                        self.state.mouse = !self.state.mouse;
-                    }
-                    if ui.button(RichText::new("Ancestors").strong().color(Color32::WHITE)).clicked() {
-                        self.state.ancestors = !self.state.ancestors;
-                    }
-                    if ui.button(RichText::new("Resource").strong().color(Color32::WHITE)).clicked() {
-                        self.state.resource = !self.state.resource;
-                    }
-                    if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::WHITE)).clicked() {
-                        self.state.info = !self.state.info;
                     }
                 });
 
@@ -256,18 +225,31 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
                 let speed = sim_speed();
-                let time_label = format!("Speed Up {}", speed as i32 + 1);
+                let accel_label = format!("Faster >>{}", speed as i32 + 1);
+                let mut deccel_color = Color32::GOLD;
+                let mut deccel_label = format!("Slower <<{}", speed as i32 - 1);
+                if speed == 1.0 {
+                    deccel_color = Color32::GRAY;
+                    deccel_label = format!("Slower {}", speed as i32 - 1);
+                }
 
-                menu::menu_button(ui, RichText::new("RUNTIME").strong(), |ui| {
-                    if ui.button(RichText::new("Standard Time").strong().color(Color32::GOLD)).clicked() {
+                menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
+                    if ui.button(RichText::new("Real Time").strong().color(Color32::GREEN)).clicked() {
                         let mut settings = get_settings();
                         settings.sim_speed = 1.0;
                         set_settings(settings);
                     }
-                    if ui.button(RichText::new(time_label).strong().color(Color32::GOLD)).clicked() {
+                    if ui.button(RichText::new(accel_label).strong().color(Color32::LIGHT_BLUE)).clicked() {
                         let mut settings = get_settings();
                         settings.sim_speed += 1.0;
                         set_settings(settings);
+                    }
+                    if ui.button(RichText::new(deccel_label).strong().color(deccel_color)).clicked() {
+                        if sim_speed() > 1.0 {
+                            let mut settings = get_settings();
+                            settings.sim_speed -= 1.0;
+                            set_settings(settings);
+                        }
                     }
                 });
 
@@ -299,6 +281,37 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Neuro Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.neuro_settings = !self.state.neuro_settings;
+                    }
+                });
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
+                menu::menu_button(ui, RichText::new("VIEW").strong(), |ui| {
+                    if ui.button(RichText::new("Monitor").strong().color(Color32::WHITE)).clicked() {
+                        self.state.monit = !self.state.monit;
+                    }
+                    if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
+                        self.state.inspect = !self.state.inspect;
+                    }
+                    if ui.button(RichText::new("Neural Network").strong().color(Color32::WHITE)).clicked() {
+                        self.state.neuro_lab = !self.state.neuro_lab;
+                    }
+                    if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
+                        self.state.ranking = !self.state.ranking;
+                    }
+                    if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
+                        self.state.mouse = !self.state.mouse;
+                    }
+                    if ui.button(RichText::new("Ancestors").strong().color(Color32::WHITE)).clicked() {
+                        self.state.ancestors = !self.state.ancestors;
+                    }
+                    if ui.button(RichText::new("Resource").strong().color(Color32::WHITE)).clicked() {
+                        self.state.resource = !self.state.resource;
+                    }
+                    if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::WHITE)).clicked() {
+                        self.state.info = !self.state.info;
                     }
                 });
 
@@ -1683,16 +1696,18 @@ impl UISystem {
             for rank in ranking.iter() {
                 i += 1;
                 ui.horizontal(|ui| {
-                    let msg1 = format!("{}. {}  ", i, rank.specie.to_uppercase());
-                    let msg2 = format!("G:{}  S:{}  A:{}  M:{}  ", rank.generation, rank.size as i32, rank.power, rank.speed);
-                    let msg3 = format!("pts: {}", rank.points.round());
-                    ui.label(RichText::new(msg1).small());
-                    //ui.add_space(1.0);
-                    //ui.separator();
-                    ui.label(RichText::new(msg2).small());
-                    //ui.add_space(1.0);
-                    //ui.separator();
-                    ui.label(RichText::new(msg3).small());
+                    let msg1 = format!("{}.{}", i, rank.specie.to_uppercase());
+                    //let msg2 = format!("G:{:3.}", rank.generation);
+                    let msg3 = format!("{}  |  ({})", rank.points.round(), rank.generation);
+                    ui.columns(2, |column| {
+                        
+                        column[0].set_width(80.0);
+                        column[0].label(RichText::new(msg1).monospace());
+                        //column[1].set_width(30.0);
+                        //column[1].label(RichText::new(msg2).monospace());
+                        column[1].set_width(55.0);
+                        column[1].label(RichText::new(msg3).color(Color32::WHITE).monospace().strong());
+                    });
                 });
             }
         }
@@ -1745,8 +1760,8 @@ impl UIState {
         Self {
             ancestors: false,
             new_sim_name: String::new(),
-            monit: false,
-            inspect: false,
+            monit: true,
+            inspect: true,
             mouse: false,
             quit: false,
             agents_num: 0,
@@ -1758,7 +1773,7 @@ impl UIState {
             environment: false,
             neuro_lab: false,
             resize_world: false,
-            ranking: false,
+            ranking: true,
             set_agent: false,
             load_sim: false,
             load_agent: false,
@@ -1768,13 +1783,13 @@ impl UIState {
             neuro_settings: false,
             info: false,
             resource: false,
-            plot_attributes: false,
-            plot_population: false,
-            plot_lifetime: false,
-            plot_neuro: false,
-            side_panel: false,
+            plot_attributes: true,
+            plot_population: true,
+            plot_lifetime: true,
+            plot_neuro: true,
+            side_panel: true,
             deaths: false,
-            bottom_panel: false,
+            bottom_panel: true,
         }
     }
 }

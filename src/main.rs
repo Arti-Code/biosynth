@@ -65,6 +65,7 @@ async fn main() {
     rand::srand(seed);
     let font = Font::default();
     let mut sim = Simulation::new(font.clone());
+    sim.init();
     sim.ui.load_textures();
     let mut args = env::args();
     match args.nth(1) {

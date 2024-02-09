@@ -825,7 +825,7 @@ impl Agent {
         if self.eating {
             basic_loss += attack_cost * self.size;
         }
-        let shell_loss = self.shell as f32 * 0.25; let speed_loss = self.speed as f32 * 1.5;
+        let shell_loss = self.shell as f32 * 0.15; let speed_loss = self.speed as f32 * 1.5;
         let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;

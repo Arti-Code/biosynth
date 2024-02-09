@@ -152,7 +152,7 @@ impl Default for Settings {
             rare_specie_mod: 1500,
             born_eng: 0.8,
             sim_speed: 1.0,
-            stats_limit: 100,
+            stats_limit: 25,
        }
     }
 
