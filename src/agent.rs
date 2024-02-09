@@ -164,7 +164,7 @@ impl Agent {
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
         let settings = get_settings();
-        return 80.0 + settings.agent_vision_range*(eyes as f32)/10.0;
+        return 120.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
     pub fn calc_vision_angle(eyes: i32) -> f32 {
@@ -613,8 +613,8 @@ impl Agent {
     }
 
     fn draw_target(&self, _selected: bool) {
-        if let Some(_rb) = self.enemy {
-            if let Some(enemy_position) = self.enemy_position {
+        self.enemy.inspect(|_| {
+            self.enemy_position.inspect(|enemy_position| {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
                 let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size;
                 let x0l = self.pos.x + v0l.x;
@@ -625,10 +625,10 @@ impl Agent {
                 let y1 = enemy_position.y;
                 draw_line(x0l, y0l, x1, y1, 2.0, self.color);
                 draw_line(x0r, y0r, x1, y1, 2.0, self.color);
-            }
-        }
-        if let Some(_rb) = self.resource {
-            if let Some(resource_position) = self.resource_position {
+            });
+        });
+        self.resource.inspect(|_| {
+            self.resource_position.inspect(|resource_position| {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
                 let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size;
                 let x0l = self.pos.x + v0l.x;
@@ -639,8 +639,8 @@ impl Agent {
                 let y1 = resource_position.y;
                 draw_line(x0l, y0l, x1, y1, 1.0, self.color);
                 draw_line(x0r, y0r, x1, y1, 1.0, self.color);
-            }
-        }
+            });
+        });
     }
 
     fn draw_info(&self, font: &Font) {
@@ -821,11 +821,12 @@ impl Agent {
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
         let size_cost = self.size * settings.size_cost;
-        let mut basic_loss = (size_cost) * base_cost;
+        let mut basic_loss = size_cost * base_cost;
         if self.eating {
-            basic_loss += size_cost * base_cost;
+            basic_loss += attack_cost * self.size;
         }
-        let mut move_loss = self.vel * (self.shell as f32 + self.speed as f32 + size_cost) * move_cost;
+        let shell_loss = self.shell as f32 * 0.25; let speed_loss = self.speed as f32 * 1.5;
+        let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }

@@ -571,22 +571,37 @@ impl Network {
         let mut links_to_del: Vec<u64> = vec![]; 
         if random_unit_unsigned() < mutation_rate {
             let (_, deep_keys, _) = self.get_node_keys_by_type();
-            let key = deep_keys.choose().unwrap();
-            match self.nodes.get(&key).unwrap().node_type {
-                NeuronTypes::DEEP => {
-                    let node_key = *key;
-                    nodes_to_del.push(node_key);
-                    let (links_from, links_to) = self.find_connected_links(node_key);
-                    for key in links_from.iter() {
-                        if links_to_del.contains(key) { continue; }
-                        links_to_del.push(*key);
-                    }
-                    for key in links_to.iter() {
-                        if links_to_del.contains(key) { continue; }
-                        links_to_del.push(*key);
-                    }
-                },
-                _ => {},
+            if !deep_keys.is_empty() {
+                match deep_keys.choose() {
+                    Some(k) => {
+                        match self.nodes.get(k) {
+                            None => {
+                                println!("No node found with key {}", k);
+                            },
+                            Some(n) => {
+                                match n.node_type {
+                                    NeuronTypes::DEEP => {
+                                        let node_key = *k;
+                                        nodes_to_del.push(node_key);
+                                        let (links_from, links_to) = self.find_connected_links(node_key);
+                                        for key in links_from.iter() {
+                                            if links_to_del.contains(key) { continue; }
+                                            links_to_del.push(*key);
+                                        }
+                                        for key in links_to.iter() {
+                                            if links_to_del.contains(key) { continue; }
+                                            links_to_del.push(*key);
+                                        }
+                                    },
+                                    _ => {},
+                                }
+                            },
+                        }
+                    },
+                    None => {
+                        println!("No deep node keys found. (neuro.rs: 'match deep_keys.choose()')");
+                    },
+                }
             }
         }
         for l_key in links_to_del.iter() {
@@ -650,10 +665,11 @@ impl Network {
         let mut counter: usize = 0;
         if random_unit_unsigned() < mutation_rate {
             let link_keys: Vec<u64> = self.links.keys().copied().collect();
-            let num = link_keys.len();
-            let r = rand::gen_range(0, num);
-            let link_key = link_keys[r];
-            self.links.remove(&link_key);
+            let link_key = link_keys.choose().unwrap();
+            //let num = link_keys.len();
+            //let r = rand::gen_range(0, num);
+            //let link_key = link_keys[r];
+            self.links.remove(link_key);
             counter += 1;
         }
         return counter;

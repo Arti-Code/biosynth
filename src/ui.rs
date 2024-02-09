@@ -106,6 +106,7 @@ impl UISystem {
             match agent {
                 Some(agent) => {
                     self.build_ancestors_window(egui_ctx, agent);
+                    self.build_network(egui_ctx, agent)
                 },
                 None => {},
             }
@@ -144,7 +145,7 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(5.0);
                 
-                menu::menu_button(ui, RichText::new("SIMULATION").strong(), |ui| {
+                menu::menu_button(ui, RichText::new("...").strong(), |ui| {
                     if ui.button(RichText::new("New Simulation").strong().color(Color32::BLUE)).clicked() {
                         self.state.new_sim = true;
                     }
@@ -612,13 +613,13 @@ impl UISystem {
             let names0 = vec![
                 "NEW", "IDEAL", "DANGER", "DARK", "FIRST", "EXPERIMENTAL", 
                 "RANDOM", "STRANGE", "CRAZY", "FANTASTIC", "ALTERNATIVE",
-                "DEEP", "DIGITAL", "FIRST", "GREAT", "LAST", "BROKEN", 
-                "ANOTHER", "MIRROR", "BYTE", "NEXT", "TOXIC", "FLUENT"
+                "DEEP", "DIGITAL", "FIRST", "GREAT", "LAST", 
+                "ANOTHER", "BYTE", "NEXT", "TOXIC"
             ];
             let names1 = vec![
-                "SIMULATION", "UNIVERSE", "WORLD", "LAND", "LAB", "PLANET", "SIM",
+                "SIMULATION", "UNIVERSE", "WORLD", "LAND", "PLANET", "SIM",
                 "REALITY", "BIOME", "LABOLATORY", "ROCK", "ISLAND", "NATURE", "ECOSYSTEM",
-                "SYSTEM", "EXPERIMENT", "TERRAIN", "GLOBE", "SPHERE", "SANDBOX"
+                "SYSTEM", "EXPERIMENT", "TERRAIN", "GLOBE", "SANDBOX"
             ];
 
             let mut settings = get_settings();
@@ -788,6 +789,62 @@ impl UISystem {
                 ui.horizontal(|row| {
                     row.label(RichText::new(attributes).strong());
                 });
+            });
+        }
+    }
+
+    fn build_network(&mut self, egui_ctx: &Context, agent: &Agent) {
+        if self.state.neuro_lab {
+            let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
+            Window::new(RichText::new("NEURO NETWORK").strong().color(Color32::GREEN)).default_pos((SCREEN_WIDTH-w, 0.0)).fixed_size((w, h)).show(egui_ctx, |ui| {
+                let network = &agent.network;
+                let offset = UIVec2::new(0.0, 0.0);
+                let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
+                let rect = response.rect;
+                let zero = rect.left_top().to_vec2()+offset;
+                //let (input_node_keys, hidden_node_keys, output_node_keys) = network.get_node_keys_by_type();
+                
+                for (_, link) in network.links.iter() {
+                    let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
+                    let ui_coord0 = vec2_to_uivec2(&coord0);
+                    let ui_coord1 = vec2_to_uivec2(&coord1);
+                    let w = link.get_width()*1.2;
+                    let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
+                    let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
+                    let (_, color1) = link.get_colors();
+                    let c1 = color_to_color32(color1);
+                    let points1 = [p1, p2];
+                    painter.line_segment(points1, Stroke { color: c1, width: w });
+                }
+                for (key, node) in network.nodes.iter() {
+                    let (_, color1) = node.get_colors();
+                    let r = node.get_size()*1.2;
+                    let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
+                    let p1 = vec2_to_pos2(&ipos);
+                    let c0 = color_to_color32(color1);
+                    //let c1 = color_to_color32(color0);
+                    let label = node.get_label();
+                    let v = match network.get_node_value(key) {
+                        None => 0.0,
+                        Some(v) => v,
+                    };
+                    painter.circle_filled(p1, r,  Color32::BLACK);
+                    //painter.circle_filled(p1, r,  c1);
+                    let w = 0.75 + 0.24*r;
+                    painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
+                    let mut font = FontId::default();
+                    font.size = 8.0;
+                    let txt = format!("{}: {:.1}", label, v);
+                    match node.node_type {
+                        NeuronTypes::INPUT => {
+                            painter.text(p1+UIVec2{x: 8.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
+                        },
+                        NeuronTypes::OUTPUT => {
+                            painter.text(p1+UIVec2{x: -50.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
+                        },
+                        _ => {},
+                    }
+                }
             });
         }
     }
@@ -1143,7 +1200,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut repro_time = settings.repro_time as i32;
                 column[0].label(RichText::new("REPRODUCTION TIME").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<i32>(&mut repro_time, 0..=200).step_by(1.0)).changed() {
+                if column[1].add(Slider::new::<i32>(&mut repro_time, 0..=400).step_by(1.0)).changed() {
                     settings.repro_time = repro_time as f32;
                     signals.new_settings = true;
                 }
@@ -1153,7 +1210,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut new_one_probability = settings.new_one_probability;
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.8).step_by(0.01)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.5).step_by(0.01)).changed() {
                     settings.new_one_probability = new_one_probability;
                     signals.new_settings = true;
                 }
@@ -1359,13 +1416,6 @@ impl UISystem {
                     });
                 });
             }
-            if self.state.neuro_lab {
-                ui.vertical(|ui| {
-                    ui.collapsing("Network", |ui| {
-                        self.inside_network(ui, agent);
-                    });
-                });
-            }
             if self.state.ranking {
                 ui.vertical(|ui| {
                     ui.collapsing("Ranking", |ui| {
@@ -1382,7 +1432,7 @@ impl UISystem {
         }
         let col_num = self.state.plot_attributes as i32 + self.state.plot_population as i32 + self.state.plot_lifetime as i32 + self.state.plot_neuro as i32;
         let mut c: usize = 0;
-        TopBottomPanel::bottom("bottom").height_range(150.0..=300.0).show(egui_ctx, |ui| {
+        TopBottomPanel::bottom("bottom").height_range(100.0..=400.0).show(egui_ctx, |ui| {
             ui.columns(col_num as usize, |col| {
                 if self.state.plot_population {
                     col[c].vertical(|ui| {
@@ -1420,10 +1470,12 @@ impl UISystem {
         //let statistics = statistics.get_statistics();
         let plot_lifetimes = Plot::new("lifetimes").legend(legend);
         let lifetimes = statistics.get_data_as_slice("lifetimes");
-        let points = statistics.get_data_as_slice("points");
+        let agents = statistics.get_data_as_slice("agents");
+        let plants = statistics.get_data_as_slice("plants");
         let inner = plot_lifetimes.show(ui, |plot_ui| {
-            plot_ui.line(Line::new(PlotPoints::from(lifetimes)).name("lifetime").color(Color32::GREEN));
-            plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
+            plot_ui.line(Line::new(PlotPoints::from(lifetimes)).name("lifetime").color(Color32::YELLOW));
+            plot_ui.line(Line::new(PlotPoints::from(agents)).name("agents").color(Color32::BLUE));
+            plot_ui.line(Line::new(PlotPoints::from(plants)).name("plants").color(Color32::GREEN));
         });
         _ = Some(inner.response.rect);
     }
@@ -1436,11 +1488,11 @@ impl UISystem {
         //let statistics = statistics.get_statistics();
         let born_plot = Plot::new("borns").legend(legend);
         let born = statistics.get_data_as_slice("borns");
-        //let points = statistics.get_data_as_slice("points");
+        let points = statistics.get_data_as_slice("points");
         let k = statistics.get_data_as_slice("kills");
         let inner = born_plot.show(ui, |plot_ui| {
             plot_ui.line(Line::new(PlotPoints::from(born)).name("borns").color(Color32::GREEN));
-            //plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
+            plot_ui.line(Line::new(PlotPoints::from(points)).name("points").color(Color32::BLUE));
             plot_ui.line(Line::new(PlotPoints::from(k)).name("kills").color(Color32::RED));
         });
         _ = Some(inner.response.rect);
@@ -1497,17 +1549,16 @@ impl UISystem {
             ui.label(RichText::new(format!("TIME: {}", time.round())).monospace());
             ui.label(RichText::new(format!("FPS: {}", fps)).monospace());
             ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).monospace());
-            ui.label(RichText::new(format!("AGENTS: {}", agents_num)).monospace());
-            ui.label(RichText::new(format!("PLANTS: {}", sources_num)).monospace());
+        });
+        ui.horizontal(|ui| {
+            ui.set_max_height(16.0);
+            ui.label(RichText::new(format!("AGENT: {}", agents_num)).monospace());
+            ui.label(RichText::new(format!("PLANT: {}", sources_num)).monospace());
         });
     }
 
     fn inside_agent_inspector(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
         if let Some(agent) = agent {
-            //let rot = agent.rot;
-            //let size = agent.size;
-            //let pos = agent.pos;
-            //let name = agent.specie.to_owned();
             let contacts_num = agent.contacts.len();
             let lifetime = agent.lifetime.round();
             let generation = agent.generation;
@@ -1536,33 +1587,35 @@ impl UISystem {
             let mutations = agent.mutations;
             let eyes = agent.eyes;
             //let name = &agent.specie;
-            let attributes = format!("SIZ: {} | SPE: {} | POW: {} | DEF: {} | MUT: {} | VIS: {}", size, speed, power, shell, mutations, eyes);
+            let attributes = format!("S: {} | M: {} | P: {} | D: {} | X: {} | V: {}", size, speed, power, shell, mutations, eyes);
             //let title_txt = format!("Attributes: {}", name.to_uppercase()); 
             ui.horizontal(|ui| {
-                ui.set_max_height(16.0);
+                ui.set_max_height(14.0);
                 ui.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::GREEN));
                 ui.separator();
                 ui.label(RichText::new("■■■").strong().color(color_to_color32(agent.mood)).monospace())
             });
             ui.horizontal(|ui| {
-                ui.set_max_height(16.0);
-                ui.label(RichText::new(format!("GEN: [{}]", generation)).monospace());
+                ui.set_max_height(14.0);
+                ui.label(RichText::new(format!("G: {}", generation)).monospace());
                 ui.separator();
-                ui.label(RichText::new(format!("TIME: [{}]", lifetime)).monospace());
+                ui.label(RichText::new(format!("T: {}", lifetime)).monospace());
                 ui.separator();
-                ui.label(RichText::new(format!("PTS: [{}]", points.round())).monospace());
-                ui.set_max_height(16.0);
-                ui.label(RichText::new(format!("CHILD: [{}]", childs)).monospace());
-                ui.separator();
-                ui.label(RichText::new(format!("KILLS: [{}]", kills)).monospace());
+                ui.label(RichText::new(format!("PTS: {}", points.round())).monospace());
             });
             ui.horizontal(|ui| {
-                ui.set_max_height(16.0);
+                ui.set_max_height(14.0);
+                ui.label(RichText::new(format!("BORN: {}", childs)).monospace());
+                ui.separator();
+                ui.label(RichText::new(format!("KILL: {}", kills)).monospace());
+            });
+            ui.horizontal(|ui| {
+                ui.set_max_height(14.0);
                 ui.label(RichText::new(attributes).strong());
             });
             ui.horizontal(|ui| {
-                ui.set_max_height(16.0);
-                let txt = format!("BASE {} | MOVE {} | ATTACK {} ", agent.eng_cost.basic.round(), agent.eng_cost.movement.round(), agent.eng_cost.attack.round());
+                ui.set_max_height(14.0);
+                let txt = format!("B: {} | M: {} | A: {} ", agent.eng_cost.basic.round(), agent.eng_cost.movement.round(), agent.eng_cost.attack.round());
                 ui.label(RichText::new(txt).strong().color(Color32::RED));
                 ui.separator();
                 ui.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
@@ -1627,27 +1680,20 @@ impl UISystem {
     fn inside_ranking(&mut self, ui: &mut Ui, ranking: &Vec<AgentSketch>) {
         if self.state.ranking {
             let mut i = 0;
-            ui.horizontal(|ui| {
-                ui.label(RichText::new("NAME").strong());
-                ui.separator();
-                ui.label(RichText::new("GEN").strong());
-                ui.separator();
-                ui.label(RichText::new("PTS").strong());
-            });
-            ui.separator();
             for rank in ranking.iter() {
                 i += 1;
                 ui.horizontal(|ui| {
-                    let msg1 = format!("{}. {}",i, rank.specie.to_uppercase());
-                    let msg2 = format!("{}", rank.generation);
-                    let msg3 = format!("{}", rank.points.round());
-                    ui.label(RichText::new(msg1).monospace());
-                    ui.separator();
-                    ui.label(RichText::new(msg2).monospace());
-                    ui.separator();
-                    ui.label(RichText::new(msg3).monospace());
+                    let msg1 = format!("{}. {}  ", i, rank.specie.to_uppercase());
+                    let msg2 = format!("G:{}  S:{}  A:{}  M:{}  ", rank.generation, rank.size as i32, rank.power, rank.speed);
+                    let msg3 = format!("pts: {}", rank.points.round());
+                    ui.label(RichText::new(msg1).small());
+                    //ui.add_space(1.0);
+                    //ui.separator();
+                    ui.label(RichText::new(msg2).small());
+                    //ui.add_space(1.0);
+                    //ui.separator();
+                    ui.label(RichText::new(msg3).small());
                 });
-                //ui.separator();
             }
         }
     }

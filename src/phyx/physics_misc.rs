@@ -41,7 +41,7 @@ impl PhysicsMaterial {
     }
 
     pub fn high_inert() -> Self {
-        Self { friction: 4.0, restitution: -0.6, density: 20.0, linear_damping: 1.0, angular_damping: 1.0 }
+        Self { friction: 4.0, restitution: -0.6, density: 20.0, linear_damping: 5.0, angular_damping: 1.0 }
     }
 
 }

@@ -74,6 +74,10 @@ pub fn random_unit_vec2() -> Vec2 {
     return Vec2::new(x, y).normalize_or_zero();
 }
 
+pub fn dt() -> f32 {
+    return  get_frame_time();
+}
+
 pub fn random_color() -> color::Color {
     let colors = vec![
         LIGHTGRAY, GRAY, DARKGRAY, YELLOW, GOLD, ORANGE, PINK, RED, 

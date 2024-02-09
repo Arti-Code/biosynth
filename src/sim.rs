@@ -62,6 +62,9 @@ pub struct Simulation {
     points: Vec<f32>,
     nodes: Vec<i32>,
     links: Vec<i32>,
+    population_agents: Vec<i32>,
+    population_plants: Vec<i32>,
+    stats_timer: Timer,
     statistics: Statistics,
 }
 
@@ -108,7 +111,9 @@ impl Simulation {
             plot_x: 0,
             borns: [0, 0, 0, 0],
             deaths: [0, 0],
-
+            population_agents: vec![],
+            population_plants: vec![],
+            stats_timer: Timer::new(5.0, true, true, false),
             statistics: Statistics::new(settings.stats_limit),
         }
     }
@@ -129,6 +134,8 @@ impl Simulation {
         self.statistics.add_data_type("shells");
         self.statistics.add_data_type("nodes");
         self.statistics.add_data_type("links");
+        self.statistics.add_data_type("agents");
+        self.statistics.add_data_type("plants");
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
@@ -307,7 +314,7 @@ impl Simulation {
             if !agent.attacking { continue; }
             let attacks = agent.attack();
             for tg in attacks.iter() {
-                if let Some(target) = self.agents.agents.get(tg) {
+                self.agents.agents.get(tg).inspect(|target| {
                     let pow1 = 0.5*agent.size + agent.power as f32;
                     let pow2 = 0.5*target.size + target.power as f32;
                     let power1 = pow1 + pow1*random_unit();
@@ -316,7 +323,7 @@ impl Simulation {
                         let mut a = (agent.power as f32 + agent.size*0.5)/1.5;
                         a = a + a*random_unit();
                         let d = target.shell as f32 * 1.5;
-                        let mut dmg = (a/d) * dt * settings.damage;
+                        let mut dmg = (a-d) * dt * settings.damage;
                         if dmg > 0.0 {
                             if hits.contains_key(id) {
                                 let (old_dmg, _) = *hits.get_mut(id).unwrap();
@@ -335,7 +342,7 @@ impl Simulation {
                             }
                         }
                     }
-                }
+                });
             }
         }
         let mut killers: Vec<RigidBodyHandle> = vec![];
@@ -345,7 +352,7 @@ impl Simulation {
             if damage >= 0.0 {
                 let hp = damage * settings.atk_to_eng;
                 agent1.add_energy(hp);
-                agent1.points += hp*0.001;
+                agent1.points += hp*0.015;
             } else {
                 agent1.add_energy(damage);
                 agent1.pain = true;
@@ -370,8 +377,8 @@ impl Simulation {
             if agent.eating && !agent.attacking {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
-                if let Some(_target) = self.resources.resources.get(tg) {
-                    let power1 = agent.size + 7.5*random_unit();
+                    self.resources.resources.get(tg).inspect(|_target| {
+                        let power1 = agent.size + 7.5*random_unit();
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
@@ -388,7 +395,7 @@ impl Simulation {
                         } else {
                             hits.insert(*tg, bite);
                         }
-                    }
+                    });
                 }
             }
         }
@@ -786,6 +793,10 @@ impl Simulation {
     }
 
     fn update_sim_state(&mut self) {
+        if self.stats_timer.update(dt()) {
+            self.population_agents.push(self.agents.count() as i32);
+            self.population_plants.push(self.resources.count() as i32);
+        }
         self.sim_state.fps = self.monitor.fps();
         self.sim_state.dt = self.monitor.dt();
         self.sim_state.sim_time += (get_frame_time()*sim_speed()) as f64;
@@ -814,6 +825,10 @@ impl Simulation {
             let points: f32 = self.points.iter().sum::<f32>()/self.points.len() as f32;
             let nodes: f32 = self.nodes.iter().sum::<i32>() as f32/self.nodes.len() as f32;
             let links: f32 = self.links.iter().sum::<i32>() as f32/self.links.len() as f32;
+            let pop_agents: f32 = self.population_agents.iter().sum::<i32>() as f32/self.population_agents.len() as f32;
+            let pop_plants: f32 = self.population_plants.iter().sum::<i32>() as f32/self.population_plants.len() as f32;
+            self.population_agents.clear();
+            self.population_plants.clear();
             self.points.clear();
             self.powers.clear();
             self.speeds.clear();
@@ -838,6 +853,8 @@ impl Simulation {
             self.statistics.add_data("shells", (next-1, shells as f64));
             self.statistics.add_data("nodes", (next-1, nodes as f64));
             self.statistics.add_data("links", (next-1, links as f64));
+            self.statistics.add_data("agents", (next-1, pop_agents as f64));
+            self.statistics.add_data("plants", (next-1, pop_plants as f64));
             self.borns = [0, 0, 0, 0];
             self.deaths = [0, 0];
         }
@@ -858,8 +875,6 @@ impl Simulation {
             if random_unit_unsigned() < settings.new_one_probability  {
                 self.agent_from_zero();
             }
-        }
-        if self.population_timer.update(dt) {
             if random_unit_unsigned() < settings.new_one_probability  {
                 self.agent_from_sketch();
             }
