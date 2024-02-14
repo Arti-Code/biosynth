@@ -56,7 +56,7 @@ impl SimulationSketch {
             let sketch2 = sketch.to_owned();
             ranking.push(sketch2);
         }
-        let settings = get_settings();
+        let settings = settings();
         Self { 
             simulation_name: sim.simulation_name.to_owned(), 
             world_size: MyPos2::from_vec(&sim.world_size), 

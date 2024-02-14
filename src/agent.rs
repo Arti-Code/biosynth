@@ -80,13 +80,20 @@ pub struct Agent {
 impl Agent {
     
     pub fn new(physics: &mut Physics) -> Self {
-        let settings = get_settings();
+        let settings = settings();
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let rot = random_rotation();
         let eyes = gen_range(0, 10);
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
+        let rbh = physics.add_dynamic_object(
+            &pos, 
+            rot, 
+            shape.clone(), 
+            PhysicsMaterial::default(), 
+            InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 },
+            false,
+        );
         let color = random_color();
         let color_second = random_color();
         let mut network = Network::new(1.0);
@@ -163,7 +170,7 @@ impl Agent {
     }
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
-        let settings = get_settings();
+        let settings = settings();
         return 120.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
@@ -180,7 +187,7 @@ impl Agent {
     }
 
     fn mod_specie(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         if rand::gen_range(0, settings.rare_specie_mod) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;
@@ -203,7 +210,7 @@ impl Agent {
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
         let key = gen_range(u64::MIN, u64::MAX);
-        let settings = get_settings();
+        let settings = settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
         let color_second = Color::new(sketch.color_second[0], sketch.color_second[1], sketch.color_second[2], sketch.color_second[3]);
@@ -223,7 +230,14 @@ impl Agent {
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
         //let parts: Vec<Box<dyn AgentPart>> = vec![];
-        let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
+        let rbh = physics.add_dynamic_object(
+            &pos, 
+            0.0, 
+            shape.clone(), 
+            PhysicsMaterial::default(), 
+            InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 },
+            false,
+        );
         let mut agent = Agent {
             key,
             pos,
@@ -287,7 +301,7 @@ impl Agent {
     }
 
     pub fn draw(&self, selected: bool, font: &Font) {
-        let settings = get_settings();
+        let settings = settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
             self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
@@ -644,7 +658,7 @@ impl Agent {
     }
 
     fn draw_info(&self, font: &Font) {
-        let settings = get_settings();
+        let settings = settings();
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let text_cfg = TextParams {
@@ -683,7 +697,7 @@ impl Agent {
     }
 
     fn update_physics(&mut self, physics: &mut Physics) {
-        let settings = get_settings();
+        let settings = settings();
         self.update_enemy_position(physics);
         let physics_data = physics.get_object_state(self.physics_handle);
         self.pos = physics_data.position;
@@ -708,7 +722,7 @@ impl Agent {
     }
 
     fn check_edges(&mut self, body: &mut RigidBody) {
-        let settings = get_settings();
+        let settings = settings();
         let (mut raw_pos, rot ) = iso_to_vec2_rot(body.position());
         let mut out_of_edge: f32 = 0.0;
         if raw_pos.x <= 0.0 {
@@ -816,7 +830,7 @@ impl Agent {
     }
 
     fn calc_energy(&mut self, dt: f32) {
-        let settings = get_settings();
+        let settings = settings();
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
@@ -881,7 +895,7 @@ impl Agent {
     }
 
     pub fn mutate(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         let m = ((self.mutations - 5) as f32) / 10.0;
         let mut_rate = settings.mutations + settings.mutations * m;
         self.mutations = Self::mutate_one(self.mutations, mut_rate);
@@ -897,7 +911,7 @@ impl Agent {
     }
 
     fn calc_hp(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         let eng = self.size * settings.size_to_hp + settings.base_hp as f32;
         self.max_eng = eng;
         self.eng = eng*settings.born_eng;
@@ -912,7 +926,14 @@ impl Agent {
         let rot = random_rotation();
         let pos = self.pos;
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
-        let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), interactions);
+        let rbh = physics.add_dynamic_object(
+            &pos, 
+            rot, 
+            shape.clone(), 
+            PhysicsMaterial::default(), 
+            interactions, 
+            false
+        );
         let network = self.network.replicate();
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();

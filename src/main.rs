@@ -1,5 +1,5 @@
-//#![allow(unused)]
-//#![windows_subsystem = "windows"]
+#![allow(unused)]
+#![windows_subsystem = "windows"]
 
 mod camera;
 mod neuro;
@@ -8,7 +8,7 @@ mod timer;
 mod ui;
 mod util;
 mod phyx;
-//mod part;
+mod ranking;
 mod agent;
 mod collector;
 mod misc;

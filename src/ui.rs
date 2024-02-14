@@ -165,7 +165,7 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Resize World").strong().color(Color32::LIGHT_RED),).clicked() {
                         if !self.state.resize_world {
-                            let settings = get_settings();
+                            let settings = settings();
                             self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
                         }
                         self.state.resize_world = !self.state.resize_world;
@@ -200,22 +200,22 @@ impl UISystem {
 
                 menu::menu_button(ui, RichText::new("CAMERA").strong(), |ui| {
                     if ui.button(RichText::new("Follow Mode").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = get_settings();
+                        let mut settings = settings();
                         settings.follow_mode = !settings.follow_mode;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Name").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = get_settings();
+                        let mut settings = settings();
                         settings.show_specie = !settings.show_specie;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Generation").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = get_settings();
+                        let mut settings = settings();
                         settings.show_generation = !settings.show_generation;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Energy Bar").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = get_settings();
+                        let mut settings = settings();
                         settings.agent_eng_bar = !settings.agent_eng_bar;
                         set_settings(settings);
                     }
@@ -235,18 +235,18 @@ impl UISystem {
 
                 menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
                     if ui.button(RichText::new("Real Time").strong().color(Color32::GREEN)).clicked() {
-                        let mut settings = get_settings();
+                        let mut settings = settings();
                         settings.sim_speed = 1.0;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new(accel_label).strong().color(Color32::LIGHT_BLUE)).clicked() {
-                        let mut settings = get_settings();
+                        let mut settings = settings();
                         settings.sim_speed += 1.0;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new(deccel_label).strong().color(deccel_color)).clicked() {
                         if sim_speed() > 1.0 {
-                            let mut settings = get_settings();
+                            let mut settings = settings();
                             settings.sim_speed -= 1.0;
                             set_settings(settings);
                         }
@@ -635,7 +635,7 @@ impl UISystem {
                 "SYSTEM", "EXPERIMENT", "TERRAIN", "GLOBE", "SANDBOX"
             ];
 
-            let mut settings = get_settings();
+            let mut settings = settings();
             let w = 500.0; let h = 220.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h]).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
@@ -918,7 +918,7 @@ impl UISystem {
         if !self.state.set_agent {
             return;
         }
-        let mut settings = get_settings();
+        let mut settings = settings();
         Window::new("AGENT SETTINGS").id("agent_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.heading("AGENT SETTINGS");
@@ -1095,7 +1095,7 @@ impl UISystem {
         if !self.state.environment {
             return;
         }
-        let mut settings = get_settings();
+        let mut settings = settings();
         Window::new("ENVIROMENT SETTINGS").id("enviroment_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.columns(2, |column| {
@@ -1305,7 +1305,7 @@ impl UISystem {
         if !self.state.neuro_settings {
             return;
         }
-        let mut settings = get_settings();
+        let mut settings = settings();
         Window::new("NEURO SETTINGS").id("neuro_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.columns(2, |column| {

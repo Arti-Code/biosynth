@@ -8,18 +8,13 @@ pub fn set_settings(settings: Settings) {
     storage::store(settings);
 }
 
-pub fn get_settings() -> Settings {
+pub fn settings() -> Settings {
     return storage::get::<Settings>().clone();
 }
 
 pub fn sim_speed() -> f32 {
-    return get_settings().sim_speed;
+    return settings().sim_speed;
 }
-
-/* fn default_plant_life() -> f32 {
-    return 128.0;
-} */
-
 fn default_stats_limit() -> usize {
     return 100;
 }
@@ -42,7 +37,6 @@ pub struct Settings {
     pub agent_size_max: i32,
     pub show_network: bool,
     pub show_specie: bool,
-    //#[serde(default = "default_false")]
     pub show_generation: bool,
     pub show_cells: bool,
     pub show_plant_rad: bool,
@@ -52,11 +46,8 @@ pub struct Settings {
     pub base_energy_cost: f32,
     pub move_energy_cost: f32,
     pub attack_energy_cost: f32,
-    //#[serde(default = "default_size_cost")]
     pub size_cost: f32,
-    //#[serde(default = "default_base_hp")]
     pub base_hp: i32,
-    //#[serde(default = "default_size_to_hp")]
     pub size_to_hp: f32,
     pub plant_num: f32,
     pub neuro_duration: f32,
@@ -69,29 +60,17 @@ pub struct Settings {
     pub new_one_probability: f32,
     pub grid_size: u32,
     pub follow_mode: bool,
-    //#[serde(default = "default_res_prob")]
     pub plant_probability: f32,
-    //#[serde(default = "default_plant_life")]
     pub plant_lifetime: f32,
-    //#[serde(default = "default_growth")]
     pub growth: f32,
-    //#[serde(default = "default_water_lvl")]
     pub water_lvl: u8,
-    //#[serde(default = "default_mutations")]
     pub mut_add_link: f32,
-    //#[serde(default = "default_mutations")]
     pub mut_del_link: f32,
-    //#[serde(default = "default_mutations")]
     pub mut_add_node: f32,
-    //#[serde(default = "default_mutations")]
     pub mut_del_node: f32,
-    //#[serde(default = "default_mutations")]
     pub mut_change_val: f32,
-    //#[serde(default = "default_specie_mod")]
     pub rare_specie_mod: i32,
-    //#[serde(default = "default_born_eng")]
     pub born_eng: f32,
-    //#[serde(default = "default_sim_speed")]
     pub sim_speed: f32,
     #[serde(default = "default_stats_limit")]
     pub stats_limit: usize,

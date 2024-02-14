@@ -38,8 +38,8 @@ impl Physics {
         return self.core.get_numbers();
     }
 
-    pub fn add_dynamic_object(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups) -> RigidBodyHandle {
-        self.core.add_dynamic(position, rotation, shape, material, groups)
+    pub fn add_dynamic_object(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups, can_sleep: bool) -> RigidBodyHandle {
+        self.core.add_dynamic(position, rotation, shape, material, groups, can_sleep)
     }
 
     pub fn add_collider(&mut self, rbh: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups) -> ColliderHandle {
@@ -207,10 +207,10 @@ impl PhysicsCore {
         }
     }
 
-    fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
+    fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32, can_sleep: bool) -> RigidBodyHandle {
         let pos = make_isometry(position.x, position.y, rotation);
         let dynamic_body = RigidBodyBuilder::dynamic().position(pos)
-            .linear_damping(linear_damping).angular_damping(angular_damping).build();
+            .linear_damping(linear_damping).angular_damping(angular_damping).can_sleep(can_sleep).build();
         return self.rigid_bodies.insert(dynamic_body);
     }
 
@@ -234,14 +234,14 @@ impl PhysicsCore {
         return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
     }
 
-    pub fn add_dynamic(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups) -> RigidBodyHandle {
-        let rbh = self.add_dynamic_rigidbody(position, rotation, physics_props.linear_damping, physics_props.angular_damping);
+    pub fn add_dynamic(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups, can_sleep: bool) -> RigidBodyHandle {
+        let rbh = self.add_dynamic_rigidbody(position, rotation, physics_props.linear_damping, physics_props.angular_damping, can_sleep);
         let _ch = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props, groups);
         return rbh;
     }
 
     pub fn get_physics_data(&self, handle: RigidBodyHandle) -> PhysicState {
-        let settings = get_settings();
+        let settings = settings();
         if let Some(rb) = self.rigid_bodies.get(handle) {
             let iso = rb.position();
             let (pos, rot) = iso_to_vec2_rot(iso);

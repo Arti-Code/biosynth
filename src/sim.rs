@@ -72,7 +72,7 @@ pub struct Simulation {
 impl Simulation {
     
     pub fn new(font: Font) -> Self {
-        let settings = get_settings();
+        let settings = settings();
         Self {
             simulation_name: format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
             world_size: Vec2 {
@@ -121,7 +121,7 @@ impl Simulation {
     }
 
     fn init_stats(&mut self) {
-        self.statistics = Statistics::new(get_settings().stats_limit);
+        self.statistics = Statistics::new(settings().stats_limit);
         self.borns = [0, 0, 0, 0];
         self.statistics.add_data_type("borns");
         self.statistics.add_data_type("deaths");
@@ -145,7 +145,7 @@ impl Simulation {
             Some(name) => name.to_string(),
             None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
         };
-        let settings = get_settings();
+        let settings = settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
         self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
@@ -163,7 +163,7 @@ impl Simulation {
     }
 
     fn clear_sim(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
         self.agents = AgentBox::new();
@@ -180,7 +180,7 @@ impl Simulation {
     }
 
     pub fn init(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
         self.plot_x = (self.sim_state.sim_time/100.0) as i32;
@@ -213,11 +213,12 @@ impl Simulation {
                 self.powers.push(agent.power as f32);
                 self.mutations.push(agent.mutations as f32);
                 self.shells.push(agent.shell as f32);
-                let mut sketch = agent.get_sketch();
                 self.points.push(agent.points);
                 let (n, l) = agent.get_nodes_links_num();
                 self.nodes.push(n);
                 self.links.push(l);
+
+                let mut sketch = agent.get_sketch();
                 sketch.points = (sketch.points).round();
                 self.ranking.push(sketch);
                 self.physics.remove_object(agent.physics_handle);
@@ -229,7 +230,7 @@ impl Simulation {
     }
 
     fn update_rank(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
         let ranking_copy = self.ranking.to_vec();
         for elem1 in ranking_copy.iter() {
@@ -253,7 +254,7 @@ impl Simulation {
     }
 
     fn update_res(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         let mut new_resources: Vec<Plant> = vec![];
         for (_, res) in self.resources.get_iter_mut() {
             match res.update_cloning(&mut self.physics) {
@@ -309,7 +310,7 @@ impl Simulation {
     }
 
     fn attacks(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         let dt = get_frame_time()*sim_speed();
         let mut hits: HashMap<RigidBodyHandle, (f32, RigidBodyHandle)> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
@@ -372,7 +373,7 @@ impl Simulation {
     }
 
     fn eat(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         let dt = get_frame_time()*sim_speed();
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
@@ -442,12 +443,12 @@ impl Simulation {
     }
 
     pub fn draw_terrain(&self) {
-        let settings = get_settings();
+        let settings = settings();
         self.terrain.draw(settings.show_cells);
     }
 
     fn draw_res(&self) {
-        let settings = get_settings();
+        let settings = settings();
         for (_, res) in self.resources.get_iter() {
             res.draw(settings.show_plant_rad);
         }
@@ -562,7 +563,7 @@ impl Simulation {
         }
         if get_signals().resize_world.is_some() {
             let xy = get_signals().resize_world.unwrap();
-            let mut settings = get_settings();
+            let mut settings = settings();
             settings.world_w = xy.x as i32; settings.world_h = xy.y as i32;
             set_settings(settings.clone());
             self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
@@ -679,7 +680,7 @@ impl Simulation {
                         match serde_json::from_str::<AgentSketch>(&save) {
                             Ok(agent_save) => {
                                 let mut agent = Agent::from_sketch(agent_save.clone(), &mut self.physics);
-                                let settings = get_settings();
+                                let settings = settings();
                                 agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
                                 self.agents.add_agent(agent);
                             },
@@ -812,7 +813,7 @@ impl Simulation {
     }
 
     fn check_settings(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         if settings.follow_mode && self.selected.is_some() {
             match self.selected {
                 None => {},
@@ -908,7 +909,7 @@ impl Simulation {
     }
 
     fn check_agents_num(&mut self) {
-        let settings = get_settings();
+        let settings = settings();
         let dt = get_frame_time()*sim_speed();
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
             self.agent_from_zero();

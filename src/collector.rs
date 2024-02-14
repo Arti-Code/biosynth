@@ -42,7 +42,7 @@ impl AgentBox {
 
     pub fn populate(&mut self, physics: &mut Physics) -> (i32, i32, i32) {
         let mut counter: i32 = 0; let mut n = 0; let mut l = 0;
-        let settings = get_settings();
+        let settings = settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
             if agent.lifetime >= (settings.repro_time + settings.repro_time * agent.childs as f32) && (agent.eng/agent.max_eng) >= 0.75 {
@@ -56,7 +56,6 @@ impl AgentBox {
         loop {
             match newborns.pop() {
                 Some(newbie) => {
-                    //newbie.network.mutate(settings.mutations);
                     counter += 1;
                     let (n0, l0) = self.add_agent(newbie);
                     n += n0; l += l0;
@@ -70,7 +69,7 @@ impl AgentBox {
     }
 
     pub fn add_agent(&mut self, mut agent: Agent) -> (i32, i32) {
-        let settings = get_settings();
+        let settings = settings();
         while agent.pos.x >= settings.world_w as f32 || agent.pos.y >= settings.world_h as f32 || agent.pos.x <= 0.0 || agent.pos.y <= 0.0 {
             agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
         }     
@@ -122,9 +121,7 @@ impl ResBox {
     }
 
     pub fn add_resource(&mut self, resource: Plant) {
-        //let key = resource.key;
         self.resources.insert(resource.physics_handle, resource);
-        //return key;
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Plant> {

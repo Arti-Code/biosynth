@@ -103,7 +103,7 @@ pub fn angle2vec2(angle: f32) -> Vec2 {
 }
 
 pub fn wrap_around(v: &Vec2) -> Vec2 {
-    let settings = get_settings();
+    let settings = settings();
     let world_w = settings.world_w as f32;
     let world_h = settings.world_h as f32;
     let tolerance = 0.0;

@@ -479,7 +479,7 @@ impl Network {
     }
 
     pub fn mutate(&mut self, m: f32) {
-        let settings = get_settings();
+        let settings = settings();
         let mut_node_add = settings.mut_add_node + settings.mut_add_node*m;
         let mut_node_del = settings.mut_del_node + settings.mut_del_node*m;
         let mut_link_add = settings.mut_add_link + settings.mut_add_link*m;
