@@ -1415,6 +1415,9 @@ impl UISystem {
             return;
         }
         SidePanel::left("Sidebar").width_range(100.0..=700.0).show(egui_ctx, |ui| {
+            if !self.pointer_over {
+                self.pointer_over = ui.ui_contains_pointer();
+            }
             if self.state.monit {
                 ui.vertical(|ui| {
                     ui.collapsing("Monitor", |ui| {
@@ -1446,6 +1449,9 @@ impl UISystem {
         let col_num = self.state.plot_attributes as i32 + self.state.plot_population as i32 + self.state.plot_lifetime as i32 + self.state.plot_neuro as i32;
         let mut c: usize = 0;
         TopBottomPanel::bottom("bottom").height_range(100.0..=400.0).show(egui_ctx, |ui| {
+            if !self.pointer_over {
+                self.pointer_over = ui.ui_contains_pointer();
+            }
             ui.columns(col_num as usize, |col| {
                 if self.state.plot_population {
                     col[c].vertical(|ui| {
