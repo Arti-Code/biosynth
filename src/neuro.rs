@@ -77,7 +77,6 @@ pub struct Network {
     margins: NeuroMargins,
     pub input_keys: Vec<u64>,
     pub output_keys: Vec<u64>,
-    //duration: f32
 }
 
 impl Node {
@@ -157,7 +156,8 @@ impl Node {
     }
 
     pub fn recv_input(&mut self, v: f32) {
-        self.val = v;
+        let val = v+self.bias;
+        self.val = clamp(val, -1.0, 1.0);
         if v == 0.0 { 
             self.active = false;
         } else {
@@ -507,8 +507,8 @@ impl Network {
         if random_unit_unsigned() < mutation_rate {
             let k = *node_keys.choose().unwrap();
             let node = self.nodes.get_mut(&k).unwrap();
-            node.bias = node.bias + rand::gen_range(-1.0, 1.0) * 0.2;
-            node.bias = clamp(node.bias, -1.0, 1.0);
+            let bias = node.bias + rand::gen_range(-0.25, 0.25);
+            node.bias = clamp(bias, -1.0, 1.0);
             counter += 1;
         }
         return counter;
@@ -520,8 +520,8 @@ impl Network {
         if random_unit_unsigned() < mutation_rate {
             let k = *link_keys.choose().unwrap();
             let link = self.links.get_mut(&k).unwrap();
-            link.w = link.w + rand::gen_range(-1.0, 1.0)*0.2;
-            link.w = clamp(link.w, -1.0, 1.0);
+            let weight = link.w + rand::gen_range(-0.25, 0.25);
+            link.w = clamp(weight, -1.0, 1.0);
             counter += 1;
         }
         return counter;
@@ -666,9 +666,6 @@ impl Network {
         if random_unit_unsigned() < mutation_rate {
             let link_keys: Vec<u64> = self.links.keys().copied().collect();
             let link_key = link_keys.choose().unwrap();
-            //let num = link_keys.len();
-            //let r = rand::gen_range(0, num);
-            //let link_key = link_keys[r];
             self.links.remove(link_key);
             counter += 1;
         }
@@ -699,13 +696,6 @@ impl MyPos2 {
             y: vec2.y,
         }
     }
-
-/*     pub fn from_ivec(ivec2: &IVec2) -> Self {
-        Self {
-            x: ivec2.x as f32,
-            y: ivec2.y as f32,
-        }
-    } */
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
