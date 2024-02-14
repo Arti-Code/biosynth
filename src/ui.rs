@@ -72,9 +72,9 @@ impl UISystem {
     
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
-            let img =  Self::load_image(Path::new("assets/img/biome32.png")).unwrap();
+            let img =  Self::load_image(Path::new("assets/img/globe32.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
-            let img2 =  Self::load_image(Path::new("assets/img/biome128.png")).unwrap();
+            let img2 =  Self::load_image(Path::new("assets/img/globe128.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
             let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
             self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
@@ -1697,14 +1697,11 @@ impl UISystem {
                 i += 1;
                 ui.horizontal(|ui| {
                     let msg1 = format!("{}.{}", i, rank.specie.to_uppercase());
-                    //let msg2 = format!("G:{:3.}", rank.generation);
                     let msg3 = format!("{}  |  ({})", rank.points.round(), rank.generation);
                     ui.columns(2, |column| {
                         
                         column[0].set_width(80.0);
                         column[0].label(RichText::new(msg1).monospace());
-                        //column[1].set_width(30.0);
-                        //column[1].label(RichText::new(msg2).monospace());
                         column[1].set_width(55.0);
                         column[1].label(RichText::new(msg3).color(Color32::WHITE).monospace().strong());
                     });
