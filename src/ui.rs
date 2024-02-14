@@ -147,24 +147,24 @@ impl UISystem {
                 ui.add_space(5.0);
                 
                 menu::menu_button(ui, RichText::new("MENU").strong(), |ui| {
-                    if ui.button(RichText::new("New Simulation").strong().color(Color32::BLUE)).clicked() {
+                    if ui.button(RichText::new("New Simulation").strong().color(Color32::GREEN)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::GREEN)).clicked() {
+                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::LIGHT_BLUE)).clicked() {
                         //signals.load_sim = true;
                         self.state.load_sim = true;
                     }
-                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::GREEN)).clicked() {
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::LIGHT_RED)).clicked() {
                         signals.save_sim = true;
                     }
-                    if ui.button(RichText::new("Load Agent").weak().color(Color32::BLUE)).clicked() {
+                    if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_BLUE)).clicked() {
                         self.state.load_agent = true;
                     }
-                    if ui.button(RichText::new("Save Agent").strong().color(Color32::BLUE),).clicked() {
+                    if ui.button(RichText::new("Save Agent").strong().color(Color32::LIGHT_RED),).clicked() {
                         //let mut signals = mod_signals();
                         signals.save_selected = true;
                     }
-                    if ui.button(RichText::new("Resize World").strong().color(Color32::LIGHT_RED),).clicked() {
+                    if ui.button(RichText::new("Resize World").strong().color(Color32::GOLD),).clicked() {
                         if !self.state.resize_world {
                             let settings = settings();
                             self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
@@ -1428,13 +1428,13 @@ impl UISystem {
             }
             if self.state.inspect {
                 ui.vertical(|ui| {
-                    let name = match agent {
+/*                     let name = match agent {
                         Some(agent) => {
                             agent.specie.to_uppercase()
                         },
                         None => String::from("Inspector"),
-                    };
-                    ui.collapsing(name, |ui| {
+                    }; */
+                    ui.collapsing("Inspector", |ui| {
                         self.inside_agent_inspector(ui, agent);
                     });
                 });
@@ -1630,6 +1630,7 @@ impl UISystem {
             let eat = agent.eating;
             let points = agent.points;
             let run = agent.run;
+            let name = agent.specie.to_owned().to_uppercase();
             let mut states: Vec<String> = vec![];
             if attack { states.push("ATK".to_string()) }
             if eat { states.push("EAT".to_string()) }
@@ -1653,9 +1654,7 @@ impl UISystem {
             //let title_txt = format!("Attributes: {}", name.to_uppercase()); 
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
-                ui.label(RichText::new(format!("[ ENERGY: {} / {} ]", agent.eng.round(), agent.max_eng.round())).strong().color(Color32::GREEN));
-                ui.separator();
-                ui.label(RichText::new("■■■").strong().color(color_to_color32(agent.mood)).monospace())
+                ui.label(RichText::new(format!("{} [ENERGY:{}/{}]", &name, agent.eng.round(), agent.max_eng.round())).strong().monospace().color(Color32::GREEN));
             });
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
@@ -1670,6 +1669,8 @@ impl UISystem {
                 ui.label(RichText::new(format!("BORN: {}", childs)).monospace());
                 ui.separator();
                 ui.label(RichText::new(format!("KILL: {}", kills)).monospace());
+                ui.separator();
+                ui.label(RichText::new("■■■").strong().color(color_to_color32(agent.mood)).monospace())
             });
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
