@@ -106,7 +106,7 @@ impl UISystem {
             match agent {
                 Some(agent) => {
                     self.build_ancestors_window(egui_ctx, agent);
-                    self.build_network(egui_ctx, agent)
+                    //self.build_network(egui_ctx, agent)
                 },
                 None => {},
             }
@@ -125,8 +125,9 @@ impl UISystem {
             self.build_settings_neuro_window(egui_ctx, signals);
             self.build_info_window(egui_ctx);
             self.build_resize_world_window(egui_ctx);
-            self.build_side_panel(egui_ctx, &sim_state, agent, ranking);
-            self.build_bottom_panel(egui_ctx, statistics);
+            self.build_left_panel(egui_ctx, &sim_state, agent, ranking);
+            self.build_right_panel(egui_ctx, agent, statistics);
+            //self.build_bottom_panel(egui_ctx, statistics);
         });
     }
 
@@ -259,11 +260,11 @@ impl UISystem {
 
 
                 menu::menu_button(ui, RichText::new("PANELS").strong(), |ui| {
-                    if ui.button(RichText::new("Side Panel").strong().color(Color32::WHITE)).clicked() {
-                        self.state.side_panel = !self.state.side_panel;
+                    if ui.button(RichText::new("Left Panel").strong().color(Color32::WHITE)).clicked() {
+                        self.state.left_panel = !self.state.left_panel;
                     }
-                    if ui.button(RichText::new("Bottom Panel").strong().color(Color32::WHITE)).clicked() {
-                        self.state.bottom_panel = !self.state.bottom_panel;
+                    if ui.button(RichText::new("Right Panel").strong().color(Color32::WHITE)).clicked() {
+                        self.state.right_panel = !self.state.right_panel;
                     }
                 });
 
@@ -1410,8 +1411,8 @@ impl UISystem {
         set_settings(settings.clone());
     }
 
-    fn build_side_panel(&mut self, egui_ctx: &Context, state: &SimState, agent: Option<&Agent>, ranking: &Vec<AgentSketch>) {
-        if !self.state.side_panel {
+    fn build_left_panel(&mut self, egui_ctx: &Context, state: &SimState, agent: Option<&Agent>, ranking: &Vec<AgentSketch>) {
+        if !self.state.left_panel {
             return;
         }
         SidePanel::left("Sidebar").width_range(100.0..=700.0).show(egui_ctx, |ui| {
@@ -1427,7 +1428,13 @@ impl UISystem {
             }
             if self.state.inspect {
                 ui.vertical(|ui| {
-                    ui.collapsing("Inspect", |ui| {
+                    let name = match agent {
+                        Some(agent) => {
+                            agent.specie.to_uppercase()
+                        },
+                        None => String::from("Inspector"),
+                    };
+                    ui.collapsing(name, |ui| {
                         self.inside_agent_inspector(ui, agent);
                     });
                 });
@@ -1437,6 +1444,42 @@ impl UISystem {
                     ui.collapsing("Ranking", |ui| {
                         self.inside_ranking(ui, ranking);
                     });
+                });
+            }
+        });
+    }
+
+    fn build_right_panel(&mut self, egui_ctx: &Context, agent: Option<&Agent>, statistics: &Statistics) {
+        if !self.state.right_panel {
+            return;
+        }
+        SidePanel::right("Rightbar").max_width(320.0).show(egui_ctx, |ui| {
+            if !self.pointer_over {
+                self.pointer_over = ui.ui_contains_pointer();
+            }
+            if self.state.neuro_lab {
+                ui.vertical(|ui| {
+                    ui.collapsing("Network", |ui| {
+                        self.inside_network(ui, agent);
+                    });
+                });
+            }
+            if self.state.plot_population {
+                ui.vertical(|ui| {
+                    ui.set_height(150.0);
+                    self.inside_plot_borns(ui, statistics);
+                });
+            }
+            if self.state.plot_attributes {
+                ui.vertical(|ui| {
+                    ui.set_height(150.0);
+                    self.inside_plot_attributes(ui, statistics);
+                });
+            }
+            if self.state.plot_lifetime {
+                ui.vertical(|ui| {
+                    ui.set_height(150.0);
+                    self.inside_plot_lifetimes(ui, statistics);
                 });
             }
         });
@@ -1650,7 +1693,6 @@ impl UISystem {
             let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
             let rect = response.rect;
             let zero = rect.left_top().to_vec2()+offset;
-            //let (input_node_keys, hidden_node_keys, output_node_keys) = network.get_node_keys_by_type();
             
             for (_, link) in network.links.iter() {
                 let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
@@ -1670,14 +1712,12 @@ impl UISystem {
                 let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                 let p1 = vec2_to_pos2(&ipos);
                 let c0 = color_to_color32(color1);
-                //let c1 = color_to_color32(color0);
                 let label = node.get_label();
                 let v = match network.get_node_value(key) {
                     None => 0.0,
                     Some(v) => v,
                 };
                 painter.circle_filled(p1, r,  Color32::BLACK);
-                //painter.circle_filled(p1, r,  c1);
                 let w = 0.75 + 0.24*r;
                 painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
                 let mut font = FontId::default();
@@ -1752,7 +1792,8 @@ pub struct UIState {
     pub plot_population: bool,
     pub plot_lifetime: bool,
     pub plot_neuro: bool,
-    pub side_panel: bool,
+    pub left_panel: bool,
+    pub right_panel: bool,
     pub bottom_panel: bool,
     pub deaths: bool,
 }
@@ -1774,7 +1815,7 @@ impl UIState {
             net: false,
             about: false,
             environment: false,
-            neuro_lab: false,
+            neuro_lab: true,
             resize_world: false,
             ranking: true,
             set_agent: false,
@@ -1790,7 +1831,8 @@ impl UIState {
             plot_population: true,
             plot_lifetime: true,
             plot_neuro: true,
-            side_panel: true,
+            left_panel: true,
+            right_panel: true,
             deaths: false,
             bottom_panel: true,
         }

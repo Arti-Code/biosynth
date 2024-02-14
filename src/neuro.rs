@@ -310,6 +310,11 @@ impl Network {
         return (input_keys, deep_keys, output_keys);
     }
 
+    pub fn get_hidden_num(&self) -> usize {
+        let (_, deep_keys, _) = self.get_node_keys_by_type();
+        return deep_keys.len();
+    }
+
     pub fn get_input_pairs(&self) -> Vec<(u64, String)> {
         let mut pairs: Vec<(u64, String)> = vec![];
         let (keys, _, _) = self.get_node_keys_by_type();
@@ -331,7 +336,8 @@ impl Network {
     }
 
     pub fn get_nodes_links_number(&self) -> (i32, i32) {
-        return (self.nodes.len() as i32, self.links.len() as i32);
+        let hidden_num = self.get_hidden_num() as i32;
+        return (hidden_num, self.links.len() as i32);
     }
 
     fn create_nodes2(&mut self, input: usize, input_labels: Vec<&str>, hidden: Vec<usize>, output: usize, output_labels: Vec<&str>) {
