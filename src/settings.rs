@@ -19,6 +19,10 @@ fn default_stats_limit() -> usize {
     return 100;
 }
 
+fn default_pause() -> bool {
+    return false;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -74,6 +78,8 @@ pub struct Settings {
     pub sim_speed: f32,
     #[serde(default = "default_stats_limit")]
     pub stats_limit: usize,
+    #[serde(default = "default_pause")]
+    pub pause: bool,
 }
 
 impl Default for Settings {
@@ -132,6 +138,7 @@ impl Default for Settings {
             born_eng: 0.8,
             sim_speed: 1.0,
             stats_limit: 25,
+            pause: false,
        }
     }
 

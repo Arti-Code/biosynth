@@ -278,7 +278,7 @@ impl Simulation {
     }
 
     fn update_coordinates(&mut self) {
-        if self.coord_timer.update(get_frame_time()*sim_speed()) {
+        if self.coord_timer.update(dt()*sim_speed()) {
             let mut coords: Vec<[i32; 2]> = vec![];
             for (_, agent) in self.agents.get_iter_mut() {
                 let coordinates = self.terrain.pos_to_coord(&agent.pos);
@@ -311,7 +311,7 @@ impl Simulation {
 
     fn attacks(&mut self) {
         let settings = settings();
-        let dt = get_frame_time()*sim_speed();
+        let dt = dt()*sim_speed();
         let mut hits: HashMap<RigidBodyHandle, (f32, RigidBodyHandle)> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
             if !agent.attacking { continue; }
@@ -374,7 +374,7 @@ impl Simulation {
 
     fn eat(&mut self) {
         let settings = settings();
-        let dt = get_frame_time()*sim_speed();
+        let dt = dt()*sim_speed();
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
             if agent.eating && !agent.attacking {
@@ -843,7 +843,7 @@ impl Simulation {
         }
         self.sim_state.fps = self.monitor.fps();
         self.sim_state.dt = self.monitor.dt();
-        self.sim_state.sim_time += (get_frame_time()*sim_speed()) as f64;
+        self.sim_state.sim_time += (dt()*sim_speed()) as f64;
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
@@ -910,7 +910,7 @@ impl Simulation {
 
     fn check_agents_num(&mut self) {
         let settings = settings();
-        let dt = get_frame_time()*sim_speed();
+        let dt = dt()*sim_speed();
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
             self.agent_from_zero();
             self.agent_from_sketch();

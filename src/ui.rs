@@ -233,6 +233,12 @@ impl UISystem {
                     deccel_color = Color32::GRAY;
                     deccel_label = format!("Slower {}", speed as i32 - 1);
                 }
+                let mut pause_color = Color32::YELLOW;
+                let mut pause_label = format!("Pause");
+                if settings().pause {
+                    pause_color = Color32::GREEN;
+                    pause_label = format!("RERUN");
+                }
 
                 menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
                     if ui.button(RichText::new("Real Time").strong().color(Color32::GREEN)).clicked() {
@@ -251,6 +257,11 @@ impl UISystem {
                             settings.sim_speed -= 1.0;
                             set_settings(settings);
                         }
+                    }
+                    if ui.button(RichText::new(pause_label).strong().color(pause_color)).clicked() {
+                            let mut settings = settings();
+                            settings.pause = !settings.pause;
+                            set_settings(settings);
                     }
                 });
 
@@ -1466,20 +1477,26 @@ impl UISystem {
             }
             if self.state.plot_population {
                 ui.vertical(|ui| {
-                    ui.set_height(150.0);
+                    ui.set_height(125.0);
                     self.inside_plot_borns(ui, statistics);
                 });
             }
             if self.state.plot_attributes {
                 ui.vertical(|ui| {
-                    ui.set_height(150.0);
+                    ui.set_height(125.0);
                     self.inside_plot_attributes(ui, statistics);
                 });
             }
             if self.state.plot_lifetime {
                 ui.vertical(|ui| {
-                    ui.set_height(150.0);
+                    ui.set_height(125.0);
                     self.inside_plot_lifetimes(ui, statistics);
+                });
+            }
+            if self.state.plot_neuro {
+                ui.vertical(|ui| {
+                    ui.set_height(125.0);
+                    self.inside_plot_neuro(ui, statistics);
                 });
             }
         });

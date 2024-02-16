@@ -345,7 +345,7 @@ impl Agent {
     }
 
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
-        let dt = get_frame_time()*sim_speed();
+        let dt = dt()*sim_speed();
         self.lifetime += dt;
         //if self.timer_contact.update(dt) {
             //}
@@ -396,7 +396,7 @@ impl Agent {
     }
 
     pub fn attack(&self) -> Vec<RigidBodyHandle> {
-        //let dt = get_frame_time()*sim_speed();
+        //let dt = dt()*sim_speed();
         let mut hits: Vec<RigidBodyHandle> = vec![];
         if !self.attacking { return hits; }
         for (rbh, ang) in self.contacts.to_vec() {
@@ -705,14 +705,14 @@ impl Agent {
         self.mass = physics_data.mass;
         match physics.get_object_mut(self.physics_handle) {
             Some(body) => {
-                let dt = get_frame_time()*sim_speed();
+                let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
                 //let rel_speed = self.speed as f32 - (self.shell as f32)/6.0;
                 let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
                 if self.run {
                     v *= 1.5;
                 }
-                let rot = self.ang_vel * settings.agent_rotate * dt / self.shell as f32;
+                let rot = self.ang_vel * settings.agent_rotate * dt / (self.shell as f32 * 0.5);
                 body.set_linvel(Vector2::new(v.x, v.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);
@@ -839,7 +839,8 @@ impl Agent {
         if self.eating {
             basic_loss += attack_cost * self.size;
         }
-        let shell_loss = self.shell as f32 * 0.15; let speed_loss = self.speed as f32 * 1.5;
+        let shell_loss = self.shell as f32 * 0.1; 
+        let speed_loss = self.speed as f32 * 2.0;
         let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;

@@ -75,7 +75,14 @@ pub fn random_unit_vec2() -> Vec2 {
 }
 
 pub fn dt() -> f32 {
+    if settings().pause {
+        return  0.0;
+    }
     return  get_frame_time();
+}
+
+pub fn dt_force() -> f32 {
+    return get_frame_time();
 }
 
 pub fn random_color() -> color::Color {
