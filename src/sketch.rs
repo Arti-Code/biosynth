@@ -39,6 +39,7 @@ pub struct SimulationSketch {
     pub last_autosave: f64,
     pub agents: Vec<AgentSketch>,
     pub ranking: Vec<AgentSketch>,
+    pub school: Vec<AgentSketch>,
     pub settings: Settings,
     pub terrain: SerializedTerrain,
 }
@@ -48,13 +49,18 @@ impl SimulationSketch {
     pub fn from_sim(sim: &Simulation) -> Self {
         let mut agents: Vec<AgentSketch> = vec![];
         let mut ranking: Vec<AgentSketch> = vec![];
+        let mut school: Vec<AgentSketch> = vec![];
         for (_, agent) in sim.agents.get_iter() {
             let sketch = agent.get_sketch();
             agents.push(sketch);
         }
-        for sketch in sim.ranking.iter() {
+        for sketch in sim.ranking.get_general_rank().iter() {
             let sketch2 = sketch.to_owned();
             ranking.push(sketch2);
+        }
+        for sketch in sim.ranking.get_school_rank().iter() {
+            let sketch2 = sketch.to_owned();
+            school.push(sketch2);
         }
         let settings = settings();
         Self { 
@@ -63,6 +69,7 @@ impl SimulationSketch {
             sim_time: sim.sim_state.sim_time.round(), 
             agents: agents.to_owned(), 
             ranking: ranking.to_owned(),
+            school: school.to_owned(),
             last_autosave: sim.sim_state.sim_time.round(),
             settings: settings.to_owned(),
             terrain: SerializedTerrain::new(&sim.terrain),

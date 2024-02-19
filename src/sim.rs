@@ -24,6 +24,7 @@ use crate::settings::*;
 use crate::signals::*;
 use crate::sketch::*;
 use crate::phyx::physics::Physics;
+use crate::ranking::Ranking;
 
 pub struct Simulation {
     pub simulation_name: String,
@@ -42,7 +43,8 @@ pub struct Simulation {
     pub mouse_state: MouseState,
     pub agents: AgentBox,
     pub resources: ResBox,
-    pub ranking: Vec<AgentSketch>,
+    //pub ranking: Vec<AgentSketch>,
+    pub ranking: Ranking,
     population_timer: Timer,
     pub terrain: Terrain,
     coord_timer: Timer,
@@ -92,7 +94,8 @@ impl Simulation {
             mouse_state: MouseState { pos: Vec2::NAN },
             agents: AgentBox::new(),
             resources: ResBox::new(),
-            ranking: vec![],
+            //ranking: vec![],
+            ranking: Ranking::new(settings.ranking_size, 20, 10),
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
@@ -168,7 +171,7 @@ impl Simulation {
         self.physics = Physics::new();
         self.agents = AgentBox::new();
         self.resources = ResBox::new();
-        self.ranking = vec![];
+        self.ranking = Ranking::new(settings.ranking_size, 20, 10);
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from("");
@@ -220,7 +223,7 @@ impl Simulation {
 
                 let mut sketch = agent.get_sketch();
                 sketch.points = (sketch.points).round();
-                self.ranking.push(sketch);
+                self.ranking.add_agent(sketch);
                 self.physics.remove_object(agent.physics_handle);
                 self.deaths[0] += 1;
             }
@@ -230,27 +233,7 @@ impl Simulation {
     }
 
     fn update_rank(&mut self) {
-        let settings = settings();
-        self.ranking.sort_by(|a, b| b.points.total_cmp(&a.points));
-        let ranking_copy = self.ranking.to_vec();
-        for elem1 in ranking_copy.iter() {
-            self.ranking.retain(|elem2| {
-                if elem1.specie == elem2.specie {
-                    if elem1.points == elem2.points {
-                        return true;
-                    } else if elem2.points < elem1.points {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                } else {
-                    return true;
-                }
-            });
-        }
-        if self.ranking.len() > settings.ranking_size {
-            self.ranking.pop();
-        }
+        self.ranking.update();
     }
 
     fn update_res(&mut self) {
@@ -357,7 +340,7 @@ impl Simulation {
                 agent1.add_energy(hp);
                 agent1.points += hp*0.015;
             } else {
-                agent1.add_energy(damage);
+                agent1.get_hit(damage);
                 agent1.pain = true;
                 if agent1.is_death() { killers.push(*id2); }
             }
@@ -414,13 +397,11 @@ impl Simulation {
                         }
                     },
                     None => {
-                        //warn!("can't find eater agent");
                     }
                 }
             } else {
                 match self.resources.resources.get_mut(id) {
                     None => {
-                        //warn!("resource not exist");
                     },
                     Some(source) => {
                         let damage = *dmg;
@@ -581,7 +562,6 @@ impl Simulation {
             Ok(serial) => {
                 match fs::DirBuilder::new().recursive(true).create(p) {
                     Ok(_) => {
-                        //let f_n = format!("saves/simulations/{}/{}.sim", self.simulation_name.to_lowercase(), data.sim_time as i32);
                         let f = format!("saves/simulations/{}/last.sim", self.simulation_name.to_lowercase());
                         let encoded = BASE64_STANDARD.encode(serial.as_bytes());
                         match fs::write(f.clone(), &encoded) {
@@ -658,7 +638,8 @@ impl Simulation {
                                     let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
                                     self.agents.add_agent(agent);
                                 }
-                                self.ranking = sim_state.ranking.to_owned();
+                                self.ranking.general = sim_state.ranking.to_owned();
+                                self.ranking.school =  sim_state.school.to_owned();
                             },
                         }
                     }
@@ -746,7 +727,6 @@ impl Simulation {
             self.random_selection();
         }
         if is_key_pressed(KeyCode::Kp6) {
-            //println!("6");
             let mut n = self.n + 1;
             n = clamp(n, 0, self.agents.count()-1);
             self.select_n(n);
@@ -761,21 +741,6 @@ impl Simulation {
         }
     }
 
-/*     fn select_next(&mut self) {
-        self.n += 1;
-        match self.agents.get_iter().nth(self.n) {
-            Some((id, _)) => {
-                self.selected = Some(*id);
-            },
-            None => {
-                self.agents.get_iter().nth(0).inspect(|(id, _)| {
-                    self.selected = Some(**id);
-                });
-
-            }
-        }
-    } */
-
     fn select_n(&mut self, n: usize) {
         self.n = n;
         match self.agents.get_iter().nth(self.n) {
@@ -783,7 +748,6 @@ impl Simulation {
                 self.selected = Some(*id);
             },
             None => {
-                //println!("empty");
             },
         }
     }
@@ -929,26 +893,19 @@ impl Simulation {
         _ = self.agents.add_many_agents(1, &mut self.physics);
         self.borns[0] += 1;
         self.borns[3] += 1;
-        //self.nodes.push(n);
-        //self.links.push(l);
     }
 
     fn agent_from_sketch(&mut self) {
-        if self.ranking.is_empty() {
-            return;
+        match self.ranking.get_random_agent() {
+            Some(sketch) => {
+                let s = sketch.to_owned();
+                let agent = Agent::from_sketch(s, &mut self.physics);
+                _ = self.agents.add_agent(agent);
+                self.borns[0] += 1;
+                self.borns[2] += 1;
+            },
+            None => {},
         }
-        let l = self.ranking.len();
-        let r = rand::gen_range(0, l);
-        let agent_sketch = self.ranking.get_mut(r).unwrap();
-        let s = agent_sketch.to_owned();
-        let agent = Agent::from_sketch(s, &mut self.physics);
-        agent_sketch.points -= agent_sketch.points*0.5;
-        agent_sketch.points = agent_sketch.points.round();
-        _ = self.agents.add_agent(agent);
-        self.borns[0] += 1;
-        self.borns[2] += 1;
-        //self.nodes.push(n);
-        //self.links.push(l);
     }
 
     fn calc_selection_time(&mut self) {

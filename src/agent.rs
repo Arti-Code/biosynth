@@ -31,6 +31,8 @@ pub struct Agent {
     pub vision_angle: f32,
     pub max_eng: f32,
     pub eng: f32,
+    pub max_hp: f32,
+    pub hp: f32,
     color: Color,
     color_second: Color,
     pub shape: SharedShape,
@@ -97,7 +99,7 @@ impl Agent {
         let color = random_color();
         let color_second = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
+        let inp_labs = vec!["CON", "ENY", "RES", "HP", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
         let hid = settings.hidden_nodes_num;
         let hid1 = rand::gen_range(1, hid);
@@ -119,6 +121,8 @@ impl Agent {
             size,
             vision_range:  Self::calc_vision_range(eyes),
             vision_angle: Self::calc_vision_angle(eyes),
+            max_hp: 100.0,
+            hp: 100.0,
             max_eng: 0.0,
             eng: 0.0,
             color,
@@ -248,6 +252,8 @@ impl Agent {
             size,
             vision_range: 0.0,
             vision_angle: 0.0,
+            max_hp: 100.0,
+            hp: 100.0,
             max_eng: 0.0,
             eng: 0.0,
             color,
@@ -304,7 +310,9 @@ impl Agent {
         let settings = settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
-            self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
+            let hp = self.hp/self.max_hp;
+            self.draw_status_bar(hp, GREEN, RED, Vec2::new(0.0, self.size*1.5+4.0));
+            self.draw_status_bar(e, SKYBLUE, YELLOW, Vec2::new(0.0, self.size*1.5+8.0));
         }
         self.draw_body();
         self.draw_front();
@@ -362,7 +370,8 @@ impl Agent {
             self.alife = false;
             return self.alife;
         }
-        self.calc_energy(dt);
+        self.calc_energy();
+        self.calc_health();
         return self.alife;
     }
 
@@ -479,7 +488,8 @@ impl Agent {
         };
         let wall = self.blocked;
         self.blocked = 0.0;
-        let hp = self.eng/self.max_eng;
+        let eng = self.eng/self.max_eng;
+        let hp = self.hp/self.max_hp;
         let red = self.mood.r;
         let blu = self.mood.b;
         let gre = self.mood.g;
@@ -497,7 +507,8 @@ impl Agent {
         self.neuro_map.set_signal("CON", contact);
         self.neuro_map.set_signal("ENY", contact_agent);
         self.neuro_map.set_signal("RES", contact_resource);
-        self.neuro_map.set_signal("ENG", hp);
+        self.neuro_map.set_signal("HP", hp);
+        self.neuro_map.set_signal("ENG", eng);
         self.neuro_map.set_signal("TGL", tgl);
         self.neuro_map.set_signal("TGR", tgr);
         self.neuro_map.set_signal("DST", tg_dist);
@@ -829,7 +840,7 @@ impl Agent {
         self.update_enemy_position(physics);
     }
 
-    fn calc_energy(&mut self, dt: f32) {
+    fn calc_energy(&mut self) {
         let settings = settings();
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
@@ -852,7 +863,7 @@ impl Agent {
         self.eng_cost.basic = basic_loss;
         self.eng_cost.movement = move_loss;
         self.eng_cost.attack = attack_loss;
-        let loss = (basic_loss + move_loss + attack_loss) * dt;
+        let loss = (basic_loss + move_loss + attack_loss) * dt();
         if self.eng > 0.0 {
             self.eng -= loss;
         } else {
@@ -861,10 +872,19 @@ impl Agent {
         self.check_alife();
     }
 
-    fn check_alife(&mut self) {
-        if self.eng > 0.0 {
-            self.alife = true;
+    fn calc_health(&mut self) {
+        let e = self.eng/self.max_eng;
+        if e >= settings().eng_bias {
+            self.hp += e * dt() * 1.0;
         } else {
+            self.hp += (e - 1.0) * dt() * 2.5; 
+        }
+        self.hp = clamp(self.hp, 0.0, self.max_hp);
+    }
+
+    fn check_alife(&mut self) {
+        self.alife = true;
+        if self.hp <= 0.0 {
             self.alife = false;
         }
     }
@@ -877,6 +897,14 @@ impl Agent {
         self.eng += e;
         if self.eng > self.max_eng {
             self.eng = self.max_eng;
+        }
+        self.check_alife();
+    }
+
+    pub fn get_hit(&mut self, e: f32) {
+        self.hp -= e;
+        if self.hp > self.max_hp {
+            self.hp = self.max_hp;
         }
         self.check_alife();
     }
@@ -951,6 +979,8 @@ impl Agent {
             size: self.size,
             vision_range: 0.0,
             vision_angle: 0.0,
+            max_hp: 100.0,
+            hp: 100.0,
             max_eng: 0.0,
             eng: 0.0,
             color,
