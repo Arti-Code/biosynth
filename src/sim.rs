@@ -340,7 +340,8 @@ impl Simulation {
                 agent1.add_energy(hp);
                 agent1.points += hp*0.015;
             } else {
-                agent1.get_hit(damage);
+                let dmg = damage.abs() * settings.dmg_to_hp;
+                agent1.get_hit(dmg);
                 agent1.pain = true;
                 if agent1.is_death() { killers.push(*id2); }
             }

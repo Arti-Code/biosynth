@@ -137,7 +137,6 @@ impl UISystem {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
-            
             menu::bar(ui, |ui| {
                 let logo = self.logo.clone().unwrap();
                 ui.image(logo.id(), logo.size_vec2());
@@ -180,19 +179,59 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
-                
-                menu::menu_button(ui, RichText::new("PLOTS").strong(), |ui| {
-                    if ui.button(RichText::new("Attributes").strong().color(Color32::WHITE)).clicked() {
-                        self.state.plot_attributes = !self.state.plot_attributes;
+                let speed = sim_speed();
+                let accel_label = format!("{} >>> {}", speed as i32, speed as i32 + 1);
+                let mut deccel_color = Color32::GOLD;
+                let mut deccel_label = format!("{} <<< {}", speed as i32 - 1, speed as i32);
+                if speed == 1.0 {
+                    deccel_color = Color32::GRAY;
+                    deccel_label = format!("---");
+                }
+                let mut pause_color = Color32::YELLOW;
+                let mut pause_label = format!("Pause");
+                if settings().pause {
+                    pause_color = Color32::GREEN;
+                    pause_label = format!("Run");
+                }
+
+                menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
+                    if ui.button(RichText::new("Real Time").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = settings();
+                        settings.sim_speed = 1.0;
+                        set_settings(settings);
                     }
-                    if ui.button(RichText::new("Population/Kills").strong().color(Color32::WHITE)).clicked() {
-                        self.state.plot_population = !self.state.plot_population;
+                    if ui.button(RichText::new(accel_label).strong().color(Color32::LIGHT_BLUE)).clicked() {
+                        let mut settings = settings();
+                        settings.sim_speed += 1.0;
+                        set_settings(settings);
                     }
-                    if ui.button(RichText::new("Lifetime/Points").strong().color(Color32::WHITE)).clicked() {
-                        self.state.plot_lifetime = !self.state.plot_lifetime;
+                    if ui.button(RichText::new(deccel_label).strong().color(deccel_color)).clicked() {
+                        if sim_speed() > 1.0 {
+                            let mut settings = settings();
+                            settings.sim_speed -= 1.0;
+                            set_settings(settings);
+                        }
                     }
-                    if ui.button(RichText::new("Nodes/Links").strong().color(Color32::WHITE)).clicked() {
-                        self.state.plot_neuro = !self.state.plot_neuro;
+                    if ui.button(RichText::new(pause_label).strong().color(pause_color)).clicked() {
+                            let mut settings = settings();
+                            settings.pause = !settings.pause;
+                            set_settings(settings);
+                    }
+                });
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
+                menu::menu_button(ui, RichText::new("SETTINGS").strong(), |ui| {
+                    if ui.button(RichText::new("Agent Settings").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.set_agent = !self.state.set_agent;
+                    }
+                    if ui.button(RichText::new("Enviroment Settings").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.environment = !self.state.environment;
+                    }
+                    if ui.button(RichText::new("Neuro Settings").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.neuro_settings = !self.state.neuro_settings;
                     }
                 });
 
@@ -226,104 +265,57 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
-                let speed = sim_speed();
-                let accel_label = format!("Faster >>{}", speed as i32 + 1);
-                let mut deccel_color = Color32::GOLD;
-                let mut deccel_label = format!("Slower <<{}", speed as i32 - 1);
-                if speed == 1.0 {
-                    deccel_color = Color32::GRAY;
-                    deccel_label = format!("Slower {}", speed as i32 - 1);
-                }
-                let mut pause_color = Color32::YELLOW;
-                let mut pause_label = format!("Pause");
-                if settings().pause {
-                    pause_color = Color32::GREEN;
-                    pause_label = format!("RERUN");
-                }
-
-                menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
-                    if ui.button(RichText::new("Real Time").strong().color(Color32::GREEN)).clicked() {
-                        let mut settings = settings();
-                        settings.sim_speed = 1.0;
-                        set_settings(settings);
-                    }
-                    if ui.button(RichText::new(accel_label).strong().color(Color32::LIGHT_BLUE)).clicked() {
-                        let mut settings = settings();
-                        settings.sim_speed += 1.0;
-                        set_settings(settings);
-                    }
-                    if ui.button(RichText::new(deccel_label).strong().color(deccel_color)).clicked() {
-                        if sim_speed() > 1.0 {
-                            let mut settings = settings();
-                            settings.sim_speed -= 1.0;
-                            set_settings(settings);
-                        }
-                    }
-                    if ui.button(RichText::new(pause_label).strong().color(pause_color)).clicked() {
-                            let mut settings = settings();
-                            settings.pause = !settings.pause;
-                            set_settings(settings);
-                    }
-                });
-
-                ui.add_space(10.0);
-                ui.separator();
-                ui.add_space(10.0);
-
-
-                menu::menu_button(ui, RichText::new("PANELS").strong(), |ui| {
-                    if ui.button(RichText::new("Left Panel").strong().color(Color32::WHITE)).clicked() {
-                        self.state.left_panel = !self.state.left_panel;
-                    }
-                    if ui.button(RichText::new("Right Panel").strong().color(Color32::WHITE)).clicked() {
-                        self.state.right_panel = !self.state.right_panel;
-                    }
-                });
-
-
-                ui.add_space(10.0);
-                ui.separator();
-                ui.add_space(10.0);
-
-                menu::menu_button(ui, RichText::new("SETTINGS").strong(), |ui| {
-                    if ui.button(RichText::new("Agent Settings").strong().color(Color32::YELLOW)).clicked() {
-                        self.state.set_agent = !self.state.set_agent;
-                    }
-                    if ui.button(RichText::new("Enviroment Settings").strong().color(Color32::YELLOW)).clicked() {
-                        self.state.environment = !self.state.environment;
-                    }
-                    if ui.button(RichText::new("Neuro Settings").strong().color(Color32::YELLOW)).clicked() {
-                        self.state.neuro_settings = !self.state.neuro_settings;
-                    }
-                });
-
-                ui.add_space(10.0);
-                ui.separator();
-                ui.add_space(10.0);
 
                 menu::menu_button(ui, RichText::new("VIEW").strong(), |ui| {
-                    if ui.button(RichText::new("Monitor").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Left Panel").strong().color(Color32::LIGHT_BLUE)).clicked() {
+                        self.state.left_panel = !self.state.left_panel;
+                    }
+                    if ui.button(RichText::new("Right Panel").strong().color(Color32::LIGHT_BLUE)).clicked() {
+                        self.state.right_panel = !self.state.right_panel;
+                    }
+                    ui.add_space(5.0);
+                    ui.separator();
+                    ui.add_space(5.0);
+                    if ui.button(RichText::new("Plot: attributes").strong().color(Color32::GOLD)).clicked() {
+                        self.state.plot_attributes = !self.state.plot_attributes;
+                    }
+                    if ui.button(RichText::new("Plot: population/kills").strong().color(Color32::GOLD)).clicked() {
+                        self.state.plot_population = !self.state.plot_population;
+                    }
+                    if ui.button(RichText::new("Plot: lifetime/points").strong().color(Color32::GOLD)).clicked() {
+                        self.state.plot_lifetime = !self.state.plot_lifetime;
+                    }
+                    if ui.button(RichText::new("Plot: nodes/links").strong().color(Color32::GOLD)).clicked() {
+                        self.state.plot_neuro = !self.state.plot_neuro;
+                    }
+                    ui.add_space(5.0);
+                    ui.separator();
+                    ui.add_space(5.0);
+                    if ui.button(RichText::new("Monitor").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.monit = !self.state.monit;
                     }
-                    if ui.button(RichText::new("Inspector").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Inspector").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.inspect = !self.state.inspect;
                     }
-                    if ui.button(RichText::new("Neural Network").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Neural Network").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.neuro_lab = !self.state.neuro_lab;
                     }
-                    if ui.button(RichText::new("Ranking").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Ranking").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.ranking = !self.state.ranking;
                     }
-                    if ui.button(RichText::new("Debug Info").strong().color(Color32::WHITE)).clicked() {
-                        self.state.mouse = !self.state.mouse;
-                    }
-                    if ui.button(RichText::new("Ancestors").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Ancestors").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.ancestors = !self.state.ancestors;
                     }
-                    if ui.button(RichText::new("Resource").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Resource").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.resource = !self.state.resource;
                     }
-                    if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::WHITE)).clicked() {
+                    ui.add_space(5.0);
+                    ui.separator();
+                    ui.add_space(5.0);
+                    if ui.button(RichText::new("Debug Info").strong().color(Color32::LIGHT_RED)).clicked() {
+                        self.state.mouse = !self.state.mouse;
+                    }
+                    if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.info = !self.state.info;
                     }
                 });
@@ -401,6 +393,54 @@ impl UISystem {
                     }
                 });
                 ui.add_space(4.0);
+            });
+        }
+    }
+
+    fn build_load_sim_window(&mut self, egui_ctx: &Context) {
+        if self.state.load_sim {
+            let mut signals = get_signals();
+            let mut saved_sims: Vec<String> = vec![];
+            let path = Path::new("saves\\simulations\\");
+            let sims =  fs::read_dir(path).unwrap();
+            for entry in sims {
+                if let Ok(sim_dir) = entry {
+                    let path = sim_dir.path();
+                    if path.is_dir() {
+                        let sim_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                        saved_sims.push(sim_name);
+                    }
+                }
+            }
+            Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
+                for sim in saved_sims {
+                    ui.vertical_centered(|row| {
+                        row.columns(2, |columns| {
+                            columns[0].label(RichText::new(sim.to_owned().to_uppercase()).strong().color(Color32::WHITE));
+                            columns[1].horizontal(|col| {
+                                    if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
+                                        signals.load_sim_name = Some(String::from(&sim));
+                                        set_global_signals(signals.clone());
+                                        self.state.load_sim = false;
+                                    }
+                                    col.separator();
+                                    if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
+                                        signals.del_sim_name = Some(String::from(&sim));
+                                        set_global_signals(signals.clone());
+                                        self.state.load_sim = false;
+                                    }
+                            })
+                        })
+                    });
+                    ui.add_space(4.0);
+                }
+                ui.add_space(16.0);
+                
+                ui.vertical_centered(|ctn| {
+                    if ctn.button(RichText::new("CLOSE").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.load_sim = false;
+                    }
+                })
             });
         }
     }
@@ -496,18 +536,29 @@ impl UISystem {
         }
     }
 
-    fn build_load_sim_window(&mut self, egui_ctx: &Context) {
+/*     fn build_load_sim_window(&mut self, egui_ctx: &Context) {
         if self.state.load_sim {
             let mut signals = get_signals();
-            let mut saved_sims: Vec<String> = vec![];
+            let mut saved_sims: Vec<SimulationSketch> = vec![];
             let path = Path::new("saves\\simulations\\");
             let sims =  fs::read_dir(path).unwrap();
             for entry in sims {
                 if let Ok(sim_dir) = entry {
-                    let path = sim_dir.path();
-                    if path.is_dir() {
-                        let sim_name = path.file_name().unwrap().to_str().unwrap().to_owned();
-                        saved_sims.push(sim_name);
+                    let mut path = sim_dir.path();
+                    let p = path.join("last.sim").as_path().to_owned();
+                    let last = Path::from(*p);
+                    let f = fs::read_to_string(path).unwrap();
+                    match BASE64_STANDARD.decode(f.clone().into_bytes()) {
+                        Ok(decoded) => {
+                            let save = String::from_utf8(decoded).expect("error during converting from utf8");
+                            match serde_json::from_str::<SimulationSketch>(&save) {
+                                Err(_) => {},
+                                Ok(sim_state) => {
+                                    saved_sims.push(sim_state);
+                                },
+                            }
+                        },
+                        Err(_) => {},
                     }
                 }
             }
@@ -515,16 +566,17 @@ impl UISystem {
                 for sim in saved_sims {
                     ui.vertical_centered(|row| {
                         row.columns(2, |columns| {
-                            columns[0].label(RichText::new(sim.to_owned().to_uppercase()).strong().color(Color32::WHITE));
+                            let sim_info = format!("{} T:{}", sim.simulation_name, sim.sim_time);
+                            columns[0].label(RichText::new(sim_info.to_owned().to_uppercase()).strong().color(Color32::WHITE));
                             columns[1].horizontal(|col| {
                                     if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
-                                        signals.load_sim_name = Some(String::from(&sim));
+                                        signals.load_sim_name = Some(String::from(&sim.simulation_name));
                                         set_global_signals(signals.clone());
                                         self.state.load_sim = false;
                                     }
-                                    col.separator();
+                                    col.separator();  
                                     if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
-                                        signals.del_sim_name = Some(String::from(&sim));
+                                        signals.del_sim_name = Some(String::from(&sim.simulation_name));
                                         set_global_signals(signals.clone());
                                         self.state.load_sim = false;
                                     }
@@ -542,7 +594,7 @@ impl UISystem {
                 })
             });
         }
-    }
+    } */
 
     fn build_debug_window(&self, egui_ctx: &Context, camera2d: &Camera2D, sim_state: &SimState, agent: Option<&Agent>) {
         if self.state.mouse {
@@ -1045,6 +1097,16 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut mutations: f32 = settings.mutations;
+                column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut mutations, 0.0..=0.5).step_by(0.05)).changed() {
+                    settings.mutations = mutations;
+                    signals.new_settings = true;
+                }
+            });
             ui.style_mut().spacing.slider_width = 75.0;
             ui.columns(3, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
@@ -1089,6 +1151,16 @@ impl UISystem {
                 column[0].label(RichText::new("SPECIE MODIFY RARITY").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut rare_specie_mod, 0..=10000).step_by(100.0)).changed() {
                     settings.rare_specie_mod = rare_specie_mod;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut dmg_to_hp = settings.dmg_to_hp;
+                column[0].label(RichText::new("DMG_TO_HP").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut dmg_to_hp, 0.0..=2.0).step_by(0.1)).changed() {
+                    settings.dmg_to_hp = dmg_to_hp;
                     signals.new_settings = true;
                 }
             });
@@ -1218,16 +1290,6 @@ impl UISystem {
                 column[0].label(RichText::new("PLANT RATE").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut plant_probability, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.plant_probability = plant_probability;
-                    signals.new_settings = true;
-                }
-            });
-            ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut mutations: f32 = settings.mutations;
-                column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut mutations, 0.0..=0.5).step_by(0.05)).changed() {
-                    settings.mutations = mutations;
                     signals.new_settings = true;
                 }
             });

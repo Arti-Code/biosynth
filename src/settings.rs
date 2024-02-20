@@ -87,6 +87,8 @@ pub struct Settings {
     pub pause: bool,
     #[serde(default = "default_eng_bias")]
     pub eng_bias: f32,
+    #[serde(default = "default_eng_bias")]
+    pub dmg_to_hp: f32,
 }
 
 impl Default for Settings {
@@ -106,7 +108,7 @@ impl Default for Settings {
             agent_speed: 30.0,
             agent_size_min: 2,
             agent_size_max: 10,
-            agent_vision_range: 350.0,
+            agent_vision_range: 400.0,
             show_network: true,
             show_specie: true,
             show_generation: true,
@@ -124,13 +126,13 @@ impl Default for Settings {
             plant_num: 75.0,
             hidden_nodes_num: 5,
             neuro_duration: 0.25,
-            atk_to_eng: 1.3,
-            eat_to_eng: 5.0,
+            atk_to_eng: 1.8,
+            eat_to_eng: 4.0,
             ranking_size: 30,
             repro_points: 30.0,
             repro_time: 100.0,
             new_one_probability: 0.2,
-            grid_size: 50,
+            grid_size: 15,
             follow_mode: false,
             plant_probability: 0.6,
             plant_lifetime: 300.0,
@@ -142,11 +144,12 @@ impl Default for Settings {
             mut_change_val: 0.04,
             mut_del_node: 0.01,
             rare_specie_mod: 1500,
-            born_eng: 0.8,
+            born_eng: 0.6,
             sim_speed: 1.0,
             stats_limit: 25,
             pause: false,
             eng_bias: 0.3,
+            dmg_to_hp: 0.3
        }
     }
 
