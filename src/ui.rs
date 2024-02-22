@@ -75,9 +75,9 @@ impl UISystem {
     
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
-            let img =  Self::load_image(Path::new("assets/img/globe32.png")).unwrap();
+            let img =  Self::load_image(Path::new("assets/img/globe32b.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
-            let img2 =  Self::load_image(Path::new("assets/img/globe128.png")).unwrap();
+            let img2 =  Self::load_image(Path::new("assets/img/globe128b.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
             let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
             self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
