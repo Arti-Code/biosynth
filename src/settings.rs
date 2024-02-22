@@ -132,7 +132,7 @@ impl Default for Settings {
             repro_points: 30.0,
             repro_time: 100.0,
             new_one_probability: 0.2,
-            grid_size: 15,
+            grid_size: 10,
             follow_mode: false,
             plant_probability: 0.6,
             plant_lifetime: 300.0,

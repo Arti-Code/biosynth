@@ -56,15 +56,17 @@ pub struct Terrain {
 impl Terrain {
 
     pub fn new(w: f32, h: f32, s: f32, water_lvl: u8) -> Self {
-        let row_num = (h / s) as usize + 1;
-        let col_num = (w / s) as usize;
+        //let row_num = (h / s) as usize;
+        //let col_num = (w / s) as usize;
+        let row_num = (h/s) as usize;
+        let col_num = (w/s) as usize;
         let map = Self::generate_noise_map(col_num, row_num);
         let mut cells: Vec<Vec<Cell>> = vec![];
         for r in 0..row_num {
             let mut row: Vec<Cell> = vec![];
             for c in 0..col_num {
                 let mut v = map.get_value(c, r) as f32;
-                v = v + 0.4;
+                v = v + 0.25;
                 v = clamp(v, 0.0, 1.0);
                 let cell = Cell::new(v*20.0);
                 row.push(cell);
@@ -143,12 +145,12 @@ impl Terrain {
         let seed = generate_seed() as u32;
         let mut basic_multi = BasicMulti::<Perlin>::new(seed);
         basic_multi.frequency = rand::gen_range(0.2, 0.8);
-        basic_multi.octaves = rand::gen_range(1, 6);
-        basic_multi.lacunarity = rand::gen_range(0.1, 0.8);
+        basic_multi.octaves = rand::gen_range(2, 8);
+        basic_multi.lacunarity = rand::gen_range(0.2, 0.8);
         basic_multi.persistence = rand::gen_range(0.2, 0.6);
         PlaneMapBuilder::<_, 2>::new(&basic_multi)
-            .set_size(w, h).set_x_bounds(-5.0, 5.0)
-            .set_y_bounds(-5.0, 5.0).build()
+            .set_size(w, h).set_x_bounds(-6.0, 6.0)
+            .set_y_bounds(-6.0, 6.0).build()
     }
 
     pub fn water_level(&self) -> u8 {

@@ -46,6 +46,7 @@ pub struct UISystem {
     logo: Option<egui_macroquad::egui::TextureHandle>,
     big_logo: Option<egui_macroquad::egui::TextureHandle>,
     title: Option<egui_macroquad::egui::TextureHandle>,
+    dice: Option<egui_macroquad::egui::TextureHandle>,
     temp_values: TempValues,
 }
 
@@ -60,6 +61,7 @@ impl UISystem {
             big_logo: None,
             title: None,
             temp_values: TempValues::default(),
+            dice: None,
         }
     }
 
@@ -79,6 +81,8 @@ impl UISystem {
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
             let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
             self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
+            let img4 =  Self::load_image(Path::new("assets/img/dice24.png")).unwrap();
+            self.dice = Some(egui_ctx.load_texture("dice".to_string(), img4, Default::default()));
         });
     }
 
@@ -368,6 +372,7 @@ impl UISystem {
                     if row.add(Button::new(RichText::new("NEW SIMULATION").strong()).min_size(UIVec2::new(160., 35.))).clicked() {
                         self.state.main_menu = false;
                         self.state.new_sim = true;
+                        self.state.gen_random_name = true;
                     }
                 });
                 ui.add_space(16.0);
@@ -726,7 +731,20 @@ impl UISystem {
                 ui.add_space(3.0);
                 ui.vertical_centered(|txt| {
                     let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
-                    if self.temp_sim_name.is_empty() {
+                    let rnd_btn = txt.add(
+                        Button::image_and_text(
+                            self.dice.clone().unwrap().id(), 
+                            egui_macroquad::egui::Vec2::new(24.0, 24.0), 
+                            WidgetText::from("")
+                        )
+                        .fill(Color32::TRANSPARENT).stroke(Stroke::new(1.5, Color32::GREEN))
+                        .min_size(egui_macroquad::egui::Vec2::new(32.0, 32.0))
+                    );
+                    if rnd_btn.clicked() {
+                        self.state.gen_random_name = true;
+                    }
+                    if self.state.gen_random_name {
+                        self.state.gen_random_name = false;
                         let l0 = names0.len();
                         let l1 = names1.len();
                         let n0 = rand::gen_range(0, l0);
@@ -1926,6 +1944,7 @@ pub struct UIState {
     pub right_panel: bool,
     pub bottom_panel: bool,
     pub deaths: bool,
+    pub gen_random_name: bool,
 }
 
 impl UIState {
@@ -1965,6 +1984,7 @@ impl UIState {
             right_panel: true,
             deaths: false,
             bottom_panel: true,
+            gen_random_name: false,
         }
     }
 }
