@@ -184,9 +184,9 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
                 let speed = sim_speed();
-                let accel_label = format!("{} >>> {}", speed as i32, speed as i32 + 1);
+                let accel_label = format!("SpeedUp {}>>{}", speed as i32, speed as i32 + 1);
                 let mut deccel_color = Color32::GOLD;
-                let mut deccel_label = format!("{} <<< {}", speed as i32 - 1, speed as i32);
+                let mut deccel_label = format!("SlowDown {}<<{}", speed as i32 - 1, speed as i32);
                 if speed == 1.0 {
                     deccel_color = Color32::GRAY;
                     deccel_label = format!("---");
@@ -199,7 +199,7 @@ impl UISystem {
                 }
 
                 menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
-                    if ui.button(RichText::new("Real Time").strong().color(Color32::GREEN)).clicked() {
+                    if ui.button(RichText::new("Normal Speed (x1)").strong().color(Color32::GREEN)).clicked() {
                         let mut settings = settings();
                         settings.sim_speed = 1.0;
                         set_settings(settings);

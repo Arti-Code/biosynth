@@ -74,11 +74,26 @@ impl Plant {
             if self.eng >= self.size.powi(2)*10.0 {
                 self.size += 1.0;
                 resize = true;
-                self.resize(physics);
+                /* self.resize(physics);
                 self.max_eng = self.size.powi(2)*10.0;
                 if self.eng > self.max_eng {
                     self.eng = self.max_eng;
-                }
+                } */
+            } else if self.eng < (self.size-1.0).powi(2)*10.0 && self.size >= 1.0 {
+                self.size -= 1.0;
+                resize = true;
+                /* self.resize(physics);
+                self.max_eng = self.size.powi(2)*10.0;
+                if self.eng > self.max_eng {
+                    self.eng = self.max_eng;
+                } */
+            }
+        }
+        if resize {
+            self.resize(physics);
+            self.max_eng = self.size.powi(2)*10.0;
+            if self.eng > self.max_eng {
+                self.eng = self.max_eng;
             }
         }
         self.update_physics(physics, resize);
