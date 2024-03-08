@@ -308,7 +308,7 @@ impl Simulation {
                     if power1 > power2 {
                         let mut a = (agent.power as f32 + agent.size*0.5)/1.5;
                         a = a + a*random_unit();
-                        let d = target.shell as f32 * 1.8;
+                        let d = target.shell as f32 * 1.0;
                         let mut dmg = (a-d) * dt * settings.damage;
                         if dmg > 0.0 {
                             if hits.contains_key(id) {
