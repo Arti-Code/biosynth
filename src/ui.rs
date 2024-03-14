@@ -170,7 +170,7 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Resize World").strong().color(Color32::GOLD),).clicked() {
                         if !self.state.resize_world {
-                            let settings = settings();
+                            let settings = get_settings();
                             self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
                         }
                         self.state.resize_world = !self.state.resize_world;
@@ -193,31 +193,31 @@ impl UISystem {
                 }
                 let mut pause_color = Color32::YELLOW;
                 let mut pause_label = format!("Pause");
-                if settings().pause {
+                if get_settings().pause {
                     pause_color = Color32::GREEN;
                     pause_label = format!("Run");
                 }
 
                 menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
                     if ui.button(RichText::new("Normal Speed (x1)").strong().color(Color32::GREEN)).clicked() {
-                        let mut settings = settings();
+                        let mut settings = get_settings();
                         settings.sim_speed = 1.0;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new(accel_label).strong().color(Color32::LIGHT_BLUE)).clicked() {
-                        let mut settings = settings();
+                        let mut settings = get_settings();
                         settings.sim_speed += 1.0;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new(deccel_label).strong().color(deccel_color)).clicked() {
                         if sim_speed() > 1.0 {
-                            let mut settings = settings();
+                            let mut settings = get_settings();
                             settings.sim_speed -= 1.0;
                             set_settings(settings);
                         }
                     }
                     if ui.button(RichText::new(pause_label).strong().color(pause_color)).clicked() {
-                            let mut settings = settings();
+                            let mut settings = get_settings();
                             settings.pause = !settings.pause;
                             set_settings(settings);
                     }
@@ -245,22 +245,22 @@ impl UISystem {
 
                 menu::menu_button(ui, RichText::new("CAMERA").strong(), |ui| {
                     if ui.button(RichText::new("Follow Mode").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = settings();
+                        let mut settings = get_settings();
                         settings.follow_mode = !settings.follow_mode;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Name").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = settings();
+                        let mut settings = get_settings();
                         settings.show_specie = !settings.show_specie;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Generation").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = settings();
+                        let mut settings = get_settings();
                         settings.show_generation = !settings.show_generation;
                         set_settings(settings);
                     }
                     if ui.button(RichText::new("Show Energy Bar").strong().color(Color32::GOLD)).clicked() {
-                        let mut settings = settings();
+                        let mut settings = get_settings();
                         settings.agent_eng_bar = !settings.agent_eng_bar;
                         set_settings(settings);
                     }
@@ -310,8 +310,8 @@ impl UISystem {
                     if ui.button(RichText::new("Ancestors").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.ancestors = !self.state.ancestors;
                     }
-                    if ui.button(RichText::new("Resource").strong().color(Color32::LIGHT_GREEN)).clicked() {
-                        self.state.resource = !self.state.resource;
+                    if ui.button(RichText::new("Plants").strong().color(Color32::LIGHT_GREEN)).clicked() {
+                        self.state.plants = !self.state.plants;
                     }
                     ui.add_space(5.0);
                     ui.separator();
@@ -640,17 +640,17 @@ impl UISystem {
                                 ui.label(format!("target pos: [x: {} | y: {}]", rel_pos.x.round(), rel_pos.y.round()));
                             },
                         }
-                        match agent.resource_dir {
+                        match agent.plant_dir {
                             None => {},
                             Some(res_dir) => {
-                                ui.label(format!("resource angle: {:.2}", res_dir));
+                                ui.label(format!("plant angle: {:.2}", res_dir));
                             },
                         }
-                        match agent.resource_position {
+                        match agent.plant_position {
                             None => {},
                             Some(res_pos) => {
                                 let rel_pos = res_pos - agent.pos;
-                                ui.label(format!("resource pos: [x: {} | y: {}]", rel_pos.x.round(), rel_pos.y.round()));
+                                ui.label(format!("plant pos: [x: {} | y: {}]", rel_pos.x.round(), rel_pos.y.round()));
                             },
                         }
                     },
@@ -705,7 +705,7 @@ impl UISystem {
                 "SYSTEM", "EXPERIMENT", "TERRAIN", "GLOBE", "SANDBOX"
             ];
 
-            let mut settings = settings();
+            let mut settings = get_settings();
             let w = 500.0; let h = 220.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h]).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
@@ -875,7 +875,7 @@ impl UISystem {
     }
 
     fn build_res_window(&self, egui_ctx: &Context, res: &Plant) {
-        if self.state.resource {
+        if self.state.plants {
             let size = res.size as i32;
             let max_eng = res.max_eng;
             let eng = res.eng;
@@ -1001,7 +1001,7 @@ impl UISystem {
         if !self.state.set_agent {
             return;
         }
-        let mut settings = settings();
+        let mut settings = get_settings();
         Window::new("AGENT SETTINGS").id("agent_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.heading("AGENT SETTINGS");
@@ -1208,7 +1208,7 @@ impl UISystem {
         if !self.state.environment {
             return;
         }
-        let mut settings = settings();
+        let mut settings = get_settings();
         Window::new("ENVIROMENT SETTINGS").id("enviroment_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.columns(2, |column| {
@@ -1408,7 +1408,7 @@ impl UISystem {
         if !self.state.neuro_settings {
             return;
         }
-        let mut settings = settings();
+        let mut settings = get_settings();
         Window::new("NEURO SETTINGS").id("neuro_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
         .title_bar(true).show(egui_ctx, |ui| {
             ui.columns(2, |column| {
@@ -1935,7 +1935,7 @@ pub struct UIState {
     pub energy_cost: bool,
     pub neuro_settings: bool,
     pub info: bool,
-    pub resource: bool,
+    pub plants: bool,
     pub plot_attributes: bool,
     pub plot_population: bool,
     pub plot_lifetime: bool,
@@ -1975,7 +1975,7 @@ impl UIState {
             energy_cost: false,
             neuro_settings: false,
             info: false,
-            resource: false,
+            plants: false,
             plot_attributes: true,
             plot_population: true,
             plot_lifetime: true,

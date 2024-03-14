@@ -8,12 +8,12 @@ pub fn set_settings(settings: Settings) {
     storage::store(settings);
 }
 
-pub fn settings() -> Settings {
+pub fn get_settings() -> Settings {
     return storage::get::<Settings>().clone();
 }
 
 pub fn sim_speed() -> f32 {
-    return settings().sim_speed;
+    return get_settings().sim_speed;
 }
 fn default_stats_limit() -> usize {
     return 100;

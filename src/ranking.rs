@@ -35,7 +35,7 @@ impl Ranking {
     }
 
     fn update_general(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         self.general.sort_by(|a, b| b.points.total_cmp(&a.points));
         let general_copy = self.general.to_vec();
         for elem1 in general_copy.iter() {
@@ -59,7 +59,7 @@ impl Ranking {
     }
 
     fn update_school(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         self.school.sort_by(|a, b| b.points.total_cmp(&a.points));
         let school_copy = self.school.to_vec();
         for elem1 in school_copy.iter() {

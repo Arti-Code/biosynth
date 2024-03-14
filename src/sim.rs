@@ -42,15 +42,13 @@ pub struct Simulation {
     pub selected: Option<RigidBodyHandle>,
     pub mouse_state: MouseState,
     pub agents: AgentBox,
-    pub resources: ResBox,
-    //pub ranking: Vec<AgentSketch>,
+    pub plants: PlantBox,
     pub ranking: Ranking,
     population_timer: Timer,
     pub terrain: Terrain,
     coord_timer: Timer,
     monitor: PerformanceMonitor,
     lifetimes: Vec<f32>,
-    //lifetime_stats: Vec<[i32; 2]>,
     sizes: Vec<f32>,
     eyes: Vec<f32>,
     speeds: Vec<f32>,
@@ -58,7 +56,6 @@ pub struct Simulation {
     mutations: Vec<f32>,
     shells: Vec<f32>,
     plot_x: i32,
-    //stats: Stats,
     borns: [i32; 4],
     deaths: [i32; 2],
     points: Vec<f32>,
@@ -74,7 +71,7 @@ pub struct Simulation {
 impl Simulation {
     
     pub fn new(font: Font) -> Self {
-        let settings = settings();
+        let settings = get_settings();
         Self {
             simulation_name: format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
             world_size: Vec2 {
@@ -93,7 +90,7 @@ impl Simulation {
             select_phase: 0.0,
             mouse_state: MouseState { pos: Vec2::NAN },
             agents: AgentBox::new(),
-            resources: ResBox::new(),
+            plants: PlantBox::new(),
             //ranking: vec![],
             ranking: Ranking::new(settings.ranking_size, 20, 10),
             last_autosave: 0.0,
@@ -124,7 +121,7 @@ impl Simulation {
     }
 
     fn init_stats(&mut self) {
-        self.statistics = Statistics::new(settings().stats_limit);
+        self.statistics = Statistics::new(get_settings().stats_limit);
         self.borns = [0, 0, 0, 0];
         self.statistics.add_data_type("borns");
         self.statistics.add_data_type("deaths");
@@ -148,12 +145,12 @@ impl Simulation {
             Some(name) => name.to_string(),
             None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
         };
-        let settings = settings();
+        let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
         self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
         self.agents.agents.clear();
-        self.resources.resources.clear();
+        self.plants.plants.clear();
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
@@ -166,11 +163,11 @@ impl Simulation {
     }
 
     fn clear_sim(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
         self.agents = AgentBox::new();
-        self.resources = ResBox::new();
+        self.plants = PlantBox::new();
         self.ranking = Ranking::new(settings.ranking_size, 20, 10);
         self.sim_time = 0.0;
         self.sim_state = SimState::new();
@@ -183,7 +180,7 @@ impl Simulation {
     }
 
     pub fn init(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
         self.plot_x = (self.sim_state.sim_time/100.0) as i32;
@@ -237,13 +234,13 @@ impl Simulation {
     }
 
     fn update_res(&mut self) {
-        let settings = settings();
-        let mut new_resources: Vec<Plant> = vec![];
-        for (_, res) in self.resources.get_iter_mut() {
+        let settings = get_settings();
+        let mut new_plants: Vec<Plant> = vec![];
+        for (_, res) in self.plants.get_iter_mut() {
             match res.update_cloning(&mut self.physics) {
                 None => {},
                 Some(new_res) => {
-                    new_resources.push(new_res);
+                    new_plants.push(new_res);
                 }
             }
             res.update(&mut self.physics);
@@ -251,12 +248,12 @@ impl Simulation {
                 self.physics.remove_object(res.physics_handle);
             }
         }
-        self.resources.resources.retain(|_, res| res.alife == true);
-        for res in new_resources.iter() {
-            self.resources.add_resource(res.to_owned())
+        self.plants.plants.retain(|_, res| res.alife == true);
+        for res in new_plants.iter() {
+            self.plants.add_plant(res.to_owned())
         }
-        if self.resources.count() < settings.plant_min_num {
-            self.resources.add_many_resources(2, &mut self.physics);
+        if self.plants.count() < settings.plant_min_num {
+            self.plants.add_many_plants(2, &mut self.physics);
         }
     }
 
@@ -293,7 +290,7 @@ impl Simulation {
     }
 
     fn attacks(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         let dt = dt()*sim_speed();
         let mut hits: HashMap<RigidBodyHandle, (f32, RigidBodyHandle)> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
@@ -301,14 +298,14 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 self.agents.agents.get(tg).inspect(|target| {
-                    let pow1 = 0.5*agent.size + agent.power as f32;
-                    let pow2 = 0.5*target.size + target.power as f32;
+                    let pow1 = 0.25*agent.size + agent.power as f32;
+                    let pow2 = 0.25*target.size + target.power as f32;
                     let power1 = pow1 + pow1*random_unit();
                     let power2 = pow2 + pow2*random_unit();
                     if power1 > power2 {
-                        let mut a = (agent.power as f32 + agent.size*0.5)/1.5;
+                        let mut a = agent.power as f32;
                         a = a + a*random_unit();
-                        let d = target.shell as f32 * 1.0;
+                        let d = target.shell as f32;
                         let mut dmg = (a-d) * dt * settings.damage;
                         if dmg > 0.0 {
                             if hits.contains_key(id) {
@@ -357,14 +354,14 @@ impl Simulation {
     }
 
     fn eat(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         let dt = dt()*sim_speed();
         let mut hits: HashMap<RigidBodyHandle, f32> = HashMap::new();
         for (id, agent) in self.agents.get_iter() {
             if agent.eating && !agent.attacking {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
-                    self.resources.resources.get(tg).inspect(|_target| {
+                    self.plants.plants.get(tg).inspect(|_target| {
                         let power1 = agent.size + 5.0;
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
@@ -401,7 +398,7 @@ impl Simulation {
                     }
                 }
             } else {
-                match self.resources.resources.get_mut(id) {
+                match self.plants.plants.get_mut(id) {
                     None => {
                     },
                     Some(source) => {
@@ -425,13 +422,13 @@ impl Simulation {
     }
 
     pub fn draw_terrain(&self) {
-        let settings = settings();
+        let settings = get_settings();
         self.terrain.draw(settings.show_cells);
     }
 
     fn draw_res(&self) {
-        let settings = settings();
-        for (_, res) in self.resources.get_iter() {
+        let settings = get_settings();
+        for (_, res) in self.plants.get_iter() {
             res.draw(settings.show_plant_rad);
         }
     }
@@ -545,7 +542,7 @@ impl Simulation {
         }
         if get_signals().resize_world.is_some() {
             let xy = get_signals().resize_world.unwrap();
-            let mut settings = settings();
+            let mut settings = get_settings();
             settings.world_w = xy.x as i32; settings.world_h = xy.y as i32;
             set_settings(settings.clone());
             self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
@@ -639,6 +636,8 @@ impl Simulation {
                                     let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
                                     self.agents.add_agent(agent);
                                 }
+                                let settings = get_settings();
+                                self.plants.add_many_plants(settings.plant_init_num, &mut self.physics);
                                 self.ranking.general = sim_state.ranking.to_owned();
                                 self.ranking.school =  sim_state.school.to_owned();
                             },
@@ -662,7 +661,7 @@ impl Simulation {
                         match serde_json::from_str::<AgentSketch>(&save) {
                             Ok(agent_save) => {
                                 let mut agent = Agent::from_sketch(agent_save.clone(), &mut self.physics);
-                                let settings = settings();
+                                let settings = get_settings();
                                 agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
                                 self.agents.add_agent(agent);
                             },
@@ -767,7 +766,7 @@ impl Simulation {
                     }
                 }
                 if self.selected.is_some() { return; }
-                for (id, res) in self.resources.get_iter() {
+                for (id, res) in self.plants.get_iter() {
                     if contact_mouse(rel_coords, res.pos, res.size) {
                         self.selected = Some(*id);
                         break;
@@ -778,7 +777,7 @@ impl Simulation {
     }
 
     fn check_settings(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         if settings.follow_mode && self.selected.is_some() {
             match self.selected {
                 None => {},
@@ -804,7 +803,7 @@ impl Simulation {
     fn update_sim_state(&mut self) {
         if self.stats_timer.update(dt()) {
             self.population_agents.push(self.agents.count() as i32);
-            self.population_plants.push(self.resources.count() as i32);
+            self.population_plants.push(self.plants.count() as i32);
         }
         self.sim_state.fps = self.monitor.fps();
         self.sim_state.dt = self.monitor.dt();
@@ -812,7 +811,7 @@ impl Simulation {
         let (mouse_x, mouse_y) = mouse_position();
         self.mouse_state.pos = Vec2::new(mouse_x, mouse_y);
         self.sim_state.agents_num = self.agents.agents.len() as i32;
-        self.sim_state.sources_num = self.resources.resources.len() as i32;
+        self.sim_state.sources_num = self.plants.plants.len() as i32;
         self.sim_state.physics_num = self.physics.get_bodies_num() as i32;
         (self.sim_state.rigid_num, self.sim_state.colliders_num) = self.physics.get_bodies_and_colliders_num();
         let kin_eng = 0.0;
@@ -874,7 +873,7 @@ impl Simulation {
     }
 
     fn check_agents_num(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         let dt = dt()*sim_speed();
         if self.sim_state.agents_num < (settings.agent_min_num as i32) {
             self.agent_from_zero();
@@ -921,13 +920,13 @@ impl Simulation {
             },
             None => None,
         };
-        let selected_resource = match self.selected {
+        let selected_plant = match self.selected {
             Some(selected) => {
-                self.resources.get(selected)
+                self.plants.get(selected)
             },
             None => None,
         };
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected_agent, selected_resource, &self.ranking, &self.statistics);
+        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected_agent, selected_plant, &self.ranking, &self.statistics);
     }
 
     pub fn draw_ui(&self) {

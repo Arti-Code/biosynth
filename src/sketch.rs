@@ -62,7 +62,7 @@ impl SimulationSketch {
             let sketch2 = sketch.to_owned();
             school.push(sketch2);
         }
-        let settings = settings();
+        let settings = get_settings();
         Self { 
             simulation_name: sim.simulation_name.to_owned(), 
             world_size: MyPos2::from_vec(&sim.world_size), 

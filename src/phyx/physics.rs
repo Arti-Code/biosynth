@@ -62,8 +62,8 @@ impl Physics {
         return self.core.get_closest_agent(agent_body_handle, detection_range, detection_angle, direction);
     }
 
-    pub fn get_closest_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
-        return self.core.get_closest_resource(agent_body_handle, detection_range, detection_angle, direction);
+    pub fn get_closest_plant(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
+        return self.core.get_closest_plant(agent_body_handle, detection_range, detection_angle, direction);
     }
 
     pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
@@ -74,8 +74,8 @@ impl Physics {
         return self.core.get_contacted_agent_set(agent_body_handle, radius);
     }
 
-    pub fn get_contacted_resource_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
-        return self.core.get_contacted_resource_set(agent_body_handle, radius);
+    pub fn get_contacted_plant_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        return self.core.get_contacted_plant_set(agent_body_handle, radius);
     }
 
     pub fn get_object(&mut self, rbh: RigidBodyHandle) -> Option<&RigidBody> {
@@ -94,8 +94,8 @@ impl Physics {
         return self.core.rigid_bodies.iter_mut();
     }
 
-    pub fn count_near_resources(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
-        return self.core.count_near_resources(rbh, detection_range);
+    pub fn count_near_plants(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
+        return self.core.count_near_plants(rbh, detection_range);
     }    
 
     pub fn get_first_collider_mut(&mut self, rbh: RigidBodyHandle) -> &mut Collider {
@@ -241,7 +241,7 @@ impl PhysicsCore {
     }
 
     pub fn get_physics_data(&self, handle: RigidBodyHandle) -> PhysicState {
-        let settings = settings();
+        let settings = get_settings();
         if let Some(rb) = self.rigid_bodies.get(handle) {
             let iso = rb.position();
             let (pos, rot) = iso_to_vec2_rot(iso);
@@ -360,7 +360,7 @@ impl PhysicsCore {
         return contacts;
     }
 
-    pub fn get_contacted_resource_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+    pub fn get_contacted_plant_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
         let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let filter = QueryFilter {
@@ -423,7 +423,7 @@ impl PhysicsCore {
         }
     }
 
-    pub fn get_closest_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
+    pub fn get_closest_plant(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -461,7 +461,7 @@ impl PhysicsCore {
         }
     }
 
-    pub fn count_near_resources(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
+    pub fn count_near_plants(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
         let rb = self.rigid_bodies.get(rbh).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;

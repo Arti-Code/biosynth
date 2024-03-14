@@ -75,7 +75,7 @@ pub fn random_unit_vec2() -> Vec2 {
 }
 
 pub fn dt() -> f32 {
-    if settings().pause {
+    if get_settings().pause {
         return  0.0;
     }
     return  get_frame_time();
@@ -110,7 +110,7 @@ pub fn angle2vec2(angle: f32) -> Vec2 {
 }
 
 pub fn wrap_around(v: &Vec2) -> Vec2 {
-    let settings = settings();
+    let settings = get_settings();
     let world_w = settings.world_w as f32;
     let world_h = settings.world_h as f32;
     let tolerance = 0.0;

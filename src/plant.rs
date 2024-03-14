@@ -24,11 +24,12 @@ pub struct Plant {
     pub time: f32,
     clone_timer: Timer,
     growth_timer: Timer,
+    life_length: f32,
 }
 
 impl Plant {
     pub fn new(physics: &mut Physics) -> Self {
-        let settings = settings();
+        let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let size = 2.0;
         let shape = SharedShape::ball(size);
@@ -40,6 +41,7 @@ impl Plant {
             InteractionGroups::new(Group::GROUP_2, Group::GROUP_1 | Group::GROUP_2), 
             true
         );
+        let max_life = (settings.plant_lifetime + settings.plant_lifetime * random_unit())/2.0;
         Self {
             pos,
             rot: 0.0,
@@ -49,7 +51,8 @@ impl Plant {
             color: YELLOW,
             shape: Ball { radius: size },
             physics_handle: rbh,
-            time: 64.0,
+            life_length: max_life,
+            time: max_life,
             alife: true,
             clone_timer: Timer::new(10.0, true, true, true),
             growth_timer: Timer::new(10.0, true, true, true),
@@ -58,15 +61,20 @@ impl Plant {
     pub fn draw(&self, show_range: bool) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        draw_circle(x0, y0, self.size, self.color);
+        let age = self.time/self.life_length;
+        let g = clamp(1.0, 0., 1.,);
+        let r = clamp(-0.25+(1.-age/1.0), 0., 1.,);
+        let b = clamp(0., 0., 1.,);
+        let color = Color::new(r, g, b, 1.0);
+        draw_circle(x0, y0, self.size, color);
         if show_range {
-            let settings = settings();
+            let settings = get_settings();
             draw_circle_lines(x0, y0, settings.plant_detection_radius, 0.5, Color { r: 0.78, g: 0.78, b: 0.78, a: 0.25 });
         }
     }
     pub fn update(&mut self, physics: &mut Physics){
         let dt = dt()*sim_speed();
-        let settings = settings();
+        let settings = get_settings();
         let mut resize = false;
         self.time -= dt;
         self.eng += settings.growth * dt;
@@ -74,19 +82,9 @@ impl Plant {
             if self.eng >= self.size.powi(2)*10.0 {
                 self.size += 1.0;
                 resize = true;
-                /* self.resize(physics);
-                self.max_eng = self.size.powi(2)*10.0;
-                if self.eng > self.max_eng {
-                    self.eng = self.max_eng;
-                } */
             } else if self.eng < (self.size-1.0).powi(2)*10.0 && self.size >= 1.0 {
                 self.size -= 1.0;
                 resize = true;
-                /* self.resize(physics);
-                self.max_eng = self.size.powi(2)*10.0;
-                if self.eng > self.max_eng {
-                    self.eng = self.max_eng;
-                } */
             }
         }
         if resize {
@@ -127,9 +125,9 @@ impl Plant {
 
     pub fn update_cloning(&mut self, physics: &mut Physics) -> Option<Plant> {
         if self.clone_timer.update(dt()*sim_speed()) {
-            let settings = settings();
+            let settings = get_settings();
             let b = settings.plant_balance as f32;
-            let n = physics.count_near_resources(self.physics_handle, settings.plant_detection_radius) as f32;
+            let n = physics.count_near_plants(self.physics_handle, settings.plant_detection_radius) as f32;
             let mut p = settings.plant_probability;
             if n > b {
                 p = p - p*((n-b)/b);
@@ -147,7 +145,7 @@ impl Plant {
     }
 
     fn check_edges(&mut self, body: &mut RigidBody) {
-        let settings = settings();
+        let settings = get_settings();
         let mut raw_pos = matrix_to_vec2(body.position().translation);
         let mut out_of_edge = false;
         if raw_pos.x < -5.0 {

@@ -3,7 +3,7 @@ use macroquad::prelude::*;
 use crate::settings::*;
 
 pub fn create_camera() -> Camera2D {
-    let settings = settings();
+    let settings = get_settings();
     let world_w = settings.world_w as f32;
     let world_h = settings.world_h as f32;
     let camera2d = Camera2D {
@@ -21,7 +21,7 @@ pub fn create_camera() -> Camera2D {
 }
 
 pub fn control_camera(camera: &mut Camera2D /* , screen_ratio: f32 */) {
-    let settings = settings();
+    let settings = get_settings();
     let world_w = settings.world_w as f32;
     let world_h = settings.world_h as f32;
     if is_key_pressed(KeyCode::KpAdd) {

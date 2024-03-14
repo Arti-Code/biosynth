@@ -23,12 +23,12 @@ pub struct Agent {
     pub key: u64,
     pub pos: Vec2,
     pub rot: f32,
-    pub mass: f32,
+    mass: f32,
     vel: f32,
     ang_vel: f32,
     pub size: f32,
-    pub vision_range: f32,
-    pub vision_angle: f32,
+    vision_range: f32,
+    vision_angle: f32,
     pub max_eng: f32,
     pub eng: f32,
     pub max_hp: f32,
@@ -44,16 +44,16 @@ pub struct Agent {
     pub generation: u32,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
-    pub contact_resource: bool,
+    pub contact_plant: bool,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_family: Option<bool>,
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub enemy_size: Option<f32>,
     enemy_mood: Option<Color>,
-    pub resource: Option<RigidBodyHandle>,
-    pub resource_position: Option<Vec2>,
-    pub resource_dir: Option<f32>,
+    pub plant: Option<RigidBodyHandle>,
+    pub plant_position: Option<Vec2>,
+    pub plant_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
     pub neuro_map: NeuroMap,
     pub childs: usize,
@@ -82,7 +82,7 @@ pub struct Agent {
 impl Agent {
     
     pub fn new(physics: &mut Physics) -> Self {
-        let settings = settings();
+        let settings = get_settings();
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let rot = random_rotation();
         let eyes = gen_range(0, 10);
@@ -140,12 +140,12 @@ impl Agent {
             enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
-            resource: None,
-            resource_position: None,
-            resource_dir: None,
+            plant: None,
+            plant_position: None,
+            plant_dir: None,
             contacts: Vec::new(),
             contact_agent: false,
-            contact_resource: false,
+            contact_plant: false,
             physics_handle: rbh,
             neuro_map,
             childs: 0,
@@ -174,7 +174,7 @@ impl Agent {
     }
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
-        let settings = settings();
+        let settings = get_settings();
         return 120.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
@@ -191,7 +191,7 @@ impl Agent {
     }
 
     fn mod_specie(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         if rand::gen_range(0, settings.rare_specie_mod) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;
@@ -214,7 +214,7 @@ impl Agent {
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
         let key = gen_range(u64::MIN, u64::MAX);
-        let settings = settings();
+        let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
         let color_second = Color::new(sketch.color_second[0], sketch.color_second[1], sketch.color_second[2], sketch.color_second[3]);
@@ -272,12 +272,12 @@ impl Agent {
             enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
-            resource: None,
-            resource_position: None,
-            resource_dir: None,
+            plant: None,
+            plant_position: None,
+            plant_dir: None,
             contacts: Vec::new(),
             contact_agent: false,
-            contact_resource: false,
+            contact_plant: false,
             physics_handle: rbh,
             neuro_map: sketch.neuro_map.clone(),
             childs: 0,
@@ -307,12 +307,12 @@ impl Agent {
     }
 
     pub fn draw(&self, selected: bool, font: &Font) {
-        let settings = settings();
+        let settings = get_settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
             let hp = self.hp/self.max_hp;
             self.draw_status_bar(hp, GREEN, RED, Vec2::new(0.0, self.size*1.5+4.0));
-            self.draw_status_bar(e, SKYBLUE, YELLOW, Vec2::new(0.0, self.size*1.5+8.0));
+            self.draw_status_bar(e, SKYBLUE, YELLOW, Vec2::new(0.0, self.size*1.5+6.0));
         }
         self.draw_body();
         self.draw_front();
@@ -419,7 +419,7 @@ impl Agent {
     fn prep_input(&mut self) {
         let contact: f32;
         let contact_agent = self.contact_agent as i32 as f32;
-        let contact_resource = self.contact_resource as i32 as f32;
+        let contact_plant = self.contact_plant as i32 as f32;
         if self.contacts.len() > 0 {
             contact = 1.0; 
         } else {
@@ -454,14 +454,14 @@ impl Agent {
             tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs();
         }
         
-        let res_dist = match self.resource_position {
+        let res_dist = match self.plant_position {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
                 dist/self.vision_range
             },
         };
-        let res_ang = match self.resource_dir {
+        let res_ang = match self.plant_dir {
             None => 0.0,
             Some(dir) => {
                 dir
@@ -506,7 +506,7 @@ impl Agent {
         self.pain = false;
         self.neuro_map.set_signal("CON", contact);
         self.neuro_map.set_signal("ENY", contact_agent);
-        self.neuro_map.set_signal("RES", contact_resource);
+        self.neuro_map.set_signal("RES", contact_plant);
         self.neuro_map.set_signal("HP", hp);
         self.neuro_map.set_signal("ENG", eng);
         self.neuro_map.set_signal("TGL", tgl);
@@ -652,16 +652,16 @@ impl Agent {
                 draw_line(x0r, y0r, x1, y1, 2.0, self.color);
             });
         });
-        self.resource.inspect(|_| {
-            self.resource_position.inspect(|resource_position| {
+        self.plant.inspect(|_| {
+            self.plant_position.inspect(|plant_position| {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
                 let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size;
                 let x0l = self.pos.x + v0l.x;
                 let y0l = self.pos.y + v0l.y;
                 let x0r = self.pos.x + v0r.x;
                 let y0r = self.pos.y + v0r.y;
-                let x1 = resource_position.x;
-                let y1 = resource_position.y;
+                let x1 = plant_position.x;
+                let y1 = plant_position.y;
                 draw_line(x0l, y0l, x1, y1, 1.0, self.color);
                 draw_line(x0r, y0r, x1, y1, 1.0, self.color);
             });
@@ -669,7 +669,7 @@ impl Agent {
     }
 
     fn draw_info(&self, font: &Font) {
-        let settings = settings();
+        let settings = get_settings();
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let text_cfg = TextParams {
@@ -701,14 +701,14 @@ impl Agent {
 
     fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {
         let xc = self.pos.x + offset.x; let yc = self.pos.y + offset.y;
-        let x0 = xc-20.0; let y0 = yc -1.5;
-        let w = 40.0*percent;
-        draw_rectangle(x0, y0, 40.0, 3.0, color2);
-        draw_rectangle(x0, y0, w, 3.0, color1);
+        let x0 = xc-10.0; let y0 = yc -0.75;
+        let w = 20.0*percent;
+        draw_rectangle(x0, y0, 20.0, 1.5, color2);
+        draw_rectangle(x0, y0, w, 1.5, color1);
     }
 
     fn update_physics(&mut self, physics: &mut Physics) {
-        let settings = settings();
+        let settings = get_settings();
         self.update_enemy_position(physics);
         let physics_data = physics.get_object_state(self.physics_handle);
         self.pos = physics_data.position;
@@ -719,7 +719,7 @@ impl Agent {
                 let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
                 //let rel_speed = self.speed as f32 - (self.shell as f32)/6.0;
-                let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
+                let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
                 if self.run {
                     v *= 1.5;
                 }
@@ -733,7 +733,7 @@ impl Agent {
     }
 
     fn check_edges(&mut self, body: &mut RigidBody) {
-        let settings = settings();
+        let settings = get_settings();
         let (mut raw_pos, rot ) = iso_to_vec2_rot(body.position());
         let mut out_of_edge: f32 = 0.0;
         if raw_pos.x <= 0.0 {
@@ -777,33 +777,33 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(rb) = self.resource {
-            if let Some(resource_position) = physics.get_object_position(rb) {
-                self.resource_position = Some(resource_position);
-                let rel_pos = resource_position - self.pos;
-                let resource_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(1.0*PI);
-                self.resource_dir = Some(resource_dir);
+        if let Some(rb) = self.plant {
+            if let Some(plant_position) = physics.get_object_position(rb) {
+                self.plant_position = Some(plant_position);
+                let rel_pos = plant_position - self.pos;
+                let plant_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(1.0*PI);
+                self.plant_dir = Some(plant_dir);
             } else {
-                self.resource = None;
-                self.resource_position = None;
-                self.resource_dir = None;
+                self.plant = None;
+                self.plant_position = None;
+                self.plant_dir = None;
             }
-        } else if self.resource_position.is_some() {
-            self.resource_position = None;
-            self.resource_dir = None;
+        } else if self.plant_position.is_some() {
+            self.plant_position = None;
+            self.plant_dir = None;
         }
     }
 
     fn update_contacts(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) {
         self.contacts.clear();
         self.contact_agent = false;
-        self.contact_resource = false;
+        self.contact_plant = false;
         let contacts = physics.get_contacts_set(self.physics_handle, self.size);
         for contact in contacts {
             if other.contains_key(&contact) {
                 self.contact_agent = true;
             } else {
-                self.contact_resource = true;
+                self.contact_plant = true;
             }
             if let Some(pos2) = physics.get_object_position(contact) {
                 let mut rel_pos = pos2 - self.pos;
@@ -817,7 +817,7 @@ impl Agent {
     fn contacts_clear(&mut self) {
         self.contacts.clear();
         self.contact_agent = false;
-        self.contact_resource = false;
+        self.contact_plant = false;
     }
 
     fn watch(&mut self, physics: &Physics) {
@@ -830,18 +830,18 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(tg) = physics.get_closest_resource(self.physics_handle, self.vision_range, self.vision_angle, direction) {
-            self.resource = Some(tg);
+        if let Some(tg) = physics.get_closest_plant(self.physics_handle, self.vision_range, self.vision_angle, direction) {
+            self.plant = Some(tg);
         } else {
-            self.resource = None;
-            self.resource_position = None;
-            self.resource_dir = None;
+            self.plant = None;
+            self.plant_position = None;
+            self.plant_dir = None;
         }
         self.update_enemy_position(physics);
     }
 
     fn calc_energy(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
@@ -874,7 +874,7 @@ impl Agent {
 
     fn calc_health(&mut self) {
         let e = self.eng/self.max_eng;
-        if e >= settings().eng_bias {
+        if e >= get_settings().eng_bias {
             self.hp += e * dt() * 1.0;
         } else {
             self.hp += (e - 1.0) * dt() * 2.5; 
@@ -924,7 +924,7 @@ impl Agent {
     }
 
     pub fn mutate(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         let m = ((self.mutations - 5) as f32) / 10.0;
         let mut_rate = settings.mutations + settings.mutations * m;
         self.mutations = Self::mutate_one(self.mutations, mut_rate);
@@ -940,7 +940,7 @@ impl Agent {
     }
 
     fn calc_hp(&mut self) {
-        let settings = settings();
+        let settings = get_settings();
         let eng = self.size * settings.size_to_hp + settings.base_hp as f32;
         self.max_eng = eng;
         self.eng = eng*settings.born_eng;
@@ -998,12 +998,12 @@ impl Agent {
             enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
-            resource: None,
-            resource_position: None,
-            resource_dir: None,
+            plant: None,
+            plant_position: None,
+            plant_dir: None,
             contacts: Vec::new(),
             contact_agent: false,
-            contact_resource: false,
+            contact_plant: false,
             physics_handle: rbh,
             neuro_map,
             childs: 0,
