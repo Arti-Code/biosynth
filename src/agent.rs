@@ -75,6 +75,7 @@ pub struct Agent {
     blocked: f32,
     attack_visual: bool,
     eat_visual: bool,
+    water: i32,
 }
 
 
@@ -102,9 +103,11 @@ impl Agent {
         let inp_labs = vec!["CON", "ENY", "RES", "HP", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
         let hid = settings.hidden_nodes_num;
-        let hid1 = rand::gen_range(1, hid);
-        let hid2 = rand::gen_range(1, hid);
-        network.build(inp_labs.len(), inp_labs, vec![hid1, hid2], out_labs.len(), out_labs, settings.neurolink_rate);
+        let hid_layers = settings.hidden_layers_num;
+        let deep = vec![hid; hid_layers];
+        //let hid1 = rand::gen_range(1, hid);
+        //let hid2 = rand::gen_range(1, hid);
+        network.build(inp_labs.len(), inp_labs, deep, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
@@ -167,6 +170,7 @@ impl Agent {
             blocked: 0.0,
             attack_visual: false,
             eat_visual: false,
+            water: 0,
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
@@ -299,6 +303,7 @@ impl Agent {
             blocked: 0.0,
             attack_visual: false,
             eat_visual: false,
+            water: 0,
         };
         agent.mod_specie();
         agent.mutate();
@@ -393,6 +398,9 @@ impl Agent {
         }
     }
 
+    pub fn set_water_tile(&mut self, water: i32) {
+        self.water = water;
+    }
 
     pub fn eat(&self) -> Vec<RigidBodyHandle> {
         let mut hits: Vec<RigidBodyHandle> = vec![];
@@ -720,6 +728,10 @@ impl Agent {
                 let dir = Vec2::from_angle(self.rot);
                 //let rel_speed = self.speed as f32 - (self.shell as f32)/6.0;
                 let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
+                let w = clamp(self.water, 0, 4);
+                if w > 0 {
+                    v = v/w as f32;
+                }
                 if self.run {
                     v *= 1.5;
                 }
@@ -1025,6 +1037,7 @@ impl Agent {
             blocked: 0.0,
             attack_visual: false,
             eat_visual: false,
+            water: 0,
         };
         agent.mod_specie();
         agent.mutate();

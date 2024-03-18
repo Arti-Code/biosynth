@@ -161,6 +161,16 @@ impl Terrain {
         self.water_lvl = clamp(new_level, 0, 20);
     }
 
+    pub fn get_water_lvl(&self, coord: [i32; 2]) -> u8 {
+        let alt = self.cells[coord[0] as usize][coord[1] as usize].alt as i32;
+        let w = self.water_level() as i32-alt as i32;
+        if w >= 0 {
+            return w as u8;
+        } else {
+            return 0;
+        }
+    }
+
 }
 
 

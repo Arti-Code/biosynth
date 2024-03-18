@@ -263,6 +263,7 @@ impl Simulation {
             for (_, agent) in self.agents.get_iter_mut() {
                 let coordinates = self.terrain.pos_to_coord(&agent.pos);
                 coords.push(coordinates);
+                agent.set_water_tile(self.terrain.get_water_lvl(coordinates) as i32);
             }
             self.terrain.set_occupied(coords);
         }

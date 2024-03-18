@@ -1434,6 +1434,16 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut hidden_layers_num = settings.hidden_layers_num as i32;
+                column[0].label(RichText::new("DEEP LAYERS NUMBER").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new::<i32>(&mut hidden_layers_num, 0..=10).step_by(1.0)).changed() {
+                    settings.hidden_layers_num = hidden_layers_num as usize;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut hidden_nodes_num = settings.hidden_nodes_num as i32;
                 column[0].label(RichText::new("DEEP NEURONS NUMBER").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new::<i32>(&mut hidden_nodes_num, 0..=10).step_by(1.0)).changed() {
