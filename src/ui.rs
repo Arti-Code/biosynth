@@ -1186,9 +1186,19 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut born_eng = settings.born_eng;
-                column[0].label(RichText::new("BORN ENERGY").color(Color32::WHITE).strong());
+                column[0].label(RichText::new("CHILD BORN ENERGY").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut born_eng, 0.0..=1.0).step_by(0.05)).changed() {
                     settings.born_eng = born_eng;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut born_eng_min = settings.born_eng_min;
+                column[0].label(RichText::new("MIN BORN ENERGY").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut born_eng_min, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.born_eng_min = born_eng_min;
                     signals.new_settings = true;
                 }
             });
@@ -1565,7 +1575,7 @@ impl UISystem {
         if !self.state.right_panel {
             return;
         }
-        SidePanel::right("Rightbar").max_width(320.0).show(egui_ctx, |ui| {
+        SidePanel::right("Rightbar").max_width(520.0).show(egui_ctx, |ui| {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
@@ -1812,12 +1822,12 @@ impl UISystem {
             let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
             let rect = response.rect;
             let zero = rect.left_top().to_vec2()+offset;
-            
+            let wi = 1.0;
             for (_, link) in network.links.iter() {
                 let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
                 let ui_coord0 = vec2_to_uivec2(&coord0);
                 let ui_coord1 = vec2_to_uivec2(&coord1);
-                let w = link.get_width()*1.2;
+                let w = link.get_width()*wi;
                 let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
                 let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
                 let (_, color1) = link.get_colors();
@@ -1827,7 +1837,7 @@ impl UISystem {
             }
             for (key, node) in network.nodes.iter() {
                 let (_, color1) = node.get_colors();
-                let r = node.get_size()*1.2;
+                let r = node.get_size()*wi;
                 let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                 let p1 = vec2_to_pos2(&ipos);
                 let c0 = color_to_color32(color1);

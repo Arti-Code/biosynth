@@ -236,21 +236,21 @@ impl Simulation {
     fn update_res(&mut self) {
         let settings = get_settings();
         let mut new_plants: Vec<Plant> = vec![];
-        for (_, res) in self.plants.get_iter_mut() {
-            match res.update_cloning(&mut self.physics) {
+        for (_, plant) in self.plants.get_iter_mut() {
+            match plant.update_cloning(&mut self.physics) {
                 None => {},
-                Some(new_res) => {
-                    new_plants.push(new_res);
+                Some(new_plant) => {
+                    new_plants.push(new_plant);
                 }
             }
-            res.update(&mut self.physics);
-            if !res.alife {
-                self.physics.remove_object(res.physics_handle);
+            plant.update(&mut self.physics);
+            if !plant.alife {
+                self.physics.remove_object(plant.physics_handle);
             }
         }
-        self.plants.plants.retain(|_, res| res.alife == true);
-        for res in new_plants.iter() {
-            self.plants.add_plant(res.to_owned())
+        self.plants.plants.retain(|_, p| p.alife == true);
+        for plant in new_plants.iter() {
+            self.plants.add_plant(plant.to_owned())
         }
         if self.plants.count() < settings.plant_min_num {
             self.plants.add_many_plants(2, &mut self.physics);
@@ -263,7 +263,7 @@ impl Simulation {
             for (_, agent) in self.agents.get_iter_mut() {
                 let coordinates = self.terrain.pos_to_coord(&agent.pos);
                 coords.push(coordinates);
-                agent.set_water_tile(self.terrain.get_water_lvl(coordinates) as i32);
+                //agent.set_water_tile(self.terrain.get_water_lvl(coordinates) as i32);
             }
             self.terrain.set_occupied(coords);
         }
@@ -492,6 +492,8 @@ impl Simulation {
         }
         if self.signals.save_sim {
             self.signals.save_sim = false;
+            //let mut settings = get_settings();
+            //settings.pause = true;
             self.save_sim();
         }
         if sign.load_sim_name.is_some() {

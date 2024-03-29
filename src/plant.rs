@@ -87,18 +87,19 @@ impl Plant {
                 resize = true;
             }
         }
+        self.update_physics(physics, resize);
+        self.pos = wrap_around(&self.pos);
+        if self.eng <= 0.0 || self.time <= 0.0 {
+            self.eng = 0.0;
+            self.alife = false;
+            return;
+        }
         if resize {
             self.resize(physics);
             self.max_eng = self.size.powi(2)*10.0;
             if self.eng > self.max_eng {
                 self.eng = self.max_eng;
             }
-        }
-        self.update_physics(physics, resize);
-        self.pos = wrap_around(&self.pos);
-        if self.eng <= 0.0 || self.time <= 0.0 {
-            self.eng = 0.0;
-            self.alife = false;
         }
     }
 

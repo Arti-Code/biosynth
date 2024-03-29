@@ -726,17 +726,18 @@ impl Agent {
             Some(body) => {
                 let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
-                //let rel_speed = self.speed as f32 - (self.shell as f32)/6.0;
-                let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
+                let vel = self.vel * ((self.speed as f32 + 5.0) * settings.agent_speed * dt);
+                let mut vel = dir * vel;
+                //let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
                 let w = clamp(self.water, 0, 4);
                 if w > 0 {
-                    v = v/w as f32;
+                    vel = vel/w as f32;
                 }
                 if self.run {
-                    v *= 1.5;
+                    vel *= 1.5;
                 }
                 let rot = self.ang_vel * settings.agent_rotate * dt / (self.shell as f32 * 0.5);
-                body.set_linvel(Vector2::new(v.x, v.y), true);
+                body.set_linvel(Vector2::new(vel.x, vel.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);
             }
@@ -863,7 +864,7 @@ impl Agent {
             basic_loss += attack_cost * self.size;
         }
         let shell_loss = self.shell as f32 * 0.15; 
-        let speed_loss = self.speed as f32 * 2.0;
+        let speed_loss = self.speed as f32 * 3.0;
         let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;

@@ -28,6 +28,10 @@ fn default_pause() -> bool {
     return false;
 }
 
+fn default_born_eng_min() -> f32 {
+    return 0.8;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -81,6 +85,8 @@ pub struct Settings {
     pub mut_change_val: f32,
     pub rare_specie_mod: i32,
     pub born_eng: f32,
+    #[serde(default = "default_born_eng_min")]
+    pub born_eng_min: f32,
     pub sim_speed: f32,
     #[serde(default = "default_stats_limit")]
     pub stats_limit: usize,
@@ -125,16 +131,16 @@ impl Default for Settings {
             base_hp: 150,
             size_to_hp: 55.0,
             plant_num: 75.0,
-            hidden_nodes_num: 5,
-            hidden_layers_num: 0,
-            neuro_duration: 0.25,
+            hidden_nodes_num: 4,
+            hidden_layers_num: 4,
+            neuro_duration: 0.05,
             atk_to_eng: 1.8,
             eat_to_eng: 4.0,
             ranking_size: 30,
             repro_points: 30.0,
             repro_time: 100.0,
             new_one_probability: 0.2,
-            grid_size: 10,
+            grid_size: 20,
             follow_mode: false,
             plant_probability: 0.6,
             plant_lifetime: 300.0,
@@ -147,6 +153,7 @@ impl Default for Settings {
             mut_del_node: 0.01,
             rare_specie_mod: 1500,
             born_eng: 0.6,
+            born_eng_min: 0.8,
             sim_speed: 1.0,
             stats_limit: 25,
             pause: false,
