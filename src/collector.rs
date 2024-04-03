@@ -115,6 +115,7 @@ impl PlantBox {
 
     pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut Physics) {
         for _ in 0..plants_num {
+            let num = self.count() as i32;
             let plant = Plant::new(physics_world);
             _ = self.add_plant(plant);
         }

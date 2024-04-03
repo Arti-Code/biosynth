@@ -726,8 +726,8 @@ impl Agent {
             Some(body) => {
                 let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
-                let vel = self.vel * ((self.speed as f32 + 5.0) * settings.agent_speed * dt);
-                let mut vel = dir * vel;
+                let v =(self.speed as f32 + 5.0) * settings.agent_speed * 5.0;
+                let mut vel = dir * self.vel * v * dt;
                 //let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
                 let w = clamp(self.water, 0, 4);
                 if w > 0 {

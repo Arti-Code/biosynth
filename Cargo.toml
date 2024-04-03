@@ -1,6 +1,6 @@
 [package]
 name = "evolve"
-version = "0.8.22"
+version = "0.8.23"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
 description = '''
@@ -21,8 +21,8 @@ keywords = [
 macroquad = "0.3.26"
 rapier2d = { version = "0.18.0", features = [ "simd-stable" ] }
 egui-macroquad = {version = "0.15.0"}
-egui_extras = {version = "0.27.1", features = ["image"]}
-image = "0.25.0"
+egui_extras = {version = "0.27.2", features = ["image"]}
+image = "0.25.1"
 serde_json = "1.0.115"
 serde = "1.0.197"
 noise = "0.9.0"

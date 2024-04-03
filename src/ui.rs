@@ -117,7 +117,7 @@ impl UISystem {
             }
             match res {
                 Some(res) => {
-                    self.build_res_window(egui_ctx, res);
+                    self.build_plant_window(egui_ctx, res);
                 },
                 None => {},
             }
@@ -874,13 +874,14 @@ impl UISystem {
         }
     }
 
-    fn build_res_window(&self, egui_ctx: &Context, res: &Plant) {
+    fn build_plant_window(&self, egui_ctx: &Context, plant: &Plant) {
         if self.state.plants {
-            let size = res.size as i32;
-            let max_eng = res.max_eng;
-            let eng = res.eng;
-            let attributes = format!("ENG: {:.0}/{:.0} | SIZE: {}",eng, max_eng, size);
-            let title_txt = format!("Resource"); 
+            let size = plant.size as i32;
+            let max_eng = plant.max_eng;
+            let eng = plant.eng;
+            let lifetime = plant.time;
+            let attributes = format!("ENG: {:.0}/{:.0} | SIZE: {} | LIFETIME: {:.0}",eng, max_eng, size, lifetime);
+            let title_txt = format!("Plants"); 
             Window::new(RichText::new(title_txt).strong().color(Color32::GREEN)).default_pos((800.0, 0.0)).min_width(100.0).show(egui_ctx, |ui| {
                 ui.horizontal(|row| {
                     row.label(RichText::new(attributes).strong());
@@ -1271,7 +1272,7 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
-            ui.columns(2, |column| {
+/*             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut res_detection_radius: f32 = settings.plant_detection_radius;
@@ -1280,14 +1281,14 @@ impl UISystem {
                     settings.plant_detection_radius = res_detection_radius;
                     signals.new_settings = true;
                 }
-            });
+            }); */
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_balance: i32 = settings.plant_balance as i32;
-                column[0].label(RichText::new("PLANT BALANCE NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_balance, 0..=20)).changed() {
-                    settings.plant_balance = res_balance as usize;
+                let mut plant_balance: i32 = settings.plant_balance as i32;
+                column[0].label(RichText::new("PLANT BALANCE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut plant_balance, 0..=100)).changed() {
+                    settings.plant_balance = plant_balance as usize;
                     signals.new_settings = true;
                 }
             });
@@ -1295,7 +1296,7 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut growth: f32 = settings.growth;
-                column[0].label(RichText::new("GROWTH").color(Color32::WHITE).strong());
+                column[0].label(RichText::new("PLANT GROWTH").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut growth, 0.0..=10.0).step_by(0.5)).changed() {
                     settings.growth = growth;
                     signals.new_settings = true;
@@ -1314,13 +1315,23 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut plant_clone_size = settings.plant_clone_size;
+                column[0].label(RichText::new("PLANT CLONE SIZE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut plant_clone_size, 1..=16).step_by(0.01)).changed() {
+                    settings.plant_clone_size = plant_clone_size;
+                    signals.new_settings = true;
+                }
+            });
+/*             ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut plant_probability = settings.plant_probability;
                 column[0].label(RichText::new("PLANT RATE").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut plant_probability, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.plant_probability = plant_probability;
                     signals.new_settings = true;
                 }
-            });
+            }); */
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));

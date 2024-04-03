@@ -10,6 +10,7 @@
 			"ipos",
 			"lacunarity",
 			"neurolink",
+			"permutationtable",
 			"phyx",
 			"resl",
 			"xfactor"
@@ -18,6 +19,7 @@
 			"childs",
 			"lacunarity",
 			"neurolink",
+			"permutationtable",
 			"phyx",
 			"resl",
 			"unmultiplied",

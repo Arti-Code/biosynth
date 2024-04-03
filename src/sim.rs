@@ -226,18 +226,19 @@ impl Simulation {
             }
         }
         self.agents.agents.retain(|_, agent| agent.alife == true);
-        self.update_coordinates();
+        //self.update_coordinates();
     }
 
     fn update_rank(&mut self) {
         self.ranking.update();
     }
 
-    fn update_res(&mut self) {
+    fn update_plants(&mut self) {
         let settings = get_settings();
         let mut new_plants: Vec<Plant> = vec![];
+        let num = self.plants.count() as i32;
         for (_, plant) in self.plants.get_iter_mut() {
-            match plant.update_cloning(&mut self.physics) {
+            match plant.update_cloning(num, &mut self.physics) {
                 None => {},
                 Some(new_plant) => {
                     new_plants.push(new_plant);
@@ -263,7 +264,7 @@ impl Simulation {
             for (_, agent) in self.agents.get_iter_mut() {
                 let coordinates = self.terrain.pos_to_coord(&agent.pos);
                 coords.push(coordinates);
-                //agent.set_water_tile(self.terrain.get_water_lvl(coordinates) as i32);
+                agent.set_water_tile(self.terrain.get_water_lvl(coordinates) as i32);
             }
             self.terrain.set_occupied(coords);
         }
@@ -275,7 +276,7 @@ impl Simulation {
         self.check_settings();
         self.update_sim_state();
         self.check_agents_num();
-        self.update_res();
+        self.update_plants();
         self.calc_selection_time();
         self.attacks();
         self.eat();
@@ -419,7 +420,7 @@ impl Simulation {
         self.draw_terrain();
         //self.draw_grid();
         self.draw_agents();
-        self.draw_res();
+        self.draw_plants();
     }
 
     pub fn draw_terrain(&self) {
@@ -427,7 +428,7 @@ impl Simulation {
         self.terrain.draw(settings.show_cells);
     }
 
-    fn draw_res(&self) {
+    fn draw_plants(&self) {
         let settings = get_settings();
         for (_, res) in self.plants.get_iter() {
             res.draw(settings.show_plant_rad);

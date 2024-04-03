@@ -25,6 +25,7 @@ pub struct Plant {
     clone_timer: Timer,
     growth_timer: Timer,
     life_length: f32,
+    clone_ready: bool,
 }
 
 impl Plant {
@@ -41,7 +42,7 @@ impl Plant {
             InteractionGroups::new(Group::GROUP_2, Group::GROUP_1 | Group::GROUP_2), 
             true
         );
-        let max_life = (settings.plant_lifetime + settings.plant_lifetime * random_unit())/2.0;
+        let max_life = settings.plant_lifetime + settings.plant_lifetime * random_unit() / 4.0;
         Self {
             pos,
             rot: 0.0,
@@ -56,9 +57,10 @@ impl Plant {
             alife: true,
             clone_timer: Timer::new(10.0, true, true, true),
             growth_timer: Timer::new(10.0, true, true, true),
+            clone_ready: false,
         }
     }
-    pub fn draw(&self, show_range: bool) {
+    pub fn draw(&self, _show_range: bool) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let age = self.time/self.life_length;
@@ -67,10 +69,10 @@ impl Plant {
         let b = clamp(0., 0., 1.,);
         let color = Color::new(r, g, b, 1.0);
         draw_circle(x0, y0, self.size, color);
-        if show_range {
+        /* if show_range {
             let settings = get_settings();
             draw_circle_lines(x0, y0, settings.plant_detection_radius, 0.5, Color { r: 0.78, g: 0.78, b: 0.78, a: 0.25 });
-        }
+        } */
     }
     pub fn update(&mut self, physics: &mut Physics){
         let dt = dt()*sim_speed();
@@ -82,6 +84,9 @@ impl Plant {
             if self.eng >= self.size.powi(2)*10.0 {
                 self.size += 1.0;
                 resize = true;
+                if self.size >= settings.plant_clone_size as f32 {
+                    self.clone_ready = true;
+                }
             } else if self.eng < (self.size-1.0).powi(2)*10.0 && self.size >= 1.0 {
                 self.size -= 1.0;
                 resize = true;
@@ -124,19 +129,24 @@ impl Plant {
         }
     }
 
-    pub fn update_cloning(&mut self, physics: &mut Physics) -> Option<Plant> {
+    pub fn update_cloning(&mut self, plant_num: i32, physics: &mut Physics) -> Option<Plant> {
         if self.clone_timer.update(dt()*sim_speed()) {
-            let settings = get_settings();
-            let b = settings.plant_balance as f32;
-            let n = physics.count_near_plants(self.physics_handle, settings.plant_detection_radius) as f32;
-            let mut p = settings.plant_probability;
-            if n > b {
-                p = p - p*((n-b)/b);
-            }
-            if random_unit_unsigned() <= p {
-                let mut res = Plant::new(physics);
-                res.pos = self.pos + random_unit_vec2() * 150.0;
-                return Some(res);
+            //let settings = get_settings();
+            //let b = settings.plant_balance as f32;
+            //let n = physics.count_near_plants(self.physics_handle, settings.plant_detection_radius) as f32;
+            //let mut p = settings.plant_probability;
+            //if n > b {
+            //    p = p - p*((n-b)/b);
+            //}
+            //if random_unit_unsigned() <= p {
+            if self.clone_ready {
+                let plant_balance = get_settings().plant_balance as f32;
+                let r = plant_balance/((plant_num as f32));
+                if random_unit_unsigned() > r { return None; }
+                self.clone_ready = false;
+                let mut plant = Plant::new(physics);
+                plant.pos = self.pos + random_unit_vec2() * 25.0;
+                return Some(plant);
             } else {
                 return None;
             }

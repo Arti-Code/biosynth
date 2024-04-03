@@ -5,7 +5,7 @@ use crate::util::*;
 use macroquad::prelude::*;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
-use noise::{*, utils::{NoiseMap, PlaneMapBuilder, NoiseMapBuilder}};
+use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::{NoiseMap, NoiseMapBuilder, PlaneMapBuilder}, *};
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -30,9 +30,13 @@ impl Cell {
     }
 
     pub fn get_color(&self, water_level: u8) -> Color {
-        if self.alt < water_level {
-            let a = 1.0 - (water_level as f32 / 20.0) * 0.5;
-            return Color::new(0.0, 0.0, 1.0, a);
+        let dif: i32 = self.alt as i32 - water_level as i32;
+        if dif < 0 {
+            let b = 1.0 + (dif as f32 / 15.0);
+            let r = clamp(b-0.75, 0.0, 1.0);
+            let g = clamp(b-0.75, 0.0, 1.0);
+            //let a = 0.5 - (water_level as f32 / 10.0) * 0.5;
+            return Color::new(r, g, b, 1.0);
         }
         let alt = self.alt as f32;
         let c = (alt * 8.0 + 50.0) as u8;
@@ -143,14 +147,21 @@ impl Terrain {
 
     fn generate_noise_map(w: usize, h: usize) -> NoiseMap {
         let seed = generate_seed() as u32;
+        let hasher = PermutationTable::new(generate_seed() as u32);
+        
         let mut basic_multi = BasicMulti::<Perlin>::new(seed);
         basic_multi.frequency = rand::gen_range(0.2, 0.8);
         basic_multi.octaves = rand::gen_range(2, 8);
         basic_multi.lacunarity = rand::gen_range(0.2, 0.8);
         basic_multi.persistence = rand::gen_range(0.2, 0.6);
-        PlaneMapBuilder::<_, 2>::new(&basic_multi)
-            .set_size(w, h).set_x_bounds(-6.0, 6.0)
-            .set_y_bounds(-6.0, 6.0).build()
+        //PlaneMapBuilder::new(source_module)
+        return PlaneMapBuilder::new(basic_multi).set_size(w, h)
+            .set_x_bounds(-6.0, 6.0).set_y_bounds(-6.0, 6.0).build();
+        //return PlaneMapBuilder::new_fn(|point| { perlin_2d(point.into(), &hasher) })
+        //    .set_size(w, h).set_x_bounds(-6.0, 6.0).set_y_bounds(-6.0, 6.0).build();
+        //PlaneMapBuilder::<_, 2>::new(&basic_multi)
+        //    .set_size(w, h).set_x_bounds(-6.0, 6.0)
+        //    .set_y_bounds(-6.0, 6.0).build()
     }
 
     pub fn water_level(&self) -> u8 {
