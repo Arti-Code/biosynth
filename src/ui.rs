@@ -1355,10 +1355,10 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut water_lvl = settings.water_lvl as i32;
+                let mut water_lvl = settings.water_lvl;
                 column[0].label(RichText::new("WATER LEVEL").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new::<i32>(&mut water_lvl, 0..=10)).changed() {
-                    settings.water_lvl = water_lvl as u8;
+                    settings.water_lvl = water_lvl;
                     signals.new_settings = true;
                 }
             });

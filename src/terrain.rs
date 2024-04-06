@@ -10,26 +10,26 @@ use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Cell {
-    alt: u8,
+    alt: i32,
 }
 
 impl Cell {
 
     pub fn new(altitude: f32) -> Self {
         Self {
-            alt: clamp(altitude, 0.0, 20.0) as u8,
+            alt: clamp(altitude, 0.0, 20.0) as i32,
         }
     }
 
     pub fn _set_cell(&mut self, altitude: f32) {
-        self.alt = clamp(altitude, 0.0, 20.0) as u8;
+        self.alt = clamp(altitude, 0.0, 20.0) as i32;
     }
 
     pub fn get_altitude(&self) -> f32 {
         return self.alt as f32;
     }
 
-    pub fn get_color(&self, water_level: u8) -> Color {
+    pub fn get_color(&self, water_level: i32) -> Color {
         let dif: i32 = self.alt as i32 - water_level as i32;
         if dif < 0 {
             let b = 1.0 + (dif as f32 / 15.0);
@@ -39,7 +39,7 @@ impl Cell {
             return Color::new(r, g, b, 1.0);
         }
         let alt = self.alt as f32;
-        let c = (alt * 8.0 + 50.0) as u8;
+        let c = (alt * 8.0 + 50.0) as i32;
         let color = color_u8!(c, c, c, 255);
         return color;
     }
@@ -54,21 +54,21 @@ pub struct Terrain {
     height: usize,
     cell_size: f32,
     occupied: Vec<[i32; 2]>,
-    water_lvl: u8,
+    water_lvl: i32,
 }
 
 impl Terrain {
 
-    pub fn new(w: f32, h: f32, s: f32, water_lvl: u8) -> Self {
+    pub fn new(w: f32, h: f32, s: f32, water_lvl: i32) -> Self {
         //let row_num = (h / s) as usize;
         //let col_num = (w / s) as usize;
         let row_num = (h/s) as usize;
         let col_num = (w/s) as usize;
         let map = Self::generate_noise_map(col_num, row_num);
         let mut cells: Vec<Vec<Cell>> = vec![];
-        for r in 0..row_num {
+        for c in 0..col_num {
             let mut row: Vec<Cell> = vec![];
-            for c in 0..col_num {
+            for r in 0..row_num {
                 let mut v = map.get_value(c, r) as f32;
                 v = v + 0.25;
                 v = clamp(v, 0.0, 1.0);
@@ -92,25 +92,25 @@ impl Terrain {
     }
 
     pub fn update(&mut self) {
-        for r in 0..self.cells.len() {
-            for c in 0..self.cells[r].len() {
-                let cell = &mut self.cells[r][c];
+        for c in 0..self.cells.len() {
+            for r in 0..self.cells[c].len() {
+                let cell = &mut self.cells[c][r];
                 
             }
         }
     }
 
     pub fn get_altitude(&self, x: usize, y: usize) -> f32 {
-        return self.cells[y][x].get_altitude();
+        return self.cells[x][y].get_altitude();
     }
 
     pub fn get_color(&self, x: usize, y: usize) -> Color {
-        return self.cells[y][x].get_color(self.water_lvl);
+        return self.cells[x][y].get_color(self.water_lvl);
     }
 
     pub fn draw(&self, show_occupied: bool) {
-        for r in 0..self.cells.len() {
-            for c in 0..self.cells[r].len() {
+        for c in 0..self.cells.len() {
+            for r in 0..self.cells[c].len() {
                 let mut color = self.get_color(c, r);
                 if color.a == 1.0 {
                     color.a = 0.35;
@@ -164,19 +164,23 @@ impl Terrain {
         //    .set_y_bounds(-6.0, 6.0).build()
     }
 
-    pub fn water_level(&self) -> u8 {
+    pub fn water_level(&self) -> i32 {
         return self.water_lvl;
     }
 
-    pub fn set_water_level(&mut self, new_level: u8) {
+    pub fn set_water_level(&mut self, new_level: i32) {
         self.water_lvl = clamp(new_level, 0, 20);
     }
 
-    pub fn get_water_lvl(&self, coord: [i32; 2]) -> u8 {
-        let alt = self.cells[coord[0] as usize][coord[1] as usize].alt as i32;
-        let w = self.water_level() as i32-alt as i32;
+    pub fn get_water_lvl(&self, coord: [i32; 2]) -> i32 {
+        if self.width as i32 <= coord[0] || self.height as i32 <= coord[1] || coord[0] < 0 || coord[1] < 0 {
+            warn!("get_water_lvl: coord out of bounds: {:?}", coord);
+            return 0;
+        }
+        let alt = self.cells[coord[0] as usize][coord[1] as usize].alt;
+        let w = self.water_level()-alt;
         if w >= 0 {
-            return w as u8;
+            return w;
         } else {
             return 0;
         }
@@ -191,7 +195,7 @@ pub struct SerializedTerrain {
     columns_num: usize,
     rows_num: usize,
     cells: Vec<Vec<Cell>>,
-    water_lvl: u8,
+    water_lvl: i32,
 }
 
 impl SerializedTerrain {

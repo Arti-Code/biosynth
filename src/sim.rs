@@ -226,7 +226,7 @@ impl Simulation {
             }
         }
         self.agents.agents.retain(|_, agent| agent.alife == true);
-        //self.update_coordinates();
+        self.update_coordinates();
     }
 
     fn update_rank(&mut self) {

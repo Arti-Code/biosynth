@@ -38,7 +38,7 @@ impl Plant {
             &pos, 
             0.0, 
             shape.clone(), 
-            PhysicsMaterial::high_inert(), 
+            PhysicsMaterial::plant(), 
             InteractionGroups::new(Group::GROUP_2, Group::GROUP_1 | Group::GROUP_2), 
             true
         );
