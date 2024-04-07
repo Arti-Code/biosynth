@@ -695,14 +695,14 @@ impl UISystem {
         if self.state.new_sim {
             let names0 = vec![
                 "NEW", "IDEAL", "DANGER", "DARK", "FIRST", "EXPERIMENTAL", 
-                "RANDOM", "STRANGE", "CRAZY", "FANTASTIC", "ALTERNATIVE",
-                "DEEP", "DIGITAL", "FIRST", "GREAT", "LAST", 
-                "ANOTHER", "BYTE", "NEXT", "TOXIC"
+                "RANDOM", "STRANGE", "MODERN", "OLD", "SIMPLE", "HISTORICAL",
+                "DEEP", "DIGITAL", "SECOND", "GREAT", "LAST", 
+                "ANOTHER", "NEXT", "TOXIC"
             ];
             let names1 = vec![
                 "SIMULATION", "UNIVERSE", "WORLD", "LAND", "PLANET", "SIM",
-                "REALITY", "BIOME", "LABOLATORY", "ROCK", "ISLAND", "NATURE", "ECOSYSTEM",
-                "SYSTEM", "EXPERIMENT", "TERRAIN", "GLOBE", "SANDBOX"
+                "REALITY", "ISLAND", "NATURE", "ECOSYSTEM",
+                "SYSTEM", "TERRAIN", "GLOBE", "REALM", "COSMOS"
             ];
 
             let mut settings = get_settings();
@@ -1237,7 +1237,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut agents_num: i32 = settings.agent_min_num as i32;
                 column[0].label(RichText::new("AGENT MIN NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut agents_num, 0..=100)).changed() {
+                if column[1].add(Slider::new(&mut agents_num, 0..=200)).changed() {
                     settings.agent_min_num = agents_num as usize;
                     signals.new_settings = true;
                 }
@@ -1247,7 +1247,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut agent_init_num: i32 = settings.agent_init_num as i32;
                 column[0].label(RichText::new("AGENT INIT NUMBER").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut agent_init_num, 0..=100)).changed() {
+                if column[1].add(Slider::new(&mut agent_init_num, 0..=200)).changed() {
                     settings.agent_init_num = agent_init_num as usize;
                     signals.new_settings = true;
                 }
@@ -1272,16 +1272,6 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
-/*             ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut res_detection_radius: f32 = settings.plant_detection_radius;
-                column[0].label(RichText::new("PLANT DETECTION RANGE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut res_detection_radius, 0.0..=500.0).step_by(5.0)).changed() {
-                    settings.plant_detection_radius = res_detection_radius;
-                    signals.new_settings = true;
-                }
-            }); */
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
@@ -1307,7 +1297,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut plant_lifetime = settings.plant_lifetime;
                 column[0].label(RichText::new("PLANT LIFETIME").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut plant_lifetime, 0.0..=500.0).step_by(0.01)).changed() {
+                if column[1].add(Slider::new(&mut plant_lifetime, 0.0..=600.0).step_by(0.01)).changed() {
                     settings.plant_lifetime = plant_lifetime;
                     signals.new_settings = true;
                 }
@@ -1322,16 +1312,6 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
-/*             ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut plant_probability = settings.plant_probability;
-                column[0].label(RichText::new("PLANT RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut plant_probability, 0.0..=1.0).step_by(0.01)).changed() {
-                    settings.plant_probability = plant_probability;
-                    signals.new_settings = true;
-                }
-            }); */
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));

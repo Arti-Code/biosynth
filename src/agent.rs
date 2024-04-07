@@ -93,7 +93,7 @@ impl Agent {
             &pos, 
             rot, 
             shape.clone(), 
-            PhysicsMaterial::default(), 
+            PhysicsMaterial::agent(), 
             InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 },
             false,
         );
@@ -360,14 +360,12 @@ impl Agent {
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
         let dt = dt()*sim_speed();
         self.lifetime += dt;
-        //if self.timer_contact.update(dt) {
-            //}
-        self.update_contacts(other, physics);
         if self.timer_analize.update(dt) {
+            self.update_contacts(other, physics);
             self.watch(physics);
             self.update_enemy_mood(other);
             self.analize();
-            self.contacts_clear();
+            //self.contacts_clear();
         }
 
         self.update_physics(physics);
@@ -808,9 +806,9 @@ impl Agent {
     }
 
     fn update_contacts(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) {
-        self.contacts.clear();
-        self.contact_agent = false;
-        self.contact_plant = false;
+        self.contacts_clear();
+        //self.contact_agent = false;
+        //self.contact_plant = false;
         let contacts = physics.get_contacts_set(self.physics_handle, self.size);
         for contact in contacts {
             if other.contains_key(&contact) {
