@@ -2,6 +2,8 @@
 
 use macroquad::prelude::*;
 use crate::timer::*;
+use crate::settings::*;
+use crate::util::dt;
 
 pub struct PerformanceMonitor {
     fps_list: Vec<i32>,
@@ -22,8 +24,8 @@ impl PerformanceMonitor {
     }
 
     pub fn monitor(&mut self) {
-        let fps = get_fps();
-        let dt = get_frame_time();
+        let fps = (get_fps() as f32/sim_speed()) as i32;
+        let dt = dt()*sim_speed();
         self.fps_list.push(fps);
         if self.timer.update(dt) {
             let sum: i32 = self.fps_list.iter().sum();

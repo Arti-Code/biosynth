@@ -5,8 +5,8 @@ use macroquad::{prelude::*, color};
 use rapier2d::prelude::*;
 use crate::timer::Timer;
 use crate::util::*;
-use crate::physics::*;
-//use crate::globals::*;
+use crate::phyx::physics::Physics;
+use crate::phyx::physics_misc::PhysicsMaterial;
 use crate::settings::*;
 
 
@@ -24,18 +24,25 @@ pub struct Plant {
     pub time: f32,
     clone_timer: Timer,
     growth_timer: Timer,
+    life_length: f32,
+    clone_ready: bool,
 }
 
 impl Plant {
     pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
-        //let key = rand::gen_range(u64::MIN, u64::MAX);
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
-        //let color = random_color();
-        //let size = rand::gen_range(6, 8) as f32;
         let size = 2.0;
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::high_inert(), InteractionGroups::new(Group::GROUP_2, Group::GROUP_1 | Group::GROUP_2));
+        let rbh = physics.add_dynamic_object(
+            &pos, 
+            0.0, 
+            shape.clone(), 
+            PhysicsMaterial::plant(), 
+            InteractionGroups::new(Group::GROUP_2, Group::GROUP_1 | Group::GROUP_2), 
+            true
+        );
+        let max_life = settings.plant_lifetime + settings.plant_lifetime * random_unit() / 4.0;
         Self {
             pos,
             rot: 0.0,
@@ -45,23 +52,30 @@ impl Plant {
             color: YELLOW,
             shape: Ball { radius: size },
             physics_handle: rbh,
-            time: 64.0,
+            life_length: max_life,
+            time: max_life,
             alife: true,
             clone_timer: Timer::new(10.0, true, true, true),
             growth_timer: Timer::new(10.0, true, true, true),
+            clone_ready: false,
         }
     }
-    pub fn draw(&self, show_range: bool) {
+    pub fn draw(&self, _show_range: bool) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
-        draw_circle(x0, y0, self.size, self.color);
-        if show_range {
+        let age = self.time/self.life_length;
+        let g = clamp(1.0, 0., 1.,);
+        let r = clamp(-0.25+(1.-age/1.0), 0., 1.,);
+        let b = clamp(0., 0., 1.,);
+        let color = Color::new(r, g, b, 1.0);
+        draw_circle(x0, y0, self.size, color);
+        /* if show_range {
             let settings = get_settings();
-            draw_circle_lines(x0, y0, settings.res_detection_radius, 0.5, Color { r: 0.78, g: 0.78, b: 0.78, a: 0.25 });
-        }
+            draw_circle_lines(x0, y0, settings.plant_detection_radius, 0.5, Color { r: 0.78, g: 0.78, b: 0.78, a: 0.25 });
+        } */
     }
     pub fn update(&mut self, physics: &mut Physics){
-        let dt = get_frame_time();
+        let dt = dt()*sim_speed();
         let settings = get_settings();
         let mut resize = false;
         self.time -= dt;
@@ -70,11 +84,12 @@ impl Plant {
             if self.eng >= self.size.powi(2)*10.0 {
                 self.size += 1.0;
                 resize = true;
-                self.resize(physics);
-                self.max_eng = self.size.powi(2)*10.0;
-                if self.eng > self.max_eng {
-                    self.eng = self.max_eng;
+                if self.size >= settings.plant_clone_size as f32 {
+                    self.clone_ready = true;
                 }
+            } else if self.eng < (self.size-1.0).powi(2)*10.0 && self.size >= 1.0 {
+                self.size -= 1.0;
+                resize = true;
             }
         }
         self.update_physics(physics, resize);
@@ -82,6 +97,14 @@ impl Plant {
         if self.eng <= 0.0 || self.time <= 0.0 {
             self.eng = 0.0;
             self.alife = false;
+            return;
+        }
+        if resize {
+            self.resize(physics);
+            self.max_eng = self.size.powi(2)*10.0;
+            if self.eng > self.max_eng {
+                self.eng = self.max_eng;
+            }
         }
     }
 
@@ -95,7 +118,6 @@ impl Plant {
     }
 
     fn update_physics(&mut self, physics: &mut Physics, _resize: bool) {
-        //let settings = get_settings();
         let physics_data = physics.get_object_state(self.physics_handle);
         self.pos = physics_data.position;
         self.rot = physics_data.rotation;
@@ -107,19 +129,24 @@ impl Plant {
         }
     }
 
-    pub fn update_cloning(&mut self, physics: &mut Physics) -> Option<Plant> {
-        if self.clone_timer.update(get_frame_time()) {
-            let settings = get_settings();
-            let b = settings.res_balance as f32;
-            let n = physics.count_near_resources(self.physics_handle, settings.res_detection_radius) as f32;
-            let mut p = settings.plant_probability;
-            if n > b {
-                p = p - p*((n-b)/b);
-            }
-            if random_unit_unsigned() <= p {
-                let mut res = Plant::new(physics);
-                res.pos = self.pos + random_unit_vec2() * 150.0;
-                return Some(res);
+    pub fn update_cloning(&mut self, plant_num: i32, physics: &mut Physics) -> Option<Plant> {
+        if self.clone_timer.update(dt()*sim_speed()) {
+            //let settings = get_settings();
+            //let b = settings.plant_balance as f32;
+            //let n = physics.count_near_plants(self.physics_handle, settings.plant_detection_radius) as f32;
+            //let mut p = settings.plant_probability;
+            //if n > b {
+            //    p = p - p*((n-b)/b);
+            //}
+            //if random_unit_unsigned() <= p {
+            if self.clone_ready {
+                let plant_balance = get_settings().plant_balance as f32;
+                let r = plant_balance/((plant_num as f32));
+                if random_unit_unsigned() > r { return None; }
+                self.clone_ready = false;
+                let mut plant = Plant::new(physics);
+                plant.pos = self.pos + random_unit_vec2() * 25.0;
+                return Some(plant);
             } else {
                 return None;
             }
@@ -148,8 +175,6 @@ impl Plant {
         }
         if out_of_edge {
             body.set_position(make_isometry(raw_pos.x, raw_pos.y, self.rot), true);
-            //body.set_linvel([0.0, 0.0].into(), true);
-            //self.vel = 0.0;
         }
     }    
 

@@ -1,20 +1,8 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use std::collections::HashMap;
-
-//use rapier2d::dynamics::RigidBodyHandle;
 use serde::{Deserialize, Serialize};
-
 use crate::neuro::Network;
-
-
-
-
-/* #[derive(Clone)]
-pub struct Detected {
-    pub target_handle: RigidBodyHandle,
-    pub dist: f32,
-} */
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -65,7 +53,6 @@ impl NeuroMap {
     }
 
     pub fn send_signals(&self, network: &mut Network) {
-        //self.signals = HashMap::new();
         let mut input_values: Vec<(u64, f32)> = vec![];
         for (k, v) in self.signals.iter() {
             input_values.push((*k, *v));

@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+//mod physics_misc;
+
 use crate::util::*;
 use macroquad::prelude::*;
 use rapier2d::na::*;
@@ -8,6 +10,7 @@ use std::collections::hash_set::{Iter};
 use std::collections::{HashMap, HashSet};
 use std::io;
 use crate::settings::*;
+use super::physics_misc::*;
 
 pub struct Physics {
     pub core: PhysicsCore,
@@ -35,8 +38,8 @@ impl Physics {
         return self.core.get_numbers();
     }
 
-    pub fn add_dynamic_object(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups) -> RigidBodyHandle {
-        self.core.add_dynamic(position, rotation, shape, material, groups)
+    pub fn add_dynamic_object(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups, can_sleep: bool) -> RigidBodyHandle {
+        self.core.add_dynamic(position, rotation, shape, material, groups, can_sleep)
     }
 
     pub fn add_collider(&mut self, rbh: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, material: PhysicsMaterial, groups: InteractionGroups) -> ColliderHandle {
@@ -59,8 +62,8 @@ impl Physics {
         return self.core.get_closest_agent(agent_body_handle, detection_range, detection_angle, direction);
     }
 
-    pub fn get_closest_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
-        return self.core.get_closest_resource(agent_body_handle, detection_range, detection_angle, direction);
+    pub fn get_closest_plant(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
+        return self.core.get_closest_plant(agent_body_handle, detection_range, detection_angle, direction);
     }
 
     pub fn get_contacts_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
@@ -71,8 +74,8 @@ impl Physics {
         return self.core.get_contacted_agent_set(agent_body_handle, radius);
     }
 
-    pub fn get_contacted_resource_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
-        return self.core.get_contacted_resource_set(agent_body_handle, radius);
+    pub fn get_contacted_plant_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+        return self.core.get_contacted_plant_set(agent_body_handle, radius);
     }
 
     pub fn get_object(&mut self, rbh: RigidBodyHandle) -> Option<&RigidBody> {
@@ -91,8 +94,8 @@ impl Physics {
         return self.core.rigid_bodies.iter_mut();
     }
 
-    pub fn count_near_resources(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
-        return self.core.count_near_resources(rbh, detection_range);
+    pub fn count_near_plants(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
+        return self.core.count_near_plants(rbh, detection_range);
     }    
 
     pub fn get_first_collider_mut(&mut self, rbh: RigidBodyHandle) -> &mut Collider {
@@ -128,13 +131,19 @@ pub struct PhysicsCore {
 impl PhysicsCore {
 
     pub fn new() -> Self {
+        let params = IntegrationParameters {
+            prediction_distance: 0.02,
+            allowed_linear_error: 0.01,
+            dt: 1.0/45.0,
+            ..Default::default()
+        };
         Self {
             attract_num: 0,
             rigid_bodies: RigidBodySet::new(),
             bodies_keys: HashMap::new(),
             colliders: ColliderSet::new(),
             gravity: Vector2::new(0.0, 0.0),
-            integration_parameters: IntegrationParameters::default(),
+            integration_parameters: params,
             physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),
@@ -198,10 +207,10 @@ impl PhysicsCore {
         }
     }
 
-    fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32) -> RigidBodyHandle {
+    fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32, can_sleep: bool) -> RigidBodyHandle {
         let pos = make_isometry(position.x, position.y, rotation);
         let dynamic_body = RigidBodyBuilder::dynamic().position(pos)
-            .linear_damping(linear_damping).angular_damping(angular_damping).build();
+            .linear_damping(linear_damping).angular_damping(angular_damping).can_sleep(can_sleep).build();
         return self.rigid_bodies.insert(dynamic_body);
     }
 
@@ -225,8 +234,8 @@ impl PhysicsCore {
         return self.colliders.insert_with_parent(collider, body_handle, &mut self.rigid_bodies);
     }
 
-    pub fn add_dynamic(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups) -> RigidBodyHandle {
-        let rbh = self.add_dynamic_rigidbody(position, rotation, physics_props.linear_damping, physics_props.angular_damping);
+    pub fn add_dynamic(&mut self, position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups, can_sleep: bool) -> RigidBodyHandle {
+        let rbh = self.add_dynamic_rigidbody(position, rotation, physics_props.linear_damping, physics_props.angular_damping, can_sleep);
         let _ch = self.add_collider(rbh, &Vec2::ZERO, 0.0, shape, physics_props, groups);
         return rbh;
     }
@@ -351,7 +360,7 @@ impl PhysicsCore {
         return contacts;
     }
 
-    pub fn get_contacted_resource_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
+    pub fn get_contacted_plant_set(&mut self, agent_body_handle: RigidBodyHandle, radius: f32) -> HashSet<RigidBodyHandle> {
         let mut contacts: HashSet<RigidBodyHandle> = HashSet::new();
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let filter = QueryFilter {
@@ -414,7 +423,7 @@ impl PhysicsCore {
         }
     }
 
-    pub fn get_closest_resource(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
+    pub fn get_closest_plant(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -452,7 +461,7 @@ impl PhysicsCore {
         }
     }
 
-    pub fn count_near_resources(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
+    pub fn count_near_plants(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
         let rb = self.rigid_bodies.get(rbh).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -472,43 +481,6 @@ impl PhysicsCore {
             return true;
         });
         return n;
-    }
-
-}
-
-
-pub struct PhysicState {
-    pub position: Vec2,
-    pub rotation: f32,
-    pub mass: f32,
-    pub kin_eng: Option<f32>,
-    pub force: Option<Vec2>,
-}
-
-
-pub struct PhysicsMaterial {
-    pub friction: f32,
-    pub restitution: f32,
-    pub density: f32,
-    pub linear_damping: f32,
-    pub angular_damping: f32,
-}
-
-impl Default for PhysicsMaterial {
-    
-    fn default() -> Self {
-        Self { friction: 0.5, restitution: 0.5, density: 0.5, linear_damping: 0.1, angular_damping: 0.9 }
-    }
-}
-
-impl PhysicsMaterial {
-    
-    pub fn new(friction: f32, restitution: f32, density: f32, linear_damping: f32, angular_damping: f32) -> Self {
-        Self { friction, restitution, density, linear_damping, angular_damping }
-    }
-
-    pub fn high_inert() -> Self {
-        Self { friction: 2.0, restitution: 0.0, density: 10.0, linear_damping: 2.0, angular_damping: 1.0 }
     }
 
 }

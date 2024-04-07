@@ -1,61 +1,59 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::f32::consts::PI;
 use crate::neuro::*;
 use crate::timer::*;
 use crate::util::*;
-use crate::physics::*;
-use crate::globals::*;
-//use crate::part::*;
-use macroquad::{color, prelude::*};
+use macroquad::prelude::*;
 use macroquad::rand::*;
 use rapier2d::geometry::*;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
-use std::fmt::Debug;
-use serde::{Serialize, Deserialize};
 use crate::settings::*;
-use crate::stats::*;
+use crate::statistics::*;
 use crate::misc::*;
-
+use crate::sketch::*;
+use crate::phyx::physics::Physics;
+use crate::phyx::physics_misc::PhysicsMaterial;
 
 #[derive(Clone)]
 pub struct Agent {
     pub key: u64,
     pub pos: Vec2,
     pub rot: f32,
-    pub mass: f32,
+    mass: f32,
     vel: f32,
     ang_vel: f32,
     pub size: f32,
-    pub vision_range: f32,
-    pub vision_angle: f32,
+    vision_range: f32,
+    vision_angle: f32,
     pub max_eng: f32,
     pub eng: f32,
+    pub max_hp: f32,
+    pub hp: f32,
     color: Color,
     color_second: Color,
     pub shape: SharedShape,
-    analize_timer: Timer,
+    timer_analize: Timer,
+    timer_contact: Timer,
     pub network: Network,
     pub alife: bool,
     pub lifetime: f32,
     pub generation: u32,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
-    pub contact_resource: bool,
-    //pub detected: Option<Detected>,
+    pub contact_plant: bool,
     pub enemy: Option<RigidBodyHandle>,
     pub enemy_family: Option<bool>,
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
     pub enemy_size: Option<f32>,
     enemy_mood: Option<Color>,
-    pub resource: Option<RigidBodyHandle>,
-    pub resource_position: Option<Vec2>,
-    pub resource_dir: Option<f32>,
+    pub plant: Option<RigidBodyHandle>,
+    pub plant_position: Option<Vec2>,
+    pub plant_dir: Option<f32>,
     pub physics_handle: RigidBodyHandle,
     pub neuro_map: NeuroMap,
     pub childs: usize,
@@ -75,6 +73,9 @@ pub struct Agent {
     ancestors: Ancestors,
     pub eng_cost: EnergyCost,
     blocked: f32,
+    attack_visual: bool,
+    eat_visual: bool,
+    water: i32,
 }
 
 
@@ -83,30 +84,36 @@ impl Agent {
     
     pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
-        //let key = gen_range(u64::MIN, u64::MAX);
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
         let rot = random_rotation();
         let eyes = gen_range(0, 10);
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let shape = SharedShape::ball(size);
-        let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
+        let rbh = physics.add_dynamic_object(
+            &pos, 
+            rot, 
+            shape.clone(), 
+            PhysicsMaterial::agent(), 
+            InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 },
+            false,
+        );
         let color = random_color();
         let color_second = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENY", "RES", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
+        let inp_labs = vec!["CON", "ENY", "RES", "HP", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
         let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
-        let mut hid = settings.hidden_nodes_num;
-        let hid1 = rand::gen_range(1, hid);
-        let hid2 = rand::gen_range(1, hid);
-        //let hid3 = rand::gen_range(1, hid);
-        network.build(inp_labs.len(), inp_labs, vec![hid1, hid2], out_labs.len(), out_labs, settings.neurolink_rate);
+        let hid = settings.hidden_nodes_num;
+        let hid_layers = settings.hidden_layers_num;
+        let deep = vec![hid; hid_layers];
+        //let hid1 = rand::gen_range(1, hid);
+        //let hid2 = rand::gen_range(1, hid);
+        network.build(inp_labs.len(), inp_labs, deep, out_labs.len(), out_labs, settings.neurolink_rate);
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        //let parts: Vec<Box<dyn AgentPart>> = vec![];
-        let eng = size * settings.size_to_hp + settings.base_hp as f32;
+
         let mut agent = Agent {
             key: gen_range(u64::MIN, u64::MAX),
             pos,
@@ -117,29 +124,31 @@ impl Agent {
             size,
             vision_range:  Self::calc_vision_range(eyes),
             vision_angle: Self::calc_vision_angle(eyes),
+            max_hp: 100.0,
+            hp: 100.0,
             max_eng: 0.0,
             eng: 0.0,
             color,
             color_second,
             shape,
-            analize_timer: Timer::new(settings.neuro_duration, true, true, true),
+            timer_analize: Timer::new(settings.neuro_duration, true, true, true),
+            timer_contact: Timer::new(0.07, true, true, true),
             network,
             alife: true,
             lifetime: 0.0,
             generation: 0,
-            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
             enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
-            resource: None,
-            resource_position: None,
-            resource_dir: None,
+            plant: None,
+            plant_position: None,
+            plant_dir: None,
             contacts: Vec::new(),
             contact_agent: false,
-            contact_resource: false,
+            contact_plant: false,
             physics_handle: rbh,
             neuro_map,
             childs: 0,
@@ -159,6 +168,9 @@ impl Agent {
             ancestors: Ancestors::new(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
+            attack_visual: false,
+            eat_visual: false,
+            water: 0,
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
@@ -167,7 +179,7 @@ impl Agent {
 
     pub fn calc_vision_range(eyes: i32) -> f32 {
         let settings = get_settings();
-        return 80.0 + settings.agent_vision_range*(eyes as f32)/10.0;
+        return 120.0 + settings.agent_vision_range*(eyes as f32)/10.0;
     }
 
     pub fn calc_vision_angle(eyes: i32) -> f32 {
@@ -176,6 +188,10 @@ impl Agent {
 
     pub fn get_mood(&self) -> Color {
         return self.mood.to_owned();
+    }
+
+    pub fn get_nodes_links_num(&self) -> (i32, i32) {
+        return self.network.get_nodes_links_number();
     }
 
     fn mod_specie(&mut self) {
@@ -222,7 +238,14 @@ impl Agent {
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
         //let parts: Vec<Box<dyn AgentPart>> = vec![];
-        let rbh = physics.add_dynamic_object(&pos, 0.0, shape.clone(), PhysicsMaterial::default(), InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 });
+        let rbh = physics.add_dynamic_object(
+            &pos, 
+            0.0, 
+            shape.clone(), 
+            PhysicsMaterial::default(), 
+            InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 },
+            false,
+        );
         let mut agent = Agent {
             key,
             pos,
@@ -233,12 +256,15 @@ impl Agent {
             size,
             vision_range: 0.0,
             vision_angle: 0.0,
+            max_hp: 100.0,
+            hp: 100.0,
             max_eng: 0.0,
             eng: 0.0,
             color,
             color_second,
             shape,
-            analize_timer: Timer::new(settings.neuro_duration, true, true, true),
+            timer_analize: Timer::new(settings.neuro_duration, true, true, true),
+            timer_contact: Timer::new(0.07, true, true, true),
             network,
             alife: true,
             lifetime: 0.0,
@@ -250,12 +276,12 @@ impl Agent {
             enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
-            resource: None,
-            resource_position: None,
-            resource_dir: None,
+            plant: None,
+            plant_position: None,
+            plant_dir: None,
             contacts: Vec::new(),
             contact_agent: false,
-            contact_resource: false,
+            contact_plant: false,
             physics_handle: rbh,
             neuro_map: sketch.neuro_map.clone(),
             childs: 0,
@@ -275,6 +301,9 @@ impl Agent {
             ancestors: sketch.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
+            attack_visual: false,
+            eat_visual: false,
+            water: 0,
         };
         agent.mod_specie();
         agent.mutate();
@@ -286,7 +315,9 @@ impl Agent {
         let settings = get_settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
-            self.draw_status_bar(e, SKYBLUE, ORANGE, Vec2::new(0.0, self.size*1.5+4.0));
+            let hp = self.hp/self.max_hp;
+            self.draw_status_bar(hp, GREEN, RED, Vec2::new(0.0, self.size*1.5+4.0));
+            self.draw_status_bar(e, SKYBLUE, YELLOW, Vec2::new(0.0, self.size*1.5+6.0));
         }
         self.draw_body();
         self.draw_front();
@@ -297,9 +328,6 @@ impl Agent {
         } else {
             self.draw_info(&font);
         }
-        //źfor part in self.parts.iter() {
-        //    part.draw_part(self.pos, self.rot);
-        //}
     }    
 
     fn draw_body(&self) {
@@ -330,16 +358,14 @@ impl Agent {
     }
 
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
-        let dt = get_frame_time();
+        let dt = dt()*sim_speed();
         self.lifetime += dt;
-        //for part in self.parts.iter_mut() {
-        //    //part.update_part();
-        //}
-        if self.analize_timer.update(dt) {
-            self.watch(physics);
+        if self.timer_analize.update(dt) {
             self.update_contacts(other, physics);
+            self.watch(physics);
             self.update_enemy_mood(other);
             self.analize();
+            //self.contacts_clear();
         }
 
         self.update_physics(physics);
@@ -347,9 +373,8 @@ impl Agent {
             self.alife = false;
             return self.alife;
         }
-        //self.calc_timers(dt);
-        //self.network.update();
-        self.calc_energy(dt);
+        self.calc_energy();
+        self.calc_health();
         return self.alife;
     }
 
@@ -371,6 +396,9 @@ impl Agent {
         }
     }
 
+    pub fn set_water_tile(&mut self, water: i32) {
+        self.water = water;
+    }
 
     pub fn eat(&self) -> Vec<RigidBodyHandle> {
         let mut hits: Vec<RigidBodyHandle> = vec![];
@@ -383,7 +411,7 @@ impl Agent {
     }
 
     pub fn attack(&self) -> Vec<RigidBodyHandle> {
-        //let dt = get_frame_time();
+        //let dt = dt()*sim_speed();
         let mut hits: Vec<RigidBodyHandle> = vec![];
         if !self.attacking { return hits; }
         for (rbh, ang) in self.contacts.to_vec() {
@@ -397,7 +425,7 @@ impl Agent {
     fn prep_input(&mut self) {
         let contact: f32;
         let contact_agent = self.contact_agent as i32 as f32;
-        let contact_resource = self.contact_resource as i32 as f32;
+        let contact_plant = self.contact_plant as i32 as f32;
         if self.contacts.len() > 0 {
             contact = 1.0; 
         } else {
@@ -412,7 +440,7 @@ impl Agent {
                 dist/self.vision_range
             },
         };
-        let mut tg_ang = match self.enemy_dir {
+        let tg_ang = match self.enemy_dir {
             None => 0.0,
             Some(dir) => {
                 dir
@@ -425,7 +453,6 @@ impl Agent {
             },
         };
 
-        //tg_ang = tg_ang;
         let mut tgr: f32=0.0; let mut tgl: f32=0.0;
         if tg_ang > 0.0 {
             tgr = 1.0 - clamp(tg_ang, 0.0, 1.0);
@@ -433,20 +460,19 @@ impl Agent {
             tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs();
         }
         
-        let res_dist = match self.resource_position {
+        let res_dist = match self.plant_position {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
                 dist/self.vision_range
             },
         };
-        let mut res_ang = match self.resource_dir {
+        let res_ang = match self.plant_dir {
             None => 0.0,
             Some(dir) => {
                 dir
             },
         };
-        //res_ang = res_ang/PI;
         let mut resr: f32=0.0; let mut resl: f32=0.0;
         if res_ang > 0.0 {
             resr = 1.0 - clamp(res_ang, 0.0, 1.0);
@@ -468,7 +494,8 @@ impl Agent {
         };
         let wall = self.blocked;
         self.blocked = 0.0;
-        let hp = self.eng/self.max_eng;
+        let eng = self.eng/self.max_eng;
+        let hp = self.hp/self.max_hp;
         let red = self.mood.r;
         let blu = self.mood.b;
         let gre = self.mood.g;
@@ -479,16 +506,15 @@ impl Agent {
         let e_r = en_color.r;
         let e_g = en_color.g;
         let e_b = en_color.b;
-        //let val: Vec<Option<f32>> = vec![contact, hp, tgl, tgr, tg_dist, resl, resr, res_dist];
-        //vec!["CON", "ENG", "TGL", "TGR", "DST", "REL", "RER", "RED", "PAI"];
         let mut pain = 0.0;
         if self.pain { pain = 1.0; }
         self.pain = false;
         self.pain = false;
         self.neuro_map.set_signal("CON", contact);
         self.neuro_map.set_signal("ENY", contact_agent);
-        self.neuro_map.set_signal("RES", contact_resource);
-        self.neuro_map.set_signal("ENG", hp);
+        self.neuro_map.set_signal("RES", contact_plant);
+        self.neuro_map.set_signal("HP", hp);
+        self.neuro_map.set_signal("ENG", eng);
         self.neuro_map.set_signal("TGL", tgl);
         self.neuro_map.set_signal("TGR", tgr);
         self.neuro_map.set_signal("DST", tg_dist);
@@ -546,7 +572,8 @@ impl Agent {
         } else {
             self.eating = false;
         }
-
+        self.eat_visual = !self.eat_visual;
+        self.attack_visual = !self.attack_visual;
         let r = clamp(self.neuro_map.get_action("RED"), 0.0, 1.0);
         let g = clamp(self.neuro_map.get_action("GRE"), 0.0, 1.0);
         let b = clamp(self.neuro_map.get_action("BLU"), 0.0, 1.0);
@@ -556,20 +583,35 @@ impl Agent {
     }
 
     fn draw_front(&self) {
-        let left = Vec2::from_angle(self.rot-PI/10.0);
-        let right = Vec2::from_angle(self.rot+PI/10.0);
-        let l0 = self.pos + left*self.size;
-        let r0 = self.pos + right*self.size;
-        let l1 = self.pos + left*self.size*1.7;
-        let r1 = self.pos + right*self.size*1.7;
         let mut yaw_color = LIGHTGRAY;
+        let mut left: Vec2 = Vec2::from_angle(self.rot-PI/10.0);
+        let mut right: Vec2 = Vec2::from_angle(self.rot+PI/10.0);
+        let l0 = self.pos + left * self.size;
+        let r0 = self.pos + right * self.size;
+        let mut l1 = self.pos + left * self.size*1.5;
+        let mut r1 = self.pos + right * self.size*1.5;
         if self.attacking {
             yaw_color = RED;
+            if self.attack_visual {
+                l1 = self.pos + left * self.size*2.0;
+                r1 = self.pos + right * self.size*2.0;
+            }
+            draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
+            draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
         } else if self.eating {
             yaw_color = BLUE;
+            if self.eat_visual {
+                left = Vec2::from_angle(self.rot-PI/18.0);
+                right = Vec2::from_angle(self.rot+PI/18.0);
+            }
+            l1 = self.pos + left * self.size*1.1;
+            r1 = self.pos + right * self.size*1.1;
+            draw_circle(l1.x, l1.y, self.size*0.33, yaw_color);
+            draw_circle(r1.x, r1.y, self.size*0.33, yaw_color);
+        } else {
+            draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
+            draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
         }
-        draw_line(l0.x, l0.y, l1.x, l1.y, self.size/3.0, yaw_color);
-        draw_line(r0.x, r0.y, r1.x, r1.y, self.size/3.0, yaw_color);
     }
 
     fn draw_eyes(&self, selected: bool) {
@@ -598,13 +640,12 @@ impl Agent {
             draw_line(vr0.x, vr0.y, vr1.x, vr1.y, 0.5, SKYBLUE);
             draw_smooth_arc(range, self.pos, self.rot, self.vision_angle/2.0, 10.0, 0.5, SKYBLUE);
             draw_smooth_arc(range*0.1, self.pos, self.rot+PI, PI-ang, 10.0, 0.5, ORANGE);
-            //draw_smooth_circle(range*0.1, self.pos, 3.0, 0.5, SKYBLUE);
         }
     }
 
-    fn draw_target(&self, selected: bool) {
-        if let Some(_rb) = self.enemy {
-            if let Some(enemy_position) = self.enemy_position {
+    fn draw_target(&self, _selected: bool) {
+        self.enemy.inspect(|_| {
+            self.enemy_position.inspect(|enemy_position| {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
                 let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size;
                 let x0l = self.pos.x + v0l.x;
@@ -615,22 +656,22 @@ impl Agent {
                 let y1 = enemy_position.y;
                 draw_line(x0l, y0l, x1, y1, 2.0, self.color);
                 draw_line(x0r, y0r, x1, y1, 2.0, self.color);
-            }
-        }
-        if let Some(_rb) = self.resource {
-            if let Some(resource_position) = self.resource_position {
+            });
+        });
+        self.plant.inspect(|_| {
+            self.plant_position.inspect(|plant_position| {
                 let v0l = Vec2::from_angle(self.rot - PI / 2.0) * self.size;
                 let v0r = Vec2::from_angle(self.rot + PI / 2.0) * self.size;
                 let x0l = self.pos.x + v0l.x;
                 let y0l = self.pos.y + v0l.y;
                 let x0r = self.pos.x + v0r.x;
                 let y0r = self.pos.y + v0r.y;
-                let x1 = resource_position.x;
-                let y1 = resource_position.y;
+                let x1 = plant_position.x;
+                let y1 = plant_position.y;
                 draw_line(x0l, y0l, x1, y1, 1.0, self.color);
                 draw_line(x0r, y0r, x1, y1, 1.0, self.color);
-            }
-        }
+            });
+        });
     }
 
     fn draw_info(&self, font: &Font) {
@@ -666,10 +707,10 @@ impl Agent {
 
     fn draw_status_bar(&self, percent: f32, color1: Color, color2: Color, offset: Vec2) {
         let xc = self.pos.x + offset.x; let yc = self.pos.y + offset.y;
-        let x0 = xc-20.0; let y0 = yc -1.5;
-        let w = 40.0*percent;
-        draw_rectangle(x0, y0, 40.0, 3.0, color2);
-        draw_rectangle(x0, y0, w, 3.0, color1);
+        let x0 = xc-10.0; let y0 = yc -0.75;
+        let w = 20.0*percent;
+        draw_rectangle(x0, y0, 20.0, 1.5, color2);
+        draw_rectangle(x0, y0, w, 1.5, color1);
     }
 
     fn update_physics(&mut self, physics: &mut Physics) {
@@ -681,15 +722,20 @@ impl Agent {
         self.mass = physics_data.mass;
         match physics.get_object_mut(self.physics_handle) {
             Some(body) => {
-                let dt = get_frame_time();
+                let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
-                let rel_speed = ((self.speed as f32) - (self.shell as f32)/6.0);
-                let mut v = dir * self.vel * self.speed as f32 * settings.agent_speed * dt * 10.0;
-                if self.run {
-                    v *= 1.5;
+                let v =(self.speed as f32 + 5.0) * settings.agent_speed * 5.0;
+                let mut vel = dir * self.vel * v * dt;
+                //let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
+                let w = clamp(self.water, 0, 4);
+                if w > 0 {
+                    vel = vel/w as f32;
                 }
-                let rot = self.ang_vel * settings.agent_rotate * dt / self.shell as f32;
-                body.set_linvel(Vector2::new(v.x, v.y), true);
+                if self.run {
+                    vel *= 1.5;
+                }
+                let rot = self.ang_vel * settings.agent_rotate * dt / (self.shell as f32 * 0.5);
+                body.set_linvel(Vector2::new(vel.x, vel.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);
             }
@@ -742,33 +788,33 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(rb) = self.resource {
-            if let Some(resource_position) = physics.get_object_position(rb) {
-                self.resource_position = Some(resource_position);
-                let rel_pos = resource_position - self.pos;
-                let resource_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(1.0*PI);
-                self.resource_dir = Some(resource_dir);
+        if let Some(rb) = self.plant {
+            if let Some(plant_position) = physics.get_object_position(rb) {
+                self.plant_position = Some(plant_position);
+                let rel_pos = plant_position - self.pos;
+                let plant_dir = rel_pos.angle_between(Vec2::from_angle(self.rot))/(1.0*PI);
+                self.plant_dir = Some(plant_dir);
             } else {
-                self.resource = None;
-                self.resource_position = None;
-                self.resource_dir = None;
+                self.plant = None;
+                self.plant_position = None;
+                self.plant_dir = None;
             }
-        } else if self.resource_position.is_some() {
-            self.resource_position = None;
-            self.resource_dir = None;
+        } else if self.plant_position.is_some() {
+            self.plant_position = None;
+            self.plant_dir = None;
         }
     }
 
     fn update_contacts(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) {
-        self.contacts.clear();
-        self.contact_agent = false;
-        self.contact_resource = false;
+        self.contacts_clear();
+        //self.contact_agent = false;
+        //self.contact_plant = false;
         let contacts = physics.get_contacts_set(self.physics_handle, self.size);
         for contact in contacts {
             if other.contains_key(&contact) {
                 self.contact_agent = true;
             } else {
-                self.contact_resource = true;
+                self.contact_plant = true;
             }
             if let Some(pos2) = physics.get_object_position(contact) {
                 let mut rel_pos = pos2 - self.pos;
@@ -777,6 +823,12 @@ impl Agent {
                 self.contacts.push((contact, target_angle));
             }
         }
+    }
+
+    fn contacts_clear(&mut self) {
+        self.contacts.clear();
+        self.contact_agent = false;
+        self.contact_plant = false;
     }
 
     fn watch(&mut self, physics: &Physics) {
@@ -789,27 +841,29 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(tg) = physics.get_closest_resource(self.physics_handle, self.vision_range, self.vision_angle, direction) {
-            self.resource = Some(tg);
+        if let Some(tg) = physics.get_closest_plant(self.physics_handle, self.vision_range, self.vision_angle, direction) {
+            self.plant = Some(tg);
         } else {
-            self.resource = None;
-            self.resource_position = None;
-            self.resource_dir = None;
+            self.plant = None;
+            self.plant_position = None;
+            self.plant_dir = None;
         }
         self.update_enemy_position(physics);
     }
 
-    fn calc_energy(&mut self, dt: f32) {
+    fn calc_energy(&mut self) {
         let settings = get_settings();
         let base_cost = settings.base_energy_cost;
         let move_cost = settings.move_energy_cost;
         let attack_cost = settings.attack_energy_cost;
         let size_cost = self.size * settings.size_cost;
-        let mut basic_loss = (self.shell as f32 + size_cost) * base_cost;
+        let mut basic_loss = size_cost * base_cost;
         if self.eating {
-            basic_loss += size_cost * base_cost;
+            basic_loss += attack_cost * self.size;
         }
-        let mut move_loss = self.vel * (self.speed as f32 + size_cost) * move_cost;
+        let shell_loss = self.shell as f32 * 0.15; 
+        let speed_loss = self.speed as f32 * 3.0;
+        let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
@@ -820,7 +874,7 @@ impl Agent {
         self.eng_cost.basic = basic_loss;
         self.eng_cost.movement = move_loss;
         self.eng_cost.attack = attack_loss;
-        let loss = (basic_loss + move_loss + attack_loss) * dt;
+        let loss = (basic_loss + move_loss + attack_loss) * dt();
         if self.eng > 0.0 {
             self.eng -= loss;
         } else {
@@ -829,10 +883,19 @@ impl Agent {
         self.check_alife();
     }
 
-    fn check_alife(&mut self) {
-        if self.eng > 0.0 {
-            self.alife = true;
+    fn calc_health(&mut self) {
+        let e = self.eng/self.max_eng;
+        if e >= get_settings().eng_bias {
+            self.hp += e * dt() * 1.0;
         } else {
+            self.hp += (e - 1.0) * dt() * 2.5; 
+        }
+        self.hp = clamp(self.hp, 0.0, self.max_hp);
+    }
+
+    fn check_alife(&mut self) {
+        self.alife = true;
+        if self.hp <= 0.0 {
             self.alife = false;
         }
     }
@@ -849,10 +912,18 @@ impl Agent {
         self.check_alife();
     }
 
+    pub fn get_hit(&mut self, e: f32) {
+        self.hp -= e;
+        if self.hp > self.max_hp {
+            self.hp = self.max_hp;
+        }
+        self.check_alife();
+    }
+
     fn mutate_one(v: i32, m: f32) -> i32 {
         let mut vm: i32 = v;
         if random_unit_unsigned() < m {
-            let mut r = rand::gen_range(0, 2);
+            let r = rand::gen_range(0, 2);
             if r == 1 {
                 vm += 1;
             } else if r == 0 {
@@ -887,7 +958,7 @@ impl Agent {
     }
 
     pub fn replicate(&self, physics: &mut Physics) -> Agent {
-        let settings = get_settings();
+        //let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let color = self.color.to_owned();
         let color_second = self.color_second.to_owned();
@@ -895,14 +966,20 @@ impl Agent {
         let rot = random_rotation();
         let pos = self.pos;
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
-        let rbh = physics.add_dynamic_object(&pos, rot, shape.clone(), PhysicsMaterial::default(), interactions);
-        let mut network = self.network.replicate();
+        let rbh = physics.add_dynamic_object(
+            &pos, 
+            rot, 
+            shape.clone(), 
+            PhysicsMaterial::default(), 
+            interactions, 
+            false
+        );
+        let network = self.network.replicate();
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-        //let mut parts: Vec<Box<dyn AgentPart>> = vec![];
         let mut agent = Agent {
             key,
             pos: pos + random_unit_vec2()*30.0,
@@ -913,29 +990,31 @@ impl Agent {
             size: self.size,
             vision_range: 0.0,
             vision_angle: 0.0,
+            max_hp: 100.0,
+            hp: 100.0,
             max_eng: 0.0,
             eng: 0.0,
             color,
             color_second,
             shape,
-            analize_timer: self.analize_timer.to_owned(),
+            timer_analize: self.timer_analize.to_owned(),
+            timer_contact: self.timer_contact.to_owned(),
             network,
             alife: true,
             lifetime: 0.0,
             generation: self.generation + 1,
-            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
             enemy_mood: None,
             enemy_dir: None,
             enemy_size: None,
-            resource: None,
-            resource_position: None,
-            resource_dir: None,
+            plant: None,
+            plant_position: None,
+            plant_dir: None,
             contacts: Vec::new(),
             contact_agent: false,
-            contact_resource: false,
+            contact_plant: false,
             physics_handle: rbh,
             neuro_map,
             childs: 0,
@@ -955,6 +1034,9 @@ impl Agent {
             ancestors: self.ancestors.to_owned(),
             eng_cost: EnergyCost::default(),
             blocked: 0.0,
+            attack_visual: false,
+            eat_visual: false,
+            water: 0,
         };
         agent.mod_specie();
         agent.mutate();
@@ -986,43 +1068,3 @@ impl Agent {
     }
 }
 
-
-
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AgentSketch {
-    pub specie: String,
-    pub generation: u32,
-    pub size: f32,
-    pub shape: MyShapeType,
-    pub color: [f32; 4],
-    #[serde(default = "default_color")]
-    pub color_second: [f32; 4],
-    pub network: NetworkSketch,
-    pub points: f32,
-    pub neuro_map: NeuroMap,
-    pub power: i32,
-    pub speed: i32,
-    pub shell: i32,
-    #[serde(default = "default_mutation")]
-    pub mutations: i32,
-    #[serde(default = "default_mutation")]
-    pub eyes: i32,
-    #[serde(default="default_ancestors")]
-    pub ancestors: Ancestors,
-}
-
-pub fn default_mutation() -> i32 {
-    return gen_range(0, 10);
-}
-
-pub fn default_color() -> [f32; 4] {
-    let c = random_color();
-    return [c.r, c.g, c.b, c.a];
-}
-
-fn default_ancestors() -> Ancestors {
-    let mut ancestors = Ancestors::new();
-    ancestors.add_ancestor(Ancestor::new("--forgotten--", 0, 0));
-    return ancestors;
-} 

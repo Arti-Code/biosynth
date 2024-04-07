@@ -4,9 +4,8 @@
 use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 use crate::util::*;
-use crate::physics::*;
+use crate::phyx::physics::Physics;
 use crate::agent::*;
-use crate::globals::*;
 use crate::plant::*;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
@@ -31,20 +30,23 @@ impl AgentBox {
         }
     }
 
-    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut Physics) {
+    pub fn add_many_agents(&mut self, agents_num: usize, physics_world: &mut Physics) -> (i32, i32) {
+        let mut n = 0; let mut l = 0;
         for _ in 0..agents_num {
             let agent = Agent::new(physics_world);
-            _ = self.add_agent(agent);
+            let (n0, l0) = self.add_agent(agent);
+            n += n0; l += l0;
         }
+        return (n, l);
     }
 
-    pub fn populate(&mut self, physics: &mut Physics) -> i32 {
-        let mut counter: i32 = 0;
+    pub fn populate(&mut self, physics: &mut Physics) -> (i32, i32, i32) {
+        let mut counter: i32 = 0; let mut n = 0; let mut l = 0;
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
-            if agent.lifetime >= (settings.repro_time + settings.repro_time * (agent.childs*2) as f32) && (agent.eng/agent.max_eng) >= 0.75 {
-                let mut newbie = agent.replicate(physics).to_owned();
+            if agent.lifetime >= (settings.repro_time + settings.repro_time * agent.childs as f32) && (agent.eng/agent.max_eng) >= settings.born_eng_min {
+                let newbie = agent.replicate(physics).to_owned();
                 newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;
@@ -53,26 +55,27 @@ impl AgentBox {
         }
         loop {
             match newborns.pop() {
-                Some(mut newbie) => {
-                    //newbie.network.mutate(settings.mutations);
+                Some(newbie) => {
                     counter += 1;
-                    self.add_agent(newbie);
+                    let (n0, l0) = self.add_agent(newbie);
+                    n += n0; l += l0;
                 },
                 None => {
                     break;
                 }
             }
         }
-        return counter;
+        return (counter, n, l);
     }
 
-    pub fn add_agent(&mut self, mut agent: Agent) {
+    pub fn add_agent(&mut self, mut agent: Agent) -> (i32, i32) {
         let settings = get_settings();
         while agent.pos.x >= settings.world_w as f32 || agent.pos.y >= settings.world_h as f32 || agent.pos.x <= 0.0 || agent.pos.y <= 0.0 {
             agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
-        }            
-        self.agents.insert(agent.physics_handle, agent);
-        
+        }     
+        let nl_num = agent.get_nodes_links_num();       
+        self.agents.insert(agent.physics_handle, agent); 
+        return nl_num;
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Agent> {
@@ -99,48 +102,47 @@ impl AgentBox {
 
 
 
-pub struct ResBox {
-    pub resources: HashMap<RigidBodyHandle, Plant>,
+pub struct PlantBox {
+    pub plants: HashMap<RigidBodyHandle, Plant>,
 }
 
-impl ResBox {
+impl PlantBox {
     pub fn new() -> Self {
         Self {
-            resources: HashMap::new(),
+            plants: HashMap::new(),
         }
     }
 
-    pub fn add_many_resources(&mut self, resources_num: usize, physics_world: &mut Physics) {
-        for _ in 0..resources_num {
-            let resource = Plant::new(physics_world);
-            _ = self.add_resource(resource);
+    pub fn add_many_plants(&mut self, plants_num: usize, physics_world: &mut Physics) {
+        for _ in 0..plants_num {
+            let num = self.count() as i32;
+            let plant = Plant::new(physics_world);
+            _ = self.add_plant(plant);
         }
     }
 
-    pub fn add_resource(&mut self, resource: Plant) {
-        //let key = resource.key;
-        self.resources.insert(resource.physics_handle, resource);
-        //return key;
+    pub fn add_plant(&mut self, plant: Plant) {
+        self.plants.insert(plant.physics_handle, plant);
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Plant> {
-        return self.resources.get(&id);
+        return self.plants.get(&id);
     }
 
     pub fn remove(&mut self, id: RigidBodyHandle) {
-        self.resources.remove(&id);
+        self.plants.remove(&id);
     }
 
     pub fn get_iter(&self) -> Iter<RigidBodyHandle, Plant> {
-        return self.resources.iter();
+        return self.plants.iter();
     }
 
     pub fn get_iter_mut(&mut self) -> IterMut<RigidBodyHandle, Plant> {
-        return self.resources.iter_mut();
+        return self.plants.iter_mut();
     }
 
     pub fn count(&self) -> usize {
-        return self.resources.len();
+        return self.plants.len();
     }
 
 }

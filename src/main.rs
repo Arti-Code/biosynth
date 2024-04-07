@@ -1,5 +1,5 @@
-//#![allow(unused)]
-//#![windows_subsystem = "windows"]
+#![allow(unused)]
+#![windows_subsystem = "windows"]
 
 mod camera;
 mod neuro;
@@ -7,8 +7,8 @@ mod sim;
 mod timer;
 mod ui;
 mod util;
-mod physics;
-//mod part;
+mod phyx;
+mod ranking;
 mod agent;
 mod collector;
 mod misc;
@@ -17,15 +17,15 @@ mod plant;
 mod terrain;
 mod settings;
 mod monit;
-mod stats;
+mod statistics;
 mod signals;
+mod sketch;
+
 
 use std::env;
-//use std::path::Path;
-//use std::path::PathBuf;
 use crate::sim::*;
 use crate::globals::*;
-use crate::stats::*;
+use crate::statistics::*;
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
 use crate::signals::*;
@@ -65,6 +65,7 @@ async fn main() {
     rand::srand(seed);
     let font = Font::default();
     let mut sim = Simulation::new(font.clone());
+    sim.init();
     sim.ui.load_textures();
     let mut args = env::args();
     match args.nth(1) {
