@@ -175,7 +175,7 @@ impl Node {
         let sum: f32 = self.sum + self.bias;
         let v = sum.tanh();
         self.last = self.val;
-        self.val = v;
+        self.val = clamp(v, 0.0, 1.0);
         self.sum = 0.0;
     }
 
