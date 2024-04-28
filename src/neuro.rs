@@ -3,6 +3,7 @@
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use crate::statistics::*;
@@ -55,10 +56,12 @@ pub struct Node {
     sum: f32,
     pub selected: bool,
     pub node_type: NeuronTypes,
-    last: f32,
     active: bool,
     pub label: String,
     new_mut: bool,
+    memory_size: usize,
+    remember: f32,
+    memory: VecDeque<f32>,
 }
 
 #[derive(Clone, Copy)]
@@ -82,6 +85,9 @@ pub struct Network {
 impl Node {
 
     pub fn new(position: IVec2, neuron_type: NeuronTypes, label: &str) -> Self {
+        let s = rand::gen_range(0, 25) as usize;
+        let mut vd: VecDeque<f32> = VecDeque::<f32>::new();
+        vd.resize(s, 0.0);
         Self {
             id: generate_id(),
             pos: position,
@@ -90,26 +96,64 @@ impl Node {
             sum: 0.0,
             selected: false,
             node_type: neuron_type,
-            last: 0.0,
             active: false,
             label: label.to_string(),
             new_mut: false,
+            memory_size: s,
+            remember: rand::gen_range(0.0, 1.0),
+            memory: vd,
         }
     }
 
+    fn memory(&self) -> f32 {
+        let mut m = self.memory.iter().sum::<f32>();
+        m /= self.memory.len() as f32;
+        return m * self.remember;
+    }
+
+    fn remember(&mut self, v: f32) {
+        self.memory.push_back(v);
+        //if self.memory.len() > self.memory_size {
+        //    self.memory.pop_front();
+        //}
+    }
+
     pub fn get_sketch(&self) -> NodeSketch {
-        NodeSketch { id: self.id, pos: MyPos2 { x: self.pos.x as f32, y: self.pos.y as f32 }, bias: self.bias, node_type: self.node_type.to_owned(), label: self.label.to_owned() }
+        NodeSketch { 
+            id: self.id,
+            pos: MyPos2 { 
+                x: self.pos.x as f32, 
+                y: self.pos.y as f32 
+            },
+            bias: self.bias,
+            node_type: self.node_type.to_owned(),
+            label: self.label.to_owned(),
+            remember: self.remember,
+            memory_size: self.memory_size ,
+        }
     }
 
     pub fn from_sketch(sketch: NodeSketch) -> Node {
-        Node { id: sketch.id, pos: sketch.pos.to_ivec2(), bias: sketch.bias, val: 0.0, sum: 0.0, selected: false, node_type: sketch.node_type, last: 0.0, active: false, label: sketch.label.to_string(), new_mut: false }
+        Node { 
+            id: sketch.id, 
+            pos: sketch.pos.to_ivec2(), 
+            bias: sketch.bias, val: 0.0, 
+            sum: 0.0, selected: false, 
+            node_type: sketch.node_type, 
+            active: false, 
+            label: sketch.label.to_string(), 
+            new_mut: false, 
+            memory_size: sketch.memory_size,
+            remember: sketch.remember, 
+            memory: VecDeque::<f32>::new(),
+        }
     }
 
-    pub fn get_size(&self) -> f32 {
+    pub fn get_size(&self) -> (f32, f32) {
         if !self.active {
-            return 2.0;
+            return (1.0, 1.0);
         } else {
-            return 2.0 + 6.0*self.val.abs();
+            return (1.0 + 5.0*self.val.abs(), 1.0 + 5.0*self.memory().abs());
         }
     }
 
@@ -168,15 +212,16 @@ impl Node {
     pub fn calc(&mut self) {
         if !self.active { 
             self.sum = 0.0;
+            self.remember(self.val);
             self.val = 0.0;
-            self.last = 0.0;
             return;
+        } else {
+            let sum: f32 = self.sum + self.bias + self.memory();
+            let v = sum.tanh();
+            self.remember(self.val);
+            self.val = clamp(v, 0.0, 1.0);
+            self.sum = 0.0;
         }
-        let sum: f32 = self.sum + self.bias;
-        let v = sum.tanh();
-        self.last = self.val;
-        self.val = clamp(v, 0.0, 1.0);
-        self.sum = 0.0;
     }
 
 }
@@ -711,6 +756,8 @@ pub struct NodeSketch {
     bias: f32,
     node_type: NeuronTypes,
     label: String,
+    remember: f32,
+    memory_size: usize,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

@@ -40,13 +40,13 @@ impl AgentBox {
         return (n, l);
     }
 
-    pub fn populate(&mut self, physics: &mut Physics) -> (i32, i32, i32) {
+    pub fn populate(&mut self, physics: &mut Physics, time: f64) -> (i32, i32, i32) {
         let mut counter: i32 = 0; let mut n = 0; let mut l = 0;
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
             if agent.lifetime >= (settings.repro_time + settings.repro_time * agent.childs as f32) && (agent.eng/agent.max_eng) >= settings.born_eng_min {
-                let newbie = agent.replicate(physics).to_owned();
+                let newbie = agent.replicate(physics, time).to_owned();
                 newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;

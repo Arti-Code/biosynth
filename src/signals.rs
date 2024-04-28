@@ -33,6 +33,8 @@ pub struct Signals {
     pub load_agent_name: Option<String>,
     pub del_agent_name: Option<String>,
     pub resize_world: Option<Vec2>,
+    pub export_settings: bool,
+    pub import_settings: bool,
 }
 
 impl Signals {
@@ -58,6 +60,8 @@ impl Signals {
             load_agent_name: None,
             save_agent: false,
             resize_world: None,
+            export_settings: false,
+            import_settings: false,
         }
     }
 

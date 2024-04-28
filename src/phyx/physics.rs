@@ -1,12 +1,10 @@
-#![allow(unused)]
-
-//mod physics_misc;
+//#![allow(unused)]
 
 use crate::util::*;
 use macroquad::prelude::*;
 use rapier2d::na::*;
 use rapier2d::prelude::*;
-use std::collections::hash_set::{Iter};
+use std::collections::hash_set::Iter;
 use std::collections::{HashMap, HashSet};
 use std::io;
 use crate::settings::*;
@@ -386,6 +384,7 @@ impl PhysicsCore {
     }
 
     pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
+        let small_vision = get_settings().agent_vision_range*0.1;
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -406,7 +405,7 @@ impl PhysicsCore {
                 let new_dist = pos1.distance(pos2);
                 let local_pos = pos2 - pos1;
                 let ang = direction.angle_between((local_pos).normalize_or_zero());
-                if new_dist <= detection_range*0.1 && new_dist < dist {
+                if new_dist <= small_vision && new_dist < dist {
                     dist = new_dist;
                     target = rb2_handle;
                 } else if new_dist < dist && ang.abs() <= detection_angle/2.0 {
@@ -463,9 +462,9 @@ impl PhysicsCore {
 
     pub fn count_near_plants(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
         let rb = self.rigid_bodies.get(rbh).unwrap();
-        let pos1 = matrix_to_vec2(rb.position().translation);
-        let mut dist = f32::INFINITY;
-        let mut target: RigidBodyHandle = RigidBodyHandle::invalid();
+        //let pos1 = matrix_to_vec2(rb.position().translation);
+        //let mut dist = f32::INFINITY;
+        //let mut target: RigidBodyHandle = RigidBodyHandle::invalid();
         let detector = ColliderBuilder::ball(detection_range).sensor(true).density(0.0).build();
         let filter = QueryFilter {
             flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
@@ -476,7 +475,7 @@ impl PhysicsCore {
         };
         let mut n: usize = 0;
         self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), detector.shape(), filter,
-         |col_h| {
+         |_| {
             n += 1;
             return true;
         });

@@ -1,4 +1,4 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -168,6 +168,14 @@ impl UISystem {
                         //let mut signals = mod_signals();
                         signals.save_selected = true;
                     }
+                    if ui.button(RichText::new("Export Settings").strong().color(Color32::LIGHT_RED),).clicked() {
+                        //let mut signals = mod_signals();
+                        signals.export_settings = true;
+                    }
+                    if ui.button(RichText::new("Import Settings").strong().color(Color32::LIGHT_RED),).clicked() {
+                        //let mut signals = mod_signals();
+                        signals.import_settings = true;
+                    }
                     if ui.button(RichText::new("Resize World").strong().color(Color32::GOLD),).clicked() {
                         if !self.state.resize_world {
                             let settings = get_settings();
@@ -184,9 +192,9 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
                 let speed = sim_speed();
-                let accel_label = format!("SpeedUp {}>>{}", speed as i32, speed as i32 + 1);
+                let accel_label = format!("Fast [>>>]");
                 let mut deccel_color = Color32::GOLD;
-                let mut deccel_label = format!("SlowDown {}<<{}", speed as i32 - 1, speed as i32);
+                let mut deccel_label = format!("Slow [<<<]");
                 if speed == 1.0 {
                     deccel_color = Color32::GRAY;
                     deccel_label = format!("---");
@@ -199,7 +207,7 @@ impl UISystem {
                 }
 
                 menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
-                    if ui.button(RichText::new("Normal Speed (x1)").strong().color(Color32::GREEN)).clicked() {
+                    if ui.button(RichText::new("Normal").strong().color(Color32::GREEN)).clicked() {
                         let mut settings = get_settings();
                         settings.sim_speed = 1.0;
                         set_settings(settings);
@@ -915,7 +923,9 @@ impl UISystem {
                 }
                 for (key, node) in network.nodes.iter() {
                     let (_, color1) = node.get_colors();
-                    let r = node.get_size()*1.2;
+                    let (mut r0, mut r1) = node.get_size();
+                    r0 = r0*1.2;
+                    r1 = r1*1.2;
                     let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                     let p1 = vec2_to_pos2(&ipos);
                     let c0 = color_to_color32(color1);
@@ -925,10 +935,14 @@ impl UISystem {
                         None => 0.0,
                         Some(v) => v,
                     };
-                    painter.circle_filled(p1, r,  Color32::BLACK);
+                    painter.circle_filled(p1, r0,  Color32::BLACK);
                     //painter.circle_filled(p1, r,  c1);
-                    let w = 0.75 + 0.24*r;
-                    painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
+                    let w = 0.75 + 0.24*r0;
+                    painter.circle_stroke(p1, r0, Stroke { color: c0, width: w });
+                    //painter.circle_filled(p1, r0,  Color32::BLACK);
+                    //painter.circle_filled(p1, r,  c1);
+                    let w = 0.75 + 0.24*r1;
+                    painter.circle_stroke(p1, r1, Stroke { color: c0, width: w });
                     let mut font = FontId::default();
                     font.size = 8.0;
                     let txt = format!("{}: {:.1}", label, v);
@@ -1730,6 +1744,7 @@ impl UISystem {
             ui.label(RichText::new(format!("TIME: {}", time.round())).monospace());
             ui.label(RichText::new(format!("FPS: {}", fps)).monospace());
             ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).monospace());
+            ui.label(RichText::new(format!("SPEED: x{}", sim_speed())).monospace());
         });
         ui.horizontal(|ui| {
             ui.set_max_height(16.0);
@@ -1828,7 +1843,7 @@ impl UISystem {
             }
             for (key, node) in network.nodes.iter() {
                 let (_, color1) = node.get_colors();
-                let r = node.get_size()*wi;
+                let (r0, r1) = node.get_size();
                 let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                 let p1 = vec2_to_pos2(&ipos);
                 let c0 = color_to_color32(color1);
@@ -1837,9 +1852,11 @@ impl UISystem {
                     None => 0.0,
                     Some(v) => v,
                 };
-                painter.circle_filled(p1, r,  Color32::BLACK);
-                let w = 0.75 + 0.24*r;
-                painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
+                painter.circle_filled(p1, r0,  Color32::BLACK);
+                let w1 = 0.5 + 0.24*r1;
+                painter.circle_stroke(p1, r1, Stroke { color: Color32::GREEN, width: w1 });
+                let w0 = 0.75 + 0.24*r0;
+                painter.circle_stroke(p1, r0, Stroke { color: c0, width: w0 });
                 let mut font = FontId::default();
                 font.size = 8.0;
                 let txt = format!("{}: {:.1}", label, v);

@@ -100,8 +100,15 @@ impl Agent {
         let color = random_color();
         let color_second = random_color();
         let mut network = Network::new(1.0);
-        let inp_labs = vec!["CON", "ENY", "RES", "HP", "ENG", "TGL", "TGR", "DST", "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"];
-        let out_labs = vec!["MOV", "LFT", "RGT", "ATK", "EAT", "RUN", "RED", "GRE", "BLU"];
+        let inp_labs = vec![
+            "CON", "ENY", "RES", "HP", "ENG", "TGL", "TGR", "DST", 
+            "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", 
+            "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"
+        ];
+        let out_labs = vec![
+            "MOV", "LFT", "RGT", "ATK", 
+            "EAT", "RUN", "RED", "GRE", "BLU"
+        ];
         let hid = settings.hidden_nodes_num;
         let hid_layers = settings.hidden_layers_num;
         let deep = vec![hid; hid_layers];
@@ -194,7 +201,7 @@ impl Agent {
         return self.network.get_nodes_links_number();
     }
 
-    fn mod_specie(&mut self) {
+    fn mod_specie(&mut self, time: f64) {
         let settings = get_settings();
         if rand::gen_range(0, settings.rare_specie_mod) == 0 {
             let s = create_name(1);
@@ -202,7 +209,7 @@ impl Agent {
             let mut name = self.specie.to_owned();
             name.replace_range(i..=i+1, &s);
             self.specie = name.to_owned();
-            self.ancestors.add_ancestor(Ancestor::new(&self.specie, self.generation as i32, 0));
+            self.ancestors.add_ancestor(Ancestor::new(&self.specie, self.generation as i32, time.round() as i32));
             if random_unit_unsigned() < 0.25 {
                 self.color_second = random_color();
             } else if random_unit_unsigned() < 0.25 {
@@ -216,7 +223,7 @@ impl Agent {
         return self.ancestors.get_ancestors();
     }
 
-    pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics) -> Agent {
+    pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics, time: f64) -> Agent {
         let key = gen_range(u64::MIN, u64::MAX);
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
@@ -237,7 +244,6 @@ impl Agent {
         };
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
-        //let parts: Vec<Box<dyn AgentPart>> = vec![];
         let rbh = physics.add_dynamic_object(
             &pos, 
             0.0, 
@@ -269,7 +275,6 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             generation: gen,
-            //detected: None,
             enemy: None,
             enemy_family: None,
             enemy_position: None,
@@ -305,7 +310,7 @@ impl Agent {
             eat_visual: false,
             water: 0,
         };
-        agent.mod_specie();
+        agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
         return agent;
@@ -616,6 +621,7 @@ impl Agent {
 
     fn draw_eyes(&self, selected: bool) {
         let ang = self.vision_angle/2.0;
+        let small_vision = get_settings().agent_vision_range*0.1;
         let range = self.vision_range;
         let left_vision_border = Vec2::from_angle(self.rot - ang);
         let right_vision_border = Vec2::from_angle(self.rot + ang);
@@ -639,7 +645,7 @@ impl Agent {
             draw_line(vl0.x, vl0.y, vl1.x, vl1.y, 0.5, SKYBLUE);
             draw_line(vr0.x, vr0.y, vr1.x, vr1.y, 0.5, SKYBLUE);
             draw_smooth_arc(range, self.pos, self.rot, self.vision_angle/2.0, 10.0, 0.5, SKYBLUE);
-            draw_smooth_arc(range*0.1, self.pos, self.rot+PI, PI-ang, 10.0, 0.5, ORANGE);
+            draw_smooth_arc(small_vision, self.pos, self.rot+PI, PI-ang, 10.0, 0.5, SKYBLUE);
         }
     }
 
@@ -957,7 +963,7 @@ impl Agent {
         self.eng = eng*settings.born_eng;
     }
 
-    pub fn replicate(&self, physics: &mut Physics) -> Agent {
+    pub fn replicate(&self, physics: &mut Physics, time: f64) -> Agent {
         //let settings = get_settings();
         let key = gen_range(u64::MIN, u64::MAX);
         let color = self.color.to_owned();
@@ -1038,7 +1044,7 @@ impl Agent {
             eat_visual: false,
             water: 0,
         };
-        agent.mod_specie();
+        agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
         return agent;

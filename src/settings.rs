@@ -15,22 +15,6 @@ pub fn get_settings() -> Settings {
 pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
-fn default_stats_limit() -> usize {
-    return 100;
-}
-
-
-fn default_eng_bias() -> f32 {
-    return 0.3;
-}
-
-fn default_pause() -> bool {
-    return false;
-}
-
-fn default_born_eng_min() -> f32 {
-    return 0.8;
-}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
@@ -41,7 +25,6 @@ pub struct Settings {
     pub plant_min_num: usize,
     pub plant_init_num: usize,
     pub plant_balance: usize,
-    //pub plant_detection_radius: f32,
     pub plant_clone_size: i32,
     pub agent_speed: f32,
     pub agent_rotate: f32,
@@ -63,7 +46,6 @@ pub struct Settings {
     pub size_cost: f32,
     pub base_hp: i32,
     pub size_to_hp: f32,
-    //pub plant_num: f32,
     pub neuro_duration: f32,
     pub hidden_nodes_num: usize,
     pub hidden_layers_num: usize,
@@ -75,7 +57,6 @@ pub struct Settings {
     pub new_one_probability: f32,
     pub grid_size: u32,
     pub follow_mode: bool,
-    //pub plant_probability: f32,
     pub plant_lifetime: f32,
     pub growth: f32,
     pub water_lvl: i32,
@@ -86,16 +67,11 @@ pub struct Settings {
     pub mut_change_val: f32,
     pub rare_specie_mod: i32,
     pub born_eng: f32,
-    #[serde(default = "default_born_eng_min")]
     pub born_eng_min: f32,
     pub sim_speed: f32,
-    #[serde(default = "default_stats_limit")]
     pub stats_limit: usize,
-    #[serde(default = "default_pause")]
     pub pause: bool,
-    #[serde(default = "default_eng_bias")]
     pub eng_bias: f32,
-    #[serde(default = "default_eng_bias")]
     pub dmg_to_hp: f32,
 }
 
@@ -127,30 +103,29 @@ impl Default for Settings {
             mutations: 0.25,
             neurolink_rate: 0.1,
             damage: 100.0,
-            base_energy_cost: 0.3,
+            base_energy_cost: 0.15,
             move_energy_cost: 0.3,
-            attack_energy_cost: 0.05,
-            size_cost: 1.8,
+            attack_energy_cost: 0.1,
+            size_cost: 2.5,
             base_hp: 150,
-            size_to_hp: 55.0,
+            size_to_hp: 70.0,
             hidden_nodes_num: 4,
             hidden_layers_num: 4,
-            neuro_duration: 0.1,
+            neuro_duration: 0.5,
             atk_to_eng: 1.0,
             eat_to_eng: 2.5,
             ranking_size: 40,
             repro_points: 30.0,
-            repro_time: 200.0,
+            repro_time: 100.0,
             new_one_probability: 0.2,
-            grid_size: 50,
+            grid_size: 20,
             follow_mode: false,
-            //plant_probability: 0.6,
             water_lvl: 0,
-            mut_add_link: 0.02,
-            mut_del_link: 0.02,
-            mut_add_node: 0.01,
-            mut_change_val: 0.04,
-            mut_del_node: 0.01,
+            mut_add_link: 0.05,
+            mut_del_link: 0.05,
+            mut_add_node: 0.04,
+            mut_change_val: 0.08,
+            mut_del_node: 0.04,
             rare_specie_mod: 2500,
             born_eng: 0.5,
             born_eng_min: 0.9,
