@@ -1133,6 +1133,16 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut peripheral_vision = settings.peripheral_vision;
+                column[0].label(RichText::new("PERIPHERAL VISION").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut peripheral_vision, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.peripheral_vision = peripheral_vision;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mutations: f32 = settings.mutations;
                 column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut mutations, 0.0..=0.5).step_by(0.05)).changed() {

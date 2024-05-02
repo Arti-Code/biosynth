@@ -20,6 +20,10 @@ fn born_eng_cost() -> f32 {
     return 0.5;
 }
 
+fn peripheral_vision() -> f32 {
+    return 0.25;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -79,6 +83,8 @@ pub struct Settings {
     pub pause: bool,
     pub eng_bias: f32,
     pub dmg_to_hp: f32,
+    #[serde(default = "peripheral_vision")]
+    pub peripheral_vision: f32,
 }
 
 impl Default for Settings {
@@ -140,7 +146,8 @@ impl Default for Settings {
             stats_limit: 20,
             pause: false,
             eng_bias: 0.15,
-            dmg_to_hp: 0.2
+            dmg_to_hp: 0.2,
+            peripheral_vision: 0.25,
        }
     }
 

@@ -2,6 +2,7 @@
 
 use crate::util::*;
 use macroquad::prelude::*;
+use macroquad::math::clamp;
 use rapier2d::na::*;
 use rapier2d::prelude::*;
 use std::collections::hash_set::Iter;
@@ -384,7 +385,8 @@ impl PhysicsCore {
     }
 
     pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
-        let small_vision = get_settings().agent_vision_range*0.1;
+        let mut small_vision = get_settings().peripheral_vision*get_settings().agent_vision_range;
+        small_vision = clamp(small_vision, 0.0, detection_range);
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;

@@ -621,8 +621,9 @@ impl Agent {
 
     fn draw_eyes(&self, selected: bool) {
         let ang = self.vision_angle/2.0;
-        let small_vision = get_settings().agent_vision_range*0.1;
+        let mut small_vision = get_settings().agent_vision_range*get_settings().peripheral_vision;
         let range = self.vision_range;
+        small_vision = clamp(small_vision, 0.0, range);
         let left_vision_border = Vec2::from_angle(self.rot - ang);
         let right_vision_border = Vec2::from_angle(self.rot + ang);
         let mut color = LIGHTGRAY;
@@ -635,8 +636,8 @@ impl Agent {
         let xr = self.pos.x + eye_r.x;
         let yr = self.pos.y + eye_r.y;
         let s = self.size*0.33;
-        let vl0 = self.pos + left_vision_border*range*0.1;
-        let vr0 = self.pos + right_vision_border*range*0.1;
+        let vl0 = self.pos + left_vision_border*small_vision;
+        let vr0 = self.pos + right_vision_border*small_vision;
         let vl1 = self.pos + left_vision_border*range;
         let vr1 = self.pos + right_vision_border*range;
         draw_circle(xl, yl, s, color);
