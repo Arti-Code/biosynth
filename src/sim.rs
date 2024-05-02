@@ -2,7 +2,7 @@
 
 use crate::agent::*;
 use crate::camera::*;
-use crate::plant::Plant;
+use crate::plant::*;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
@@ -246,11 +246,11 @@ impl Simulation {
                 }
             }
             plant.update(&mut self.physics);
-            if !plant.alife {
-                self.physics.remove_object(plant.physics_handle);
+            if !plant.is_alive() {
+                self.physics.remove_object(plant.get_body_handle());
             }
         }
-        self.plants.plants.retain(|_, p| p.alife == true);
+        self.plants.plants.retain(|_, p| p.is_alive() == true);
         for plant in new_plants.iter() {
             self.plants.add_plant(plant.to_owned())
         }
@@ -811,8 +811,8 @@ impl Simulation {
                     }
                 }
                 if self.selected.is_some() { return; }
-                for (id, res) in self.plants.get_iter() {
-                    if contact_mouse(rel_coords, res.pos, res.size) {
+                for (id, plant) in self.plants.get_iter() {
+                    if contact_mouse(rel_coords, plant.pos, plant.size) {
                         self.selected = Some(*id);
                         break;
                     }

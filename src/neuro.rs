@@ -6,6 +6,9 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
+use crate::sketch::LinkSketch;
+use crate::sketch::NetworkSketch;
+use crate::sketch::NodeSketch;
 use crate::statistics::*;
 use crate::util::*;
 use crate::settings::*;
@@ -26,7 +29,7 @@ pub fn generate_id() -> u64 {
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
-struct NeuroMargins {
+pub struct NeuroMargins {
     pub x_min: f32,
     pub x_max: f32,
     pub y_min: f32,
@@ -77,7 +80,7 @@ pub struct Link {
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
-    margins: NeuroMargins,
+    pub margins: NeuroMargins,
     pub input_keys: Vec<u64>,
     pub output_keys: Vec<u64>,
 }
@@ -153,9 +156,17 @@ impl Node {
         if !self.active {
             return (1.0, 1.0);
         } else {
-            return (1.0 + 5.0*self.val.abs(), 1.0 + 5.0*self.memory().abs());
+            return (1.0 + 5.0*self.val.abs(), 0.0);
         }
     }
+
+/*     pub fn get_size2(&self) -> (f32, f32) {
+        if !self.active {
+            return (1.0, 1.0);
+        } else {
+            return (1.0 + 5.0*self.val.abs(), 1.0 + 5.0*self.memory().abs());
+        }
+    } */
 
     pub fn get_colors(&self) -> (Color, Color) {
         if !self.active {
@@ -210,6 +221,20 @@ impl Node {
     }
 
     pub fn calc(&mut self) {
+        if !self.active { 
+            self.sum = 0.0;
+            self.val = 0.0;
+            //self.last = 0.0;
+            return;
+        }
+        let sum: f32 = self.sum + self.bias;
+        let v = sum.tanh();
+        //self.last = self.val;
+        self.val = clamp(v, 0.0, 1.0);
+        self.sum = 0.0;
+    }
+
+    pub fn calc2(&mut self) {
         if !self.active { 
             self.sum = 0.0;
             self.remember(self.val);
@@ -747,61 +772,4 @@ impl MyPos2 {
             y: vec2.y,
         }
     }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct NodeSketch {
-    id: u64,
-    pos: MyPos2,
-    bias: f32,
-    node_type: NeuronTypes,
-    label: String,
-    remember: f32,
-    memory_size: usize,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub struct LinkSketch {
-    pub id: u64,
-    pub w: f32,
-    pub node_from: u64,
-    pub node_to: u64,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct NetworkSketch {
-    nodes: HashMap<u64, NodeSketch>,
-    links: HashMap<u64, LinkSketch>,
-    margins: NeuroMargins,
-}
-
-impl NetworkSketch {
-    
-    pub fn from_sketch(&self) -> Network {
-        let mut nodes: HashMap<u64, Node> = HashMap::new();
-        let mut links: HashMap<u64, Link> = HashMap::new();
-        for (key, sketch_node) in self.nodes.iter() {
-            let node = Node::from_sketch(sketch_node.to_owned());
-            nodes.insert(*key, node);
-        }
-
-        for (key, sketch_link) in self.links.iter() {
-            let link = Link::from_sketch(sketch_link.to_owned());
-            links.insert(*key, link);
-        }
-
-        let mut net = Network { 
-            nodes: nodes.to_owned(), 
-            links: links.to_owned(), 
-            margins: self.margins.to_owned(), 
-            input_keys: vec![], 
-            output_keys: vec![], 
-        };
-
-        let (mut i, _, mut o) = net.get_node_keys_by_type();
-        net.input_keys.append(&mut i);
-        net.output_keys.append(&mut o);
-        return net;
-    }
-
 }

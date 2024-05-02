@@ -50,7 +50,7 @@ impl AgentBox {
                 newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;
-                agent.eng -= 0.4*agent.max_eng;
+                agent.eng -= settings.born_eng_cost*agent.max_eng;
             }
         }
         loop {
@@ -122,7 +122,7 @@ impl PlantBox {
     }
 
     pub fn add_plant(&mut self, plant: Plant) {
-        self.plants.insert(plant.physics_handle, plant);
+        self.plants.insert(plant.get_body_handle(), plant);
     }
 
     pub fn get(&self, id: RigidBodyHandle) -> Option<&Plant> {
@@ -146,3 +146,7 @@ impl PlantBox {
     }
 
 }
+
+/* pub struct PlantsList<'a> {
+    pub plants: &'a Vec<&'a impl PlantType>,
+} */

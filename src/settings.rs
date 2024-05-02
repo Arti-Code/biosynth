@@ -16,6 +16,10 @@ pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
 
+fn born_eng_cost() -> f32 {
+    return 0.5;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -68,6 +72,8 @@ pub struct Settings {
     pub rare_specie_mod: i32,
     pub born_eng: f32,
     pub born_eng_min: f32,
+    #[serde(default = "born_eng_cost")]
+    pub born_eng_cost: f32,
     pub sim_speed: f32,
     pub stats_limit: usize,
     pub pause: bool,
@@ -129,6 +135,7 @@ impl Default for Settings {
             rare_specie_mod: 2500,
             born_eng: 0.5,
             born_eng_min: 0.9,
+            born_eng_cost: 0.5,
             sim_speed: 1.0,
             stats_limit: 20,
             pause: false,

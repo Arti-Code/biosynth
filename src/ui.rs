@@ -17,7 +17,7 @@ use egui_macroquad::egui::{
 use macroquad::prelude::*;
 use macroquad::math::vec2;
 use base64::prelude::*;
-use crate::plant::Plant;
+use crate::plant::{Plant, PlantType};
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
@@ -1211,9 +1211,19 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut born_eng_min = settings.born_eng_min;
-                column[0].label(RichText::new("MIN BORN ENERGY").color(Color32::WHITE).strong());
+                column[0].label(RichText::new("MIN REPRODUCE ENERGY").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut born_eng_min, 0.0..=1.0).step_by(0.05)).changed() {
                     settings.born_eng_min = born_eng_min;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut born_eng_cost = settings.born_eng_cost;
+                column[0].label(RichText::new("REPRODUCTION COST").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut born_eng_cost, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.born_eng_cost = born_eng_cost;
                     signals.new_settings = true;
                 }
             });
