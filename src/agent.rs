@@ -86,7 +86,7 @@ impl Agent {
     pub fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
         let size = rand::gen_range(settings.agent_size_min, settings.agent_size_max) as f32;
-        let rot = random_rotation();
+        let rot = 0.0; //random_rotation();
         let eyes = gen_range(0, 10);
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let shape = SharedShape::ball(size);
@@ -193,9 +193,10 @@ impl Agent {
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
-        let yaw = SharedShape::ball(size/5.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI/10.0) * (size+size/5.0);
-        let right: Vec2 = Vec2::from_angle(rot+PI/10.0) * (size+size/5.0);
+        //let new_rot = rot-PI;
+        let yaw = SharedShape::ball(size/4.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (size+size/5.0);
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (size+size/5.0);
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -354,9 +355,9 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let yaw = SharedShape::ball(size/5.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI/10.0) * (size+size/5.0);
-        let right: Vec2 = Vec2::from_angle(rot+PI/10.0) * (size+size/5.0);
+        let yaw = SharedShape::ball(size/4.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (size+size/5.0);
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (size+size/5.0);
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -384,7 +385,7 @@ impl Agent {
         return agent;
     }
 
-    pub fn draw(&self, selected: bool, font: &Font) {
+    pub fn draw(&self, selected: bool, font: &Font, physics: &Physics) {
         let settings = get_settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
@@ -395,6 +396,7 @@ impl Agent {
         self.draw_body();
         self.draw_front();
         self.draw_eyes(selected);
+        //self.draw_limbs(physics);
         if selected {
             self.draw_info(&font);
             self.draw_target(selected);
@@ -402,6 +404,19 @@ impl Agent {
             self.draw_info(&font);
         }
     }    
+
+    fn draw_limbs(&self, physics: &Physics) {
+        let colh_l = physics.core.colliders.get(self.colliders[0]).unwrap();
+        let tl_l = colh_l.position_wrt_parent().unwrap().translation;
+        let rot_l = colh_l.rotation().angle();
+        let pos_l = self.pos+Vec2::from_angle(self.rot+rot_l)*(self.size+self.size/5.0);
+        //let loc_l = vec2(tl_l.x, tl_l.y) + self.pos;
+        let colh_r = physics.core.colliders.get(self.colliders[1]).unwrap();
+        let tl_r = colh_r.position_wrt_parent().unwrap().translation;
+        let loc_r = vec2(tl_r.x, tl_r.y) + self.pos;
+        draw_circle(pos_l.x, pos_l.y, self.size/2.0, PINK);
+        draw_circle(loc_r.x, loc_r.y, self.size/2.0, PINK);
+    }
 
     fn draw_body(&self) {
         let x0 = self.pos.x;
@@ -1114,9 +1129,9 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let yaw = SharedShape::ball(agent.size/5.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI/10.0) * (agent.size+agent.size/5.0);
-        let right: Vec2 = Vec2::from_angle(rot+PI/10.0) * (agent.size+agent.size/5.0);
+        let yaw = SharedShape::ball(agent.size/4.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size+agent.size/5.0);
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size+agent.size/5.0);
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 

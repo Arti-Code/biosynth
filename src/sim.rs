@@ -416,9 +416,15 @@ impl Simulation {
         clear_background(color_u8!(35,35,35,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_terrain();
+        self.draw_plants();
         //self.draw_grid();
         self.draw_agents();
-        self.draw_plants();
+    }
+
+    pub fn debug_physic(&mut self) {
+        if get_settings().debug {
+            self.physics.debug_draw();
+        }
     }
 
     pub fn draw_terrain(&self) {
@@ -441,7 +447,7 @@ impl Simulation {
                     draw_field_of_view = true;
                 };
             }
-            agent.draw(draw_field_of_view, &self.font);
+            agent.draw(draw_field_of_view, &self.font, &self.physics);
         }
 
         match self.selected {

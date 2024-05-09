@@ -83,6 +83,7 @@ async fn main() {
         if sim.is_running() {
             sim.update();
             sim.draw();
+            sim.debug_physic();
         } else {
             sim.check_signals();
         }

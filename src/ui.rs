@@ -330,6 +330,11 @@ impl UISystem {
                     if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.info = !self.state.info;
                     }
+                    if ui.button(RichText::new("Physic Debuger").strong().color(Color32::LIGHT_BLUE)).clicked() {
+                        let mut settings = get_settings();
+                        settings.debug = ! settings.debug;
+                        set_settings(settings);
+                    }
                 });
 
                 ui.add_space(10.0);

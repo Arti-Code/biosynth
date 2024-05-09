@@ -24,6 +24,10 @@ fn peripheral_vision() -> f32 {
     return 0.25;
 }
 
+fn default_debug() -> bool {
+    return false;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -85,6 +89,8 @@ pub struct Settings {
     pub dmg_to_hp: f32,
     #[serde(default = "peripheral_vision")]
     pub peripheral_vision: f32,
+    #[serde(default = "default_debug")]
+    pub debug: bool,
 }
 
 impl Default for Settings {
@@ -156,6 +162,7 @@ impl Default for Settings {
             sim_speed: 1.0,
             stats_limit: 20,
             pause: false,
+            debug: false,
        }
     }
 
