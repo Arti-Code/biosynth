@@ -222,7 +222,7 @@ impl Simulation {
                 let mut sketch = agent.get_sketch();
                 sketch.points = (sketch.points).round();
                 self.ranking.add_agent(sketch);
-                self.physics.remove_object(agent.physics_handle);
+                self.physics.remove_object(agent.rbh);
                 self.deaths[0] += 1;
             }
         }
@@ -272,7 +272,6 @@ impl Simulation {
     }
 
     pub fn update(&mut self) {
-        //self.tail.update(PI/2.5, &mut self.physics);
         self.check_signals();
         self.check_settings();
         self.update_sim_state();
@@ -286,8 +285,6 @@ impl Simulation {
         let (i, _, _) = self.agents.populate(&mut self.physics, self.sim_time);
         self.borns[0] += i;
         self.borns[1] += i;
-        //self.nodes.push(n);
-        //self.links.push(l);
         self.monitor.monitor();
         self.physics.step();
     }

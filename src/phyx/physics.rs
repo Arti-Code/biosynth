@@ -117,7 +117,7 @@ pub struct PhysicsCore {
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
     island_manager: IslandManager,
-    broad_phase: BroadPhase,
+    broad_phase: BroadPhaseMultiSap,
     narrow_phase: NarrowPhase,
     impulse_joint_set: ImpulseJointSet,
     multibody_joint_set: MultibodyJointSet,
@@ -131,9 +131,7 @@ impl PhysicsCore {
 
     pub fn new() -> Self {
         let params = IntegrationParameters {
-            prediction_distance: 0.02,
-            allowed_linear_error: 0.01,
-            dt: 1.0/45.0,
+            dt: 1./60.,
             ..Default::default()
         };
         Self {
@@ -145,7 +143,7 @@ impl PhysicsCore {
             integration_parameters: params,
             physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
-            broad_phase: BroadPhase::new(),
+            broad_phase: BroadPhaseMultiSap::new(),
             narrow_phase: NarrowPhase::new(),
             impulse_joint_set: ImpulseJointSet::new(),
             multibody_joint_set: MultibodyJointSet::new(),

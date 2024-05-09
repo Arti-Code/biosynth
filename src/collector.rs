@@ -74,7 +74,7 @@ impl AgentBox {
             agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
         }     
         let nl_num = agent.get_nodes_links_num();       
-        self.agents.insert(agent.physics_handle, agent); 
+        self.agents.insert(agent.rbh, agent); 
         return nl_num;
     }
 

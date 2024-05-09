@@ -6,7 +6,7 @@ use macroquad::prelude::*;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use noise::{core::perlin::perlin_2d, permutationtable::PermutationTable, utils::{NoiseMap, NoiseMapBuilder, PlaneMapBuilder}, *};
-
+use ::rand::prelude::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Cell {
@@ -32,14 +32,15 @@ impl Cell {
     pub fn get_color(&self, water_level: i32) -> Color {
         let dif: i32 = self.alt as i32 - water_level as i32;
         if dif < 0 {
-            let b = 1.0 + (dif as f32 / 15.0);
+            let mut b = 1.0 + (dif as f32 / 10.0);
             let r = clamp(b-0.75, 0.0, 1.0);
             let g = clamp(b-0.75, 0.0, 1.0);
+            b = clamp(b, 0.5, 1.0);
             //let a = 0.5 - (water_level as f32 / 10.0) * 0.5;
             return Color::new(r, g, b, 1.0);
         }
         let alt = self.alt as f32;
-        let c = (alt * 8.0 + 50.0) as i32;
+        let c = (alt * 10.0 + 55.0) as i32;
         let color = color_u8!(c, c, c, 255);
         return color;
     }
@@ -60,11 +61,9 @@ pub struct Terrain {
 impl Terrain {
 
     pub fn new(w: f32, h: f32, s: f32, water_lvl: i32) -> Self {
-        //let row_num = (h / s) as usize;
-        //let col_num = (w / s) as usize;
         let row_num = (h/s) as usize;
         let col_num = (w/s) as usize;
-        let map = Self::generate_noise_map(col_num, row_num);
+        let map = Self::generate_noise_map2(col_num, row_num);
         let mut cells: Vec<Vec<Cell>> = vec![];
         for c in 0..col_num {
             let mut row: Vec<Cell> = vec![];
@@ -154,14 +153,23 @@ impl Terrain {
         basic_multi.octaves = rand::gen_range(2, 8);
         basic_multi.lacunarity = rand::gen_range(0.2, 0.8);
         basic_multi.persistence = rand::gen_range(0.2, 0.6);
-        //PlaneMapBuilder::new(source_module)
-        return PlaneMapBuilder::new(basic_multi).set_size(w, h)
-            .set_x_bounds(-6.0, 6.0).set_y_bounds(-6.0, 6.0).build();
-        //return PlaneMapBuilder::new_fn(|point| { perlin_2d(point.into(), &hasher) })
-        //    .set_size(w, h).set_x_bounds(-6.0, 6.0).set_y_bounds(-6.0, 6.0).build();
-        //PlaneMapBuilder::<_, 2>::new(&basic_multi)
-        //    .set_size(w, h).set_x_bounds(-6.0, 6.0)
-        //    .set_y_bounds(-6.0, 6.0).build()
+        return PlaneMapBuilder::new(basic_multi)
+            .set_size(w, h)
+            .set_x_bounds(-6.0, 6.0)
+            .set_y_bounds(-6.0, 6.0)
+            .build();
+    }
+
+    fn generate_noise_map2(w: usize, h: usize) -> NoiseMap {
+        let mut rng = thread_rng();
+        let seed: u32 = rng.gen();
+        let basicmulti = BasicMulti::<Perlin>::new(seed);
+        let simple = OpenSimplex::new(seed);
+
+        PlaneMapBuilder::new(simple).set_size(w, h)
+            .set_x_bounds(-5.0, 5.0)
+            .set_y_bounds(-5.0, 5.0)
+            .build()
     }
 
     pub fn water_level(&self) -> i32 {

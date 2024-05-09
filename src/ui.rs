@@ -154,29 +154,29 @@ impl UISystem {
                     if ui.button(RichText::new("New Simulation").strong().color(Color32::GREEN)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::LIGHT_BLUE)).clicked() {
+                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         //signals.load_sim = true;
                         self.state.load_sim = true;
                     }
-                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::LIGHT_RED)).clicked() {
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::BLUE)).clicked() {
                         signals.save_sim = true;
                     }
-                    if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_BLUE)).clicked() {
+                    if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.load_agent = true;
                     }
-                    if ui.button(RichText::new("Save Agent").strong().color(Color32::LIGHT_RED),).clicked() {
+                    if ui.button(RichText::new("Save Agent").strong().color(Color32::BLUE),).clicked() {
                         //let mut signals = mod_signals();
                         signals.save_selected = true;
                     }
-                    if ui.button(RichText::new("Export Settings").strong().color(Color32::LIGHT_RED),).clicked() {
+                    if ui.button(RichText::new("Export Settings").strong().color(Color32::GRAY),).clicked() {
                         //let mut signals = mod_signals();
                         signals.export_settings = true;
                     }
-                    if ui.button(RichText::new("Import Settings").strong().color(Color32::LIGHT_RED),).clicked() {
+                    if ui.button(RichText::new("Import Settings").strong().color(Color32::GRAY),).clicked() {
                         //let mut signals = mod_signals();
                         signals.import_settings = true;
                     }
-                    if ui.button(RichText::new("Resize World").strong().color(Color32::GOLD),).clicked() {
+                    if ui.button(RichText::new("Resize World").strong().color(Color32::LIGHT_RED),).clicked() {
                         if !self.state.resize_world {
                             let settings = get_settings();
                             self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
@@ -982,6 +982,10 @@ impl UISystem {
                     author.label(RichText::new(format!("version {}", env!("CARGO_PKG_VERSION"))).color(Color32::YELLOW).italics());
                 });
                 ui.add_space(10.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new(format!("{}", env!("CARGO_PKG_DESCRIPTION"))).color(Color32::WHITE).italics());
+                });
+                ui.add_space(10.0);
                 ui.vertical_centered(|closer| {
                     if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_BLUE).strong()).clicked() {
                         self.state.about = false;
@@ -1451,7 +1455,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut neurolink_rate: f32 = settings.neurolink_rate;
                 column[0].label(RichText::new("NEURON LINKS RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=0.5).step_by(0.05)).changed() {
+                if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=1.0).step_by(0.05)).changed() {
                     settings.neurolink_rate = neurolink_rate;
                     signals.new_settings = true;
                 }
@@ -1461,7 +1465,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut neuro_duration: f32 = settings.neuro_duration;
                 column[0].label(RichText::new("ANALIZE PERIOD").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut neuro_duration, 0.01..=0.5).step_by(0.01)).changed() {
+                if column[1].add(Slider::new(&mut neuro_duration, 0.01..=1.0).step_by(0.01)).changed() {
                     settings.neuro_duration = neuro_duration;
                     signals.new_settings = true;
                 }
@@ -1802,6 +1806,11 @@ impl UISystem {
             let shell = agent.shell;
             let mutations = agent.mutations;
             let eyes = agent.eyes;
+            let water: bool = if agent.get_water() == 0 {
+                false
+            } else {
+                true
+            };
             let attributes = format!("S: {} | M: {} | P: {} | D: {} | X: {} | V: {}", size, speed, power, shell, mutations, eyes);
             ui.horizontal(|ui| {
                 ui.set_max_height(16.0);
@@ -1836,6 +1845,15 @@ impl UISystem {
                 ui.label(RichText::new(txt).strong().color(Color32::RED));
                 ui.separator();
                 ui.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
+            });
+            ui.horizontal(|ui| {
+                ui.set_max_height(14.0);
+                let txt = if water {
+                    "water".to_string()
+                } else {
+                    "".to_string()
+                };
+                ui.label(RichText::new(txt).strong().color(Color32::BLUE));
             });
         }
     }

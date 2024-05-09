@@ -54,7 +54,8 @@ pub struct Agent {
     pub plant: Option<RigidBodyHandle>,
     pub plant_position: Option<Vec2>,
     pub plant_dir: Option<f32>,
-    pub physics_handle: RigidBodyHandle,
+    pub rbh: RigidBodyHandle,
+    colliders: Vec<ColliderHandle>,
     pub neuro_map: NeuroMap,
     pub childs: usize,
     pub kills: usize,
@@ -94,7 +95,10 @@ impl Agent {
             rot, 
             shape.clone(), 
             PhysicsMaterial::agent(), 
-            InteractionGroups { memberships: Group::GROUP_1, filter: Group::GROUP_2 | Group::GROUP_1 },
+            InteractionGroups { 
+                memberships: Group::GROUP_1, 
+                filter: Group::GROUP_2 | Group::GROUP_1 
+            },
             false,
         );
         let color = random_color();
@@ -114,7 +118,14 @@ impl Agent {
         let deep = vec![hid; hid_layers];
         //let hid1 = rand::gen_range(1, hid);
         //let hid2 = rand::gen_range(1, hid);
-        network.build(inp_labs.len(), inp_labs, deep, out_labs.len(), out_labs, settings.neurolink_rate);
+        network.build(
+            inp_labs.len(), 
+            inp_labs, 
+            deep, 
+            out_labs.len(), 
+            out_labs, 
+            settings.neurolink_rate
+        );
         let input_pairs = network.get_input_pairs();
         let output_pairs = network.get_output_pairs();
         let mut neuro_map = NeuroMap::new();
@@ -156,7 +167,8 @@ impl Agent {
             contacts: Vec::new(),
             contact_agent: false,
             contact_plant: false,
-            physics_handle: rbh,
+            rbh,
+            colliders: vec![],
             neuro_map,
             childs: 0,
             kills: 0,
@@ -181,6 +193,33 @@ impl Agent {
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
+        let yaw = SharedShape::ball(size/5.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI/10.0) * (size+size/5.0);
+        let right: Vec2 = Vec2::from_angle(rot+PI/10.0) * (size+size/5.0);
+        let colh_left = physics.add_collider(
+            agent.rbh, 
+            &left, 
+            0.0, 
+            yaw.clone(), 
+            PhysicsMaterial::agent(), 
+            InteractionGroups { 
+                memberships: Group::GROUP_1, 
+                filter: Group::GROUP_2 | Group::GROUP_1 
+            }
+        );
+        let colh_right = physics.add_collider(
+            agent.rbh, 
+            &right, 
+            0.0, 
+            yaw.clone(), 
+            PhysicsMaterial::agent(), 
+            InteractionGroups { 
+                memberships: Group::GROUP_1, 
+                filter: Group::GROUP_2 | Group::GROUP_1 
+            }
+        );
+        agent.colliders.push(colh_left);
+        agent.colliders.push(colh_right);
         return agent;
     }
 
@@ -242,6 +281,7 @@ impl Agent {
                 SharedShape::ball(sketch.size)
             },
         };
+        let rot = random_rotation();
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
         let rbh = physics.add_dynamic_object(
@@ -255,7 +295,7 @@ impl Agent {
         let mut agent = Agent {
             key,
             pos,
-            rot: random_rotation(),
+            rot,
             mass: 0.0,
             vel: 0.0,
             ang_vel: 0.0,
@@ -287,7 +327,8 @@ impl Agent {
             contacts: Vec::new(),
             contact_agent: false,
             contact_plant: false,
-            physics_handle: rbh,
+            rbh,
+            colliders: vec![],
             neuro_map: sketch.neuro_map.clone(),
             childs: 0,
             kills: 0,
@@ -313,6 +354,33 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
+        let yaw = SharedShape::ball(size/5.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI/10.0) * (size+size/5.0);
+        let right: Vec2 = Vec2::from_angle(rot+PI/10.0) * (size+size/5.0);
+        let colh_left = physics.add_collider(
+            agent.rbh, 
+            &left, 
+            0.0, 
+            yaw.clone(), 
+            PhysicsMaterial::agent(), 
+            InteractionGroups { 
+                memberships: Group::GROUP_1, 
+                filter: Group::GROUP_2 | Group::GROUP_1 
+            }
+        );
+        let colh_right = physics.add_collider(
+            agent.rbh, 
+            &right, 
+            0.0, 
+            yaw.clone(), 
+            PhysicsMaterial::agent(), 
+            InteractionGroups { 
+                memberships: Group::GROUP_1, 
+                filter: Group::GROUP_2 | Group::GROUP_1 
+            }
+        );
+        agent.colliders.push(colh_left);
+        agent.colliders.push(colh_right);
         return agent;
     }
 
@@ -547,7 +615,6 @@ impl Agent {
         self.network.calc();
         self.neuro_map.recv_actions(&self.network);
 
-        //vec!["MOV", "LFT", "RGT", "ATK", "RUN"];
         if self.neuro_map.get_action("MOV") > 0.0 {
             self.vel = self.neuro_map.get_action("MOV");
         } else {
@@ -723,11 +790,11 @@ impl Agent {
     fn update_physics(&mut self, physics: &mut Physics) {
         let settings = get_settings();
         self.update_enemy_position(physics);
-        let physics_data = physics.get_object_state(self.physics_handle);
+        let physics_data = physics.get_object_state(self.rbh);
         self.pos = physics_data.position;
         self.rot = physics_data.rotation;
         self.mass = physics_data.mass;
-        match physics.get_object_mut(self.physics_handle) {
+        match physics.get_object_mut(self.rbh) {
             Some(body) => {
                 let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
@@ -814,9 +881,7 @@ impl Agent {
 
     fn update_contacts(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) {
         self.contacts_clear();
-        //self.contact_agent = false;
-        //self.contact_plant = false;
-        let contacts = physics.get_contacts_set(self.physics_handle, self.size);
+        let contacts = physics.get_contacts_set(self.rbh, self.size);
         for contact in contacts {
             if other.contains_key(&contact) {
                 self.contact_agent = true;
@@ -840,7 +905,7 @@ impl Agent {
 
     fn watch(&mut self, physics: &Physics) {
         let direction = Vec2::from_angle(self.rot);
-        if let Some(tg) = physics.get_closest_agent(self.physics_handle, self.vision_range, self.vision_angle, direction) {
+        if let Some(tg) = physics.get_closest_agent(self.rbh, self.vision_range, self.vision_angle, direction) {
             self.enemy = Some(tg);
         } else {
             self.enemy_family = None;
@@ -848,7 +913,7 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(tg) = physics.get_closest_plant(self.physics_handle, self.vision_range, self.vision_angle, direction) {
+        if let Some(tg) = physics.get_closest_plant(self.rbh, self.vision_range, self.vision_angle, direction) {
             self.plant = Some(tg);
         } else {
             self.plant = None;
@@ -868,9 +933,9 @@ impl Agent {
         if self.eating {
             basic_loss += attack_cost * self.size;
         }
-        let shell_loss = self.shell as f32 * 0.15; 
+        let shell_loss = self.shell as f32 * 0.25; 
         let speed_loss = self.speed as f32 * 3.0;
-        let mut move_loss = self.vel * (shell_loss + speed_loss) * move_cost;
+        let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
@@ -1022,7 +1087,8 @@ impl Agent {
             contacts: Vec::new(),
             contact_agent: false,
             contact_plant: false,
-            physics_handle: rbh,
+            rbh,
+            colliders: vec![],
             neuro_map,
             childs: 0,
             kills: 0,
@@ -1048,6 +1114,33 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
+        let yaw = SharedShape::ball(agent.size/5.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI/10.0) * (agent.size+agent.size/5.0);
+        let right: Vec2 = Vec2::from_angle(rot+PI/10.0) * (agent.size+agent.size/5.0);
+        let colh_left = physics.add_collider(
+            agent.rbh, 
+            &left, 
+            0.0, 
+            yaw.clone(), 
+            PhysicsMaterial::agent(), 
+            InteractionGroups { 
+                memberships: Group::GROUP_1, 
+                filter: Group::GROUP_2 | Group::GROUP_1 
+            }
+        );
+        let colh_right = physics.add_collider(
+            agent.rbh, 
+            &right, 
+            0.0, 
+            yaw.clone(), 
+            PhysicsMaterial::agent(), 
+            InteractionGroups { 
+                memberships: Group::GROUP_1, 
+                filter: Group::GROUP_2 | Group::GROUP_1 
+            }
+        );
+        agent.colliders.push(colh_left);
+        agent.colliders.push(colh_right);
         return agent;
     }
 
@@ -1073,5 +1166,10 @@ impl Agent {
             ancestors: self.ancestors.to_owned(),
         }
     }
+
+    pub fn get_water(&self) -> i32 {
+        return self.water;
+    }
+
 }
 

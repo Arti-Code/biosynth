@@ -1,13 +1,12 @@
 [package]
 name = "evolve"
-version = "0.8.28"
+version = "0.8.30"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
+
 description = '''
     Evolve' simulation project. 
     Currently in development stage.
-    dev-0.8: working on terrain features.
-    dev-0.8.1: cleanup, better render attack and eat, decrease size impact on fight, some ui changes 
 '''
 keywords = [
     "physics", "sandbox", "simulation", 
@@ -19,12 +18,12 @@ keywords = [
 
 [dependencies]
 macroquad = "0.3.26"
-rapier2d = { version = "0.18.0", features = [ "simd-stable" ] }
+rapier2d = { version = "0.19.0", features = [ "simd-stable" ] }
 egui-macroquad = {version = "0.15.0"}
 egui_extras = {version = "0.27.2", features = ["image"]}
 image = "0.25.1"
-serde_json = "1.0.116"
-serde = "1.0.200"
+serde_json = "1.0.117"
+serde = "1.0.201"
 noise = "0.9.0"
 rand = "0.8.5"
 base64 = "0.22.1"
