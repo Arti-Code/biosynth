@@ -63,7 +63,7 @@ pub struct Agent {
     pub attacking: bool,
     pub eating: bool,
     pub points: f32,
-    pub pain: bool,
+    pub pain: f32,
     pub run: bool,
     pub power: i32,
     pub speed: i32,
@@ -106,8 +106,8 @@ impl Agent {
         let mut network = Network::new(1.0);
         let inp_labs = vec![
             "CON", "ENY", "RES", "HP", "ENG", "TGL", "TGR", "DST", 
-            "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "RED", 
-            "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"
+            "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "H2O",
+            "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"
         ];
         let out_labs = vec![
             "MOV", "LFT", "RGT", "ATK", 
@@ -176,7 +176,7 @@ impl Agent {
             attacking: false,
             eating: false,
             points: 0.0,
-            pain: false,
+            pain: 0.0,
             run: false,
             speed: gen_range(0, 10),
             power: gen_range(0, 10),
@@ -282,7 +282,7 @@ impl Agent {
                 SharedShape::ball(sketch.size)
             },
         };
-        let rot = random_rotation();
+        let rot = 0.0; //random_rotation();
         let gen = sketch.generation + 1;
         let network = sketch.network.from_sketch();
         let rbh = physics.add_dynamic_object(
@@ -337,7 +337,7 @@ impl Agent {
             attacking: false,
             eating: false,
             points: 0.0,
-            pain: false,
+            pain: 0.0,
             run: false,
             power: sketch.power,
             speed: sketch.speed,
@@ -594,10 +594,16 @@ impl Agent {
         let e_r = en_color.r;
         let e_g = en_color.g;
         let e_b = en_color.b;
-        let mut pain = 0.0;
-        if self.pain { pain = 1.0; }
-        self.pain = false;
-        self.pain = false;
+        //let mut pain = 0.0;
+        //if self.pain { pain = 1.0; }
+        //self.pain = false;
+        //self.pain = false;
+        let mut water = 0.0;
+        if self.water == 1 {
+            water = 0.5;
+        } else if self.water > 1 {
+            water = 1.0;
+        }
         self.neuro_map.set_signal("CON", contact);
         self.neuro_map.set_signal("ENY", contact_agent);
         self.neuro_map.set_signal("RES", contact_plant);
@@ -611,14 +617,16 @@ impl Agent {
         self.neuro_map.set_signal("REL", resl);
         self.neuro_map.set_signal("RER", resr);
         self.neuro_map.set_signal("RED", res_dist);
-        self.neuro_map.set_signal("PAI", pain);
+        self.neuro_map.set_signal("PAI", self.pain);
         self.neuro_map.set_signal("WAL", wall);
+        self.neuro_map.set_signal("H2O", water);
         self.neuro_map.set_signal("RED", red);
         self.neuro_map.set_signal("GRE", gre);
         self.neuro_map.set_signal("BLU", blu);
         self.neuro_map.set_signal("E-R", e_r);
         self.neuro_map.set_signal("E-G", e_g);
         self.neuro_map.set_signal("E-B", e_b);
+        self.pain = clamp(self.pain - get_settings().neuro_duration/2.0, 0.0, 1.0);
         
     }
 
@@ -817,10 +825,10 @@ impl Agent {
                 let mut vel = dir * self.vel * v * dt;
                 //let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
                 let w = clamp(self.water, 0, 4);
-                if w > 0 {
-                    vel = vel/w as f32;
+                if w > 1 {
+                    vel = vel/4.0;
                 }
-                if self.run {
+                if self.run && self.water == 0 {
                     vel *= 1.5;
                 }
                 let rot = self.ang_vel * settings.agent_rotate * dt / (self.shell as f32 * 0.5);
@@ -1050,7 +1058,7 @@ impl Agent {
         let color = self.color.to_owned();
         let color_second = self.color_second.to_owned();
         let shape = SharedShape::ball(self.size);
-        let rot = random_rotation();
+        let rot = 0.0; //random_rotation();
         let pos = self.pos;
         let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
         let rbh = physics.add_dynamic_object(
@@ -1111,7 +1119,7 @@ impl Agent {
             attacking: false,
             eating: false,
             points: 0.0,
-            pain: false,
+            pain: 0.0,
             run: false,
             power: self.power,
             speed: self.speed,

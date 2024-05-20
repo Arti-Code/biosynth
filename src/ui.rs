@@ -366,7 +366,7 @@ impl UISystem {
                 });
                 ui.add_space(6.0);
                 ui.vertical_centered(|author| {
-                    author.label(RichText::new("Artur Gwoździowski 2023").color(Color32::BLUE).strong());
+                    author.label(RichText::new("Artur Gwoździowski 2023-2024").color(Color32::BLUE).strong());
                 });
                 ui.add_space(6.0);
                 ui.vertical_centered(|author| {
@@ -1500,7 +1500,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_add_link = settings.mut_add_link;
                 column[0].label(RichText::new("MUTATIONS: ADD LINK").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_add_link, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_add_link, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.mut_add_link = mut_add_link;
                     signals.new_settings = true;
                 }
@@ -1510,7 +1510,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_del_link = settings.mut_del_link;
                 column[0].label(RichText::new("MUTATIONS: DEL LINK").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_del_link, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_del_link, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.mut_del_link = mut_del_link;
                     signals.new_settings = true;
                 }
@@ -1520,7 +1520,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_add_node = settings.mut_add_node;
                 column[0].label(RichText::new("MUTATIONS: ADD NODE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_add_node, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_add_node, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.mut_add_node = mut_add_node;
                     signals.new_settings = true;
                 }
@@ -1530,7 +1530,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_del_node = settings.mut_del_node;
                 column[0].label(RichText::new("MUTATIONS: DEL NODE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_del_node, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_del_node, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.mut_del_node = mut_del_node;
                     signals.new_settings = true;
                 }
@@ -1540,7 +1540,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_change_val = settings.mut_change_val;
                 column[0].label(RichText::new("MUTATIONS: MOD VALUE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_change_val, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_change_val, 0.0..=1.0).step_by(0.01)).changed() {
                     settings.mut_change_val = mut_change_val;
                     signals.new_settings = true;
                 }
@@ -1879,7 +1879,8 @@ impl UISystem {
                 let w = link.get_width()*wi;
                 let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
                 let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
-                let (_, color1) = link.get_colors();
+                let (color0, color1) = link.get_colors();
+                let c0 = color_to_color32(color0);
                 let c1 = color_to_color32(color1);
                 let points1 = [p1, p2];
                 painter.line_segment(points1, Stroke { color: c1, width: w });

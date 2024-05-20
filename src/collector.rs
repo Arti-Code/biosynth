@@ -7,6 +7,7 @@ use crate::util::*;
 use crate::phyx::physics::Physics;
 use crate::agent::*;
 use crate::plant::*;
+use egui_macroquad::egui::epaint::ahash::HashSet;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
 use crate::settings::*;
@@ -17,6 +18,45 @@ pub trait PhysicsObject {
     fn update(&mut self, dt: f32, physics: &mut Physics) -> bool;
     fn update_physics(&mut self, physics: &mut Physics);
     fn link_physics_handle(&mut self, handle: RigidBodyHandle);
+}
+
+#[derive(Clone)]
+pub struct AgentsSet {
+    agents: HashMap<RigidBodyHandle, Agent>,
+}
+
+impl AgentsSet {
+
+    pub fn new() -> Self {
+        Self {
+            agents: HashMap::new(),
+        }
+    }
+
+    pub fn add(&mut self, agent: Agent) {
+        self.agents.insert(agent.rbh, agent);
+    }
+
+    pub fn get(&self, rbh: &RigidBodyHandle) -> Option<&Agent> {
+        return self.agents.get(rbh);
+    }
+
+    pub fn get_mut(&mut self, rbh: &RigidBodyHandle) -> Option<&mut Agent> {
+        return self.agents.get_mut(rbh);
+    }
+
+    pub fn get_iter(&self) -> Iter<RigidBodyHandle, Agent> {
+        return self.agents.iter();
+    }
+
+    pub fn get_iter_mut(&mut self) -> IterMut<RigidBodyHandle, Agent> {
+        return self.agents.iter_mut();
+    }
+
+    pub fn count_elements(&self) -> usize {
+        return self.agents.len();
+    }
+
 }
 
 pub struct AgentBox {
