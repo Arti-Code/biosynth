@@ -144,7 +144,7 @@ impl Terrain {
         return vec2(x, y);
     }
 
-    fn generate_noise_map(w: usize, h: usize) -> NoiseMap {
+    fn generate_noise_map3(w: usize, h: usize) -> NoiseMap {
         let seed = generate_seed() as u32;
         let hasher = PermutationTable::new(generate_seed() as u32);
         
@@ -154,6 +154,16 @@ impl Terrain {
         basic_multi.lacunarity = rand::gen_range(0.2, 0.8);
         basic_multi.persistence = rand::gen_range(0.2, 0.6);
         return PlaneMapBuilder::new(basic_multi)
+            .set_size(w, h)
+            .set_x_bounds(-6.0, 6.0)
+            .set_y_bounds(-6.0, 6.0)
+            .build();
+    }
+
+    fn generate_noise_map(w: usize, h: usize) -> NoiseMap {
+        let seed = generate_seed() as u32;        
+        let perlin = Perlin::new(seed);
+        return PlaneMapBuilder::new(perlin)
             .set_size(w, h)
             .set_x_bounds(-6.0, 6.0)
             .set_y_bounds(-6.0, 6.0)

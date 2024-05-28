@@ -231,6 +231,41 @@ impl UISystem {
                     }
                 });
 
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
+                
+                menu::menu_button(ui, RichText::new("SELECTION").strong(), |ui| {
+                    if ui.button(RichText::new("Random").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::RANDOM;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Points").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::POINTS;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Lifetime").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::LIFETIME;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Childs").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::CHILDS;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Kills").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::KILLS;
+                        set_settings(settings);
+                    }
+                });
+
+
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
@@ -743,7 +778,7 @@ impl UISystem {
                 });
                 ui.add_space(3.0);
                 ui.vertical_centered(|txt| {
-                    let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
+                    let response = txt.text_edit_singleline(&mut self.temp_sim_name);
                     let rnd_btn = txt.add(
                         Button::image_and_text(
                             self.dice.clone().unwrap().id(), 
@@ -769,13 +804,14 @@ impl UISystem {
                     }
                     if response.gained_focus() {
                     }
-                    if response.changed() {
-                    }
+                    //if response.changed() {
+                    //    response.
+                    //}
                     if response.lost_focus() && txt.input(|i| i.key_pressed(Key::Enter)) {
                         self.state.new_sim = false;
                         signals.new_sim = true;
                         signals.new_sim_name = String::from(&self.temp_sim_name);
-                        self.temp_sim_name = String::new();
+                        //self.temp_sim_name = String::new();
                     }
                 });
                 ui.add_space(3.0);
@@ -1500,7 +1536,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_add_link = settings.mut_add_link;
                 column[0].label(RichText::new("MUTATIONS: ADD LINK").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_add_link, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_add_link, 0.0..=0.05).step_by(0.001)).changed() {
                     settings.mut_add_link = mut_add_link;
                     signals.new_settings = true;
                 }
@@ -1510,7 +1546,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_del_link = settings.mut_del_link;
                 column[0].label(RichText::new("MUTATIONS: DEL LINK").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_del_link, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_del_link, 0.0..=0.05).step_by(0.001)).changed() {
                     settings.mut_del_link = mut_del_link;
                     signals.new_settings = true;
                 }
@@ -1520,7 +1556,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_add_node = settings.mut_add_node;
                 column[0].label(RichText::new("MUTATIONS: ADD NODE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_add_node, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_add_node, 0.0..=0.05).step_by(0.001)).changed() {
                     settings.mut_add_node = mut_add_node;
                     signals.new_settings = true;
                 }
@@ -1530,7 +1566,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_del_node = settings.mut_del_node;
                 column[0].label(RichText::new("MUTATIONS: DEL NODE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_del_node, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_del_node, 0.0..=0.05).step_by(0.001)).changed() {
                     settings.mut_del_node = mut_del_node;
                     signals.new_settings = true;
                 }
@@ -1540,7 +1576,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mut_change_val = settings.mut_change_val;
                 column[0].label(RichText::new("MUTATIONS: MOD VALUE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<f32>(&mut mut_change_val, 0.0..=0.1).step_by(0.001)).changed() {
+                if column[1].add(Slider::new::<f32>(&mut mut_change_val, 0.0..=0.05).step_by(0.001)).changed() {
                     settings.mut_change_val = mut_change_val;
                     signals.new_settings = true;
                 }
@@ -1888,6 +1924,7 @@ impl UISystem {
             for (key, node) in network.nodes.iter() {
                 let (_, color1) = node.get_colors();
                 let (r0, r1) = node.get_size();
+                let mem = node.get_mem_size();
                 let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                 let p1 = vec2_to_pos2(&ipos);
                 let c0 = color_to_color32(color1);
@@ -1897,9 +1934,15 @@ impl UISystem {
                     Some(v) => v,
                 };
                 painter.circle_filled(p1, r0,  Color32::BLACK);
-                let w1 = 0.5 + 0.24*r1;
+                let w1 = 0.5 + 0.35*r1;
                 painter.circle_stroke(p1, r1, Stroke { color: Color32::GREEN, width: w1 });
-                let w0 = 0.75 + 0.24*r0;
+                match mem {
+                    None => {},
+                    Some(m) => {
+                        painter.circle_stroke(p1, m, Stroke { color: Color32::GREEN, width: 1.0 });
+                    }
+                }
+                let w0 = 0.75 + 0.35*r0;
                 painter.circle_stroke(p1, r0, Stroke { color: c0, width: w0 });
                 let mut font = FontId::default();
                 font.size = 8.0;

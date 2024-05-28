@@ -95,10 +95,7 @@ pub struct NodeSketch {
     pub bias: f32,
     pub node_type: NeuronTypes,
     pub label: String,
-    #[serde(default = "none_remember")]
-    pub remember: f32,
-    #[serde(default = "none_memory")]
-    pub memory_size: usize,
+    pub memory_type: bool,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

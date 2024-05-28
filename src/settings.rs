@@ -4,6 +4,18 @@ use macroquad::{experimental::collections::storage, prelude::Vec2};
 use serde::{Deserialize, Serialize};
 
 use crate::globals::*;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum SelectMode {
+    POINTS,
+    LIFETIME,
+    RANDOM,
+    KILLS,
+    CHILDS,
+}
+
+
+
 pub fn set_settings(settings: Settings) {
     storage::store(settings);
 }
@@ -26,6 +38,10 @@ fn peripheral_vision() -> f32 {
 
 fn default_debug() -> bool {
     return false;
+}
+
+fn default_selection() -> SelectMode {
+    return SelectMode::RANDOM;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -91,6 +107,8 @@ pub struct Settings {
     pub peripheral_vision: f32,
     #[serde(default = "default_debug")]
     pub debug: bool,
+    #[serde(default = "default_selection")]
+    pub select_mode: SelectMode,
 }
 
 impl Default for Settings {
@@ -104,8 +122,8 @@ impl Default for Settings {
             agent_init_num: 100,
             agent_min_num: 10,
             agent_rotate: 50.0,
-            agent_speed: 50.0,
-            agent_size_min: 4,
+            agent_speed: 40.0,
+            agent_size_min: 3,
             agent_size_max: 10,
             agent_vision_range: 400.0,
 
@@ -114,29 +132,29 @@ impl Default for Settings {
             base_energy_cost: 0.25,
             move_energy_cost: 0.3,
             attack_energy_cost: 0.1,
-            size_cost: 2.5,
+            size_cost: 3.0,
             base_hp: 250,
             size_to_hp: 50.0,
             eng_bias: 0.15,
-            dmg_to_hp: 0.2,
+            dmg_to_hp: 0.1,
             peripheral_vision: 0.25,
             
             plant_init_num: 500,
-            plant_balance: 10,
-            plant_lifetime: 350.0,
-            growth: 6.0,
+            plant_balance: 15,
+            plant_lifetime: 300.0,
+            growth: 5.0,
             plant_min_num: 10,
-            plant_clone_size: 8,
+            plant_clone_size: 6,
             
-            neurolink_rate: 0.05,
+            neurolink_rate: 0.15,
             hidden_nodes_num: 0,
             hidden_layers_num: 0,
             neuro_duration: 0.1,
-            mut_add_link: 0.003,
-            mut_del_link: 0.003,
-            mut_add_node: 0.002,
-            mut_change_val: 0.008,
-            mut_del_node: 0.002,
+            mut_add_link: 0.014,
+            mut_del_link: 0.014,
+            mut_add_node: 0.007,
+            mut_del_node: 0.007,
+            mut_change_val: 0.04,
 
             atk_to_eng: 0.8,
             eat_to_eng: 2.5,
@@ -163,6 +181,7 @@ impl Default for Settings {
             stats_limit: 20,
             pause: false,
             debug: false,
+            select_mode: SelectMode::RANDOM,
        }
     }
 

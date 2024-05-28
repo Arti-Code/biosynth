@@ -772,7 +772,20 @@ impl Simulation {
 
     fn keyboard_input(&mut self) {
         if is_key_pressed(KeyCode::Tab) {
-            self.random_selection();
+            match get_settings().select_mode {
+                SelectMode::RANDOM => {
+                    self.random_selection();
+                },
+                SelectMode::POINTS => {
+                    self.points_selection();
+                },
+                SelectMode::LIFETIME => {
+                    self.lifetime_selection();
+                },
+                _ => {
+                    self.random_selection();
+                }
+            }
         }
         if is_key_pressed(KeyCode::Kp6) {
             let mut n = self.n + 1;
@@ -841,6 +854,10 @@ impl Simulation {
             }
         } else if settings.follow_mode && self.selected.is_none() {
             self.random_selection();
+        } else if self.selected.is_some() {
+            if !self.agents.agents.contains_key(&self.selected.unwrap()) {
+                self.points_selection();
+            }
         }
         if settings.water_lvl != self.terrain.water_level() {
             self.terrain.set_water_level(settings.water_lvl);
@@ -992,7 +1009,29 @@ impl Simulation {
         self.selected = Some(*keys[r]);
     }
 
-
+    fn points_selection(&mut self) {
+        let mut selected: Option<RigidBodyHandle> = None;
+        let mut points = 0.0;
+        for (handle, agent) in self.agents.get_iter() {
+            if agent.points > points {
+                selected = Some(*handle);
+                points = agent.points;
+            }
+        }
+        self.selected = selected;
+    }
+  
+    fn lifetime_selection(&mut self) {
+        let mut selected: Option<RigidBodyHandle> = None;
+        let mut lifetime = 0.0;
+        for (handle, agent) in self.agents.get_iter() {
+            if agent.lifetime > lifetime {
+                selected = Some(*handle);
+                lifetime = agent.points;
+            }
+        }
+        self.selected = selected;
+    }
 
 }
 

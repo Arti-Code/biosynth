@@ -2,6 +2,8 @@
 
 use macroquad::prelude::*;
 use macroquad::rand::*;
+use ::rand::thread_rng;
+use ::rand::Rng;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
@@ -62,9 +64,8 @@ pub struct Node {
     active: bool,
     pub label: String,
     new_mut: bool,
-    memory_size: usize,
-    remember: f32,
-    memory: VecDeque<f32>,
+    memory_type: bool,
+    mem: VecDeque<f32>,
 }
 
 #[derive(Clone, Copy)]
@@ -89,10 +90,7 @@ pub struct Network {
 
 impl Node {
 
-    pub fn new(position: IVec2, neuron_type: NeuronTypes, label: &str) -> Self {
-        let s = rand::gen_range(0, 25) as usize;
-        let mut vd: VecDeque<f32> = VecDeque::<f32>::new();
-        vd.resize(s, 0.0);
+    pub fn new(position: IVec2, neuron_type: NeuronTypes, label: &str, memory_node: bool) -> Self {
         Self {
             id: generate_id(),
             pos: position,
@@ -104,23 +102,9 @@ impl Node {
             active: false,
             label: label.to_string(),
             new_mut: false,
-            memory_size: s,
-            remember: rand::gen_range(0.0, 1.0),
-            memory: vd,
+            memory_type: memory_node,
+            mem: VecDeque::from([0.0; 50]),
         }
-    }
-
-    fn memory(&self) -> f32 {
-        let mut m = self.memory.iter().sum::<f32>();
-        m /= self.memory.len() as f32;
-        return m * self.remember;
-    }
-
-    fn remember(&mut self, v: f32) {
-        self.memory.push_back(v);
-        //if self.memory.len() > self.memory_size {
-        //    self.memory.pop_front();
-        //}
     }
 
     pub fn get_sketch(&self) -> NodeSketch {
@@ -133,8 +117,7 @@ impl Node {
             bias: self.bias,
             node_type: self.node_type.to_owned(),
             label: self.label.to_owned(),
-            remember: self.remember,
-            memory_size: self.memory_size ,
+            memory_type: self.memory_type,
         }
     }
 
@@ -147,10 +130,9 @@ impl Node {
             node_type: sketch.node_type, 
             active: false, 
             label: sketch.label.to_string(), 
-            new_mut: false, 
-            memory_size: sketch.memory_size,
-            remember: sketch.remember, 
-            memory: VecDeque::<f32>::new(),
+            new_mut: false,
+            memory_type: sketch.memory_type,
+            mem: VecDeque::from([0.0; 50]),
         }
     }
 
@@ -159,6 +141,15 @@ impl Node {
             return (1.0, 1.0);
         } else {
             return (1.0 + 5.0*self.val.abs(), 0.0);
+        }
+    }
+
+    pub fn get_mem_size(&self) -> Option<f32> {
+        if self.memory_type {
+            let sum = self.mem.iter().sum::<f32>();
+            return Some(1.0 + 5.0*(sum.abs()/25.0));
+        } else {
+            return None;
         }
     }
 
@@ -175,7 +166,10 @@ impl Node {
             return (LIGHTGRAY, GRAY);
         }
         let mut g = 0;
-        if self.new_mut { g = 255; }
+        if self.new_mut { 
+            g = 255;
+             
+        }
         let (color0, color1) = match self.val {
             n if n>0.0 => { 
                 let v0 = clamp(255.0*n, 0.0, 255.0);
@@ -227,16 +221,25 @@ impl Node {
             self.sum = 0.0;
             self.val = 0.0;
             //self.last = 0.0;
-            return;
+            self.mem.pop_front();
+            self.mem.push_back(self.val)
         }
         let sum: f32 = self.sum + self.bias;
         let v = sum.tanh();
         //self.last = self.val;
-        self.val = clamp(v, 0.0, 1.0);
+        if self.memory_type {
+            let mem = self.mem.iter().sum::<f32>()/50.0;
+            self.val = (v + mem)/2.0;
+            self.mem.pop_front();
+            self.mem.push_back(v);
+        } else {
+            self.val = v;
+        }
+        self.val = clamp(self.val, 0.0, 1.0);
         self.sum = 0.0;
     }
 
-    pub fn calc2(&mut self) {
+/*     pub fn calc2(&mut self) {
         if !self.active { 
             self.sum = 0.0;
             self.remember(self.val);
@@ -249,7 +252,7 @@ impl Node {
             self.val = clamp(v, 0.0, 1.0);
             self.sum = 0.0;
         }
-    }
+    } */
 
 }
 
@@ -284,9 +287,9 @@ impl Link {
     pub fn get_colors(&self) -> (Color, Color) {
         let s = clamp(self.signal, -1.0, 1.0);
         let color0: Color = if self.new_mut{
-            YELLOW
+            ORANGE
         } else if self.w_mut {
-            LIME
+            YELLOW
         } else { 
             Color::new(0.15, 0.15, 0.15, 1.0)
         };
@@ -426,7 +429,12 @@ impl Network {
         let ho = 100.0 / (output+1) as f32;
         let wd = (100/deep_n) as i32;
         for i in 0..input {
-            let node = Node::new(IVec2::new(0, (hi+hi*i as f32) as i32), NeuronTypes::INPUT, input_labels[i]);
+            let node = Node::new(
+                IVec2::new(0, (hi+hi*i as f32) as i32), 
+                NeuronTypes::INPUT, 
+                input_labels[i],
+                false,
+            );
             let id = node.id;
             self.nodes.insert(id, node);
         }
@@ -434,14 +442,26 @@ impl Network {
         for deep in 0..hidden.len() {
             let hd = 100.0 / (hidden[deep]+1) as f32;
             for d in 0..hidden[deep] {
-                let node = Node::new(IVec2::new(wd*(deep as i32+1), (hd+hd*d as f32) as i32), NeuronTypes::DEEP, "");
+                let m = thread_rng().gen_bool(1.0/3.0);
+                let node = Node::new(
+                    IVec2::new(wd*(deep as i32+1), 
+                    (hd+hd*d as f32) as i32), 
+                    NeuronTypes::DEEP, 
+                    "",
+                    m,
+                );
                 let id = node.id;
                 self.nodes.insert(id, node);
             }
         }
 
         for o in 0..output {
-            let node = Node::new(IVec2::new(100, (ho+ho*o as f32) as i32), NeuronTypes::OUTPUT, output_labels[o]);
+            let node = Node::new(
+                IVec2::new(100, (ho+ho*o as f32) as i32), 
+                NeuronTypes::OUTPUT, 
+                output_labels[o], 
+                false
+            );
             let id = node.id;
             self.nodes.insert(id, node);
         }
@@ -582,6 +602,7 @@ impl Network {
         let al = self.add_random_link(mut_link_add);
         let w = self.mutate_link_weight(mut_change_val);
         let (an, dn, al2, dl, b) = self.mutate_nodes(mut_node_add, mut_node_del, mut_change_val);
+        self.mutate_nodes_mem(mut_node_add);
         let mut stats = get_mutations();
         stats.add_values(an as i32, dn as i32, (al+al2) as i32, dl as i32, b as i32, w as i32);
         set_mutations(stats);
@@ -601,8 +622,22 @@ impl Network {
             if self.mutate_this(m) {
                 //let k = *node_keys.choose().unwrap();
                 let node = self.nodes.get_mut(&k).unwrap();
-                let bias = node.bias + rand::gen_range(-0.25, 0.25);
+                let bias = node.bias + rand::gen_range(-0.1, 0.1);
                 node.bias = clamp(bias, -1.0, 1.0);
+                counter += 1;
+            }
+        }
+        return counter;
+    }
+
+    fn mutate_nodes_mem(&mut self, m: f32) -> usize{
+        let mut counter = 0;
+        let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
+        for k in node_keys {    
+            if self.mutate_this(m) {
+                //let k = *node_keys.choose().unwrap();
+                let node = self.nodes.get_mut(&k).unwrap();
+                node.memory_type = !node.memory_type;
                 counter += 1;
             }
         }
@@ -623,7 +658,7 @@ impl Network {
         for k in link_keys {
             if self.mutate_this(m) {
                 let link = self.links.get_mut(&k).unwrap();
-                let weight = link.w + rand::gen_range(-0.25, 0.25);
+                let weight = link.w + rand::gen_range(-0.1, 0.1);
                 link.w = clamp(weight, -1.0, 1.0);
                 link.w_mut = true;
                 counter += 1;
@@ -650,7 +685,12 @@ impl Network {
                 let pos1 = node1.pos;
                 let posx = pos0 + (pos1-pos0)/2;
                 let nx = generate_id();
-                let mut new_node = Node::new(posx, NeuronTypes::DEEP, "");
+                let mut new_node = Node::new(
+                    posx, 
+                    NeuronTypes::DEEP, 
+                    "", 
+                    false
+                );
                 new_node.id = nx;
                 new_node.new_mut = true;
                 self.nodes.insert(nx, new_node);
