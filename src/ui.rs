@@ -158,13 +158,13 @@ impl UISystem {
                         //signals.load_sim = true;
                         self.state.load_sim = true;
                     }
-                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::BLUE)).clicked() {
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::LIGHT_BLUE)).clicked() {
                         signals.save_sim = true;
                     }
                     if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.load_agent = true;
                     }
-                    if ui.button(RichText::new("Save Agent").strong().color(Color32::BLUE),).clicked() {
+                    if ui.button(RichText::new("Save Agent").strong().color(Color32::LIGHT_BLUE),).clicked() {
                         //let mut signals = mod_signals();
                         signals.save_selected = true;
                     }
@@ -1902,8 +1902,8 @@ impl UISystem {
     fn inside_network(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
         if let Some(agent) = agent {
             let network = &agent.network;
-            let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
-            let offset = UIVec2::new(0.0, 0.0);
+            let w = 320.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.1, 3.6);
+            let offset = UIVec2::new(5.0, 0.0);
             let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
             let rect = response.rect;
             let zero = rect.left_top().to_vec2()+offset;
@@ -1915,15 +1915,15 @@ impl UISystem {
                 let w = link.get_width()*wi;
                 let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
                 let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
-                let (color0, color1) = link.get_colors();
-                let c0 = color_to_color32(color0);
+                let (_, color1) = link.get_colors();
+                //let c0 = color_to_color32(color0);
                 let c1 = color_to_color32(color1);
                 let points1 = [p1, p2];
                 painter.line_segment(points1, Stroke { color: c1, width: w });
             }
             for (key, node) in network.nodes.iter() {
                 let (_, color1) = node.get_colors();
-                let (r0, r1) = node.get_size();
+                let (r0, _) = node.get_size();
                 let mem = node.get_mem_size();
                 let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                 let p1 = vec2_to_pos2(&ipos);
@@ -1934,15 +1934,12 @@ impl UISystem {
                     Some(v) => v,
                 };
                 painter.circle_filled(p1, r0,  Color32::BLACK);
-                let w1 = 0.5 + 0.35*r1;
-                painter.circle_stroke(p1, r1, Stroke { color: Color32::GREEN, width: w1 });
-                match mem {
-                    None => {},
-                    Some(m) => {
-                        painter.circle_stroke(p1, m, Stroke { color: Color32::GREEN, width: 1.0 });
-                    }
+                //let w1 = 0.5 + 0.35*r1;
+                //painter.circle_stroke(p1, r1, Stroke { color: Color32::GREEN, width: w1 });
+                if mem > 0.0 {
+                    painter.circle_stroke(p1, mem, Stroke { color: Color32::GREEN, width: 1.0 });
                 }
-                let w0 = 0.75 + 0.35*r0;
+                let w0 = 0.5 + 1.0*r0;
                 painter.circle_stroke(p1, r0, Stroke { color: c0, width: w0 });
                 let mut font = FontId::default();
                 font.size = 8.0;

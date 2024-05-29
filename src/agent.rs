@@ -195,8 +195,8 @@ impl Agent {
         agent.calc_hp();
         //let new_rot = rot-PI;
         let yaw = SharedShape::ball(size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (size+size/5.0);
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (size+size/5.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -356,8 +356,8 @@ impl Agent {
         agent.mutate();
         agent.calc_hp();
         let yaw = SharedShape::ball(size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (size+size/5.0);
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (size+size/5.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -385,7 +385,7 @@ impl Agent {
         return agent;
     }
 
-    pub fn draw(&self, selected: bool, font: &Font, physics: &Physics) {
+    pub fn draw(&self, selected: bool, font: &Font, _physics: &Physics) {
         let settings = get_settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
@@ -407,7 +407,7 @@ impl Agent {
 
     fn draw_limbs(&self, physics: &Physics) {
         let colh_l = physics.core.colliders.get(self.colliders[0]).unwrap();
-        let tl_l = colh_l.position_wrt_parent().unwrap().translation;
+        //let tl_l = colh_l.position_wrt_parent().unwrap().translation;
         let rot_l = colh_l.rotation().angle();
         let pos_l = self.pos+Vec2::from_angle(self.rot+rot_l)*(self.size+self.size/5.0);
         //let loc_l = vec2(tl_l.x, tl_l.y) + self.pos;
@@ -1138,8 +1138,8 @@ impl Agent {
         agent.mutate();
         agent.calc_hp();
         let yaw = SharedShape::ball(agent.size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size+agent.size/5.0);
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size+agent.size/5.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size);
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size);
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 

@@ -144,10 +144,10 @@ impl PhysicsCore {
         };
 
         let dbg_cfg = DebugRenderStyle {
-            collider_dynamic_color: [60.0, 1.0, 0.5, 1.0],
-            collider_kinematic_color: [120.0, 1.0, 0.5, 1.0],
-            impulse_joint_anchor_color: [180.0, 1.0, 0.5, 1.0],
-            impulse_joint_separation_color: [240.0, 1.0, 0.5, 1.0],
+            collider_dynamic_color: [0.83, 1.0, 0.5, 1.0],
+            collider_kinematic_color: [0.33, 1.0, 0.5, 1.0],
+            impulse_joint_anchor_color: [0.5, 1.0, 0.5, 1.0],
+            impulse_joint_separation_color: [0.66, 1.0, 0.5, 1.0],
             ..Default::default()
         };
         let dbg_mode = 

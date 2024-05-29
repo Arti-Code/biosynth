@@ -80,12 +80,13 @@ impl SimulationSketch {
 
 }
 
-fn none_remember() -> f32 {
-    return 0.0;
+
+fn default_memory_type() -> bool {
+    return false;
 }
 
-fn none_memory() -> usize {
-    return 0;
+fn default_memory() -> Option<MemStore> {
+    return None;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -95,6 +96,9 @@ pub struct NodeSketch {
     pub bias: f32,
     pub node_type: NeuronTypes,
     pub label: String,
+    #[serde(default = "default_memory")]
+    pub memory: Option<MemStore>,
+    #[serde(default = "default_memory_type")]
     pub memory_type: bool,
 }
 
@@ -119,7 +123,10 @@ impl NetworkSketch {
         let mut nodes: HashMap<u64, Node> = HashMap::new();
         let mut links: HashMap<u64, Link> = HashMap::new();
         for (key, sketch_node) in self.nodes.iter() {
-            let node = Node::from_sketch(sketch_node.to_owned());
+            let mut node = Node::from_sketch(sketch_node.to_owned());
+            if sketch_node.memory_type && sketch_node.memory.is_none() {
+                node.memory = Some(MemStore::new_random());
+            }
             nodes.insert(*key, node);
         }
 

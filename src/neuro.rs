@@ -52,6 +52,15 @@ pub enum NeuronTypes {
     ANY,
 }
 
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MemStore {
+    memory: VecDeque<f32>,
+    size: usize,
+    mem_rate: f32,
+    mean: f32,
+}
+
 #[derive(Clone)]
 pub struct Node {
     pub id: u64,
@@ -64,8 +73,9 @@ pub struct Node {
     active: bool,
     pub label: String,
     new_mut: bool,
-    memory_type: bool,
-    mem: VecDeque<f32>,
+    pub memory: Option<MemStore>,
+    //memory_type: bool,
+    //mem: VecDeque<f32>,
 }
 
 #[derive(Clone, Copy)]
@@ -88,6 +98,66 @@ pub struct Network {
     pub output_keys: Vec<u64>,
 }
 
+impl MemStore {
+
+    pub fn new(size: usize, mem_rate: f32) -> Self {
+        Self {
+            memory: VecDeque::from(vec![0.0; size]),
+            size,
+            mem_rate,
+            mean: 0.0,
+        }
+    }
+
+    pub fn new_random() -> Self {
+        let mut rng = thread_rng();
+        let size: usize = rng.gen_range(1..=100);
+        let memory: VecDeque<f32> = VecDeque::from(vec![0.0; size]);
+        let mem_rate: f32 = rng.gen_range(0.0..=1.0);
+        Self {
+            size,
+            mem_rate,
+            memory,
+            mean: 0.0,
+        }
+    }
+
+    pub fn mutate_size(&mut self) {
+        let mut rng = thread_rng();
+        let size: isize = rng.gen_range(-10..=10);
+        self.size = clamp(self.size as isize + size, 1, 100) as usize;
+        self.memory = VecDeque::from(vec![0.0; self.size]);
+    }
+
+    pub fn mutate_mem_rate(&mut self) {
+        let mut rng = thread_rng();
+        let rate: f32 = rng.gen_range(0.0..=1.0);
+        self.mem_rate = clamp((self.mem_rate + rate)/2.0, 0.0, 1.0);
+    }
+
+    pub fn remember(&mut self, val: f32) {
+        self.memory.pop_front();
+        self.memory.push_back(val);
+        self.calc_mean_val();
+    }
+
+    fn calc_mean_val(&mut self) {
+        let sum: f32 = self.memory.iter().sum();
+        self.mean = sum / self.memory.len() as f32;
+    }
+
+    pub fn memorize(&mut self, val: f32) -> f32 {
+        let m = self.mean*self.mem_rate;
+        self.remember(val);
+        return val + m;
+    }
+
+    pub fn get_mean(&self) -> f32 {
+        self.mean
+    }
+
+}
+
 impl Node {
 
     pub fn new(position: IVec2, neuron_type: NeuronTypes, label: &str, memory_node: bool) -> Self {
@@ -102,8 +172,12 @@ impl Node {
             active: false,
             label: label.to_string(),
             new_mut: false,
-            memory_type: memory_node,
-            mem: VecDeque::from([0.0; 50]),
+            //memory_type: memory_node,
+            //mem: VecDeque::from([0.0; 100]),
+            memory: match memory_node {
+                true => Some(MemStore::new_random()),
+                false => None,
+            },
         }
     }
 
@@ -117,7 +191,8 @@ impl Node {
             bias: self.bias,
             node_type: self.node_type.to_owned(),
             label: self.label.to_owned(),
-            memory_type: self.memory_type,
+            memory_type: self.memory.is_some(),
+            memory: self.memory.to_owned(),
         }
     }
 
@@ -131,8 +206,7 @@ impl Node {
             active: false, 
             label: sketch.label.to_string(), 
             new_mut: false,
-            memory_type: sketch.memory_type,
-            mem: VecDeque::from([0.0; 50]),
+            memory: sketch.memory,
         }
     }
 
@@ -143,13 +217,20 @@ impl Node {
             return (1.0 + 5.0*self.val.abs(), 0.0);
         }
     }
-
+/* 
     pub fn get_mem_size(&self) -> Option<f32> {
         if self.memory_type {
-            let sum = self.mem.iter().sum::<f32>();
-            return Some(1.0 + 5.0*(sum.abs()/25.0));
+            return self.memory.;
         } else {
             return None;
+        }
+    } */
+
+    pub fn get_mem_size(&self) -> f32 {
+        if self.memory.is_none() {
+            return 0.0;
+        } else {
+            return self.memory.as_ref().unwrap().get_mean();
         }
     }
 
@@ -209,10 +290,26 @@ impl Node {
     pub fn recv_input(&mut self, v: f32) {
         let val = v+self.bias;
         self.val = clamp(val, -1.0, 1.0);
-        if v == 0.0 { 
+        if v == 0.0 && self.is_memory_empty() { 
             self.active = false;
         } else {
             self.active = true;
+        }
+    }
+
+    fn is_memory_empty(&self) -> bool {
+        if self.memory.is_none() {
+            return true;
+        } else if self.memory.as_ref().unwrap().get_mean().round() == 0.0 {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    pub fn deactivate(&mut self) {
+        if self.is_memory_empty() {
+            self.active = false;
         }
     }
 
@@ -220,20 +317,16 @@ impl Node {
         if !self.active { 
             self.sum = 0.0;
             self.val = 0.0;
-            //self.last = 0.0;
-            self.mem.pop_front();
-            self.mem.push_back(self.val)
         }
         let sum: f32 = self.sum + self.bias;
         let v = sum.tanh();
-        //self.last = self.val;
-        if self.memory_type {
-            let mem = self.mem.iter().sum::<f32>()/50.0;
-            self.val = (v + mem)/2.0;
-            self.mem.pop_front();
-            self.mem.push_back(v);
-        } else {
-            self.val = v;
+        match self.memory.as_mut() {
+            None => {
+                self.val = v;
+            },
+            Some(memory) => {
+                self.val = memory.memorize(v);
+            },
         }
         self.val = clamp(self.val, 0.0, 1.0);
         self.sum = 0.0;
@@ -291,12 +384,12 @@ impl Link {
         } else if self.w_mut {
             YELLOW
         } else { 
-            Color::new(0.15, 0.15, 0.15, 1.0)
+            Color::new(0.25, 0.25, 0.25, 1.0)
         };
         if s == 0.0 {
             return (color0, color0);
         }
-        let mut color1: Color = Color::new(0.15, 0.15, 0.15, 1.00); //GRAY;
+        let mut color1: Color = Color::new(0.25, 0.25, 0.25, 1.00); //GRAY;
         if s > 0.0 {
             let mut r = 100 + (155.0 * s) as u8;
             r = clamp(r, 0, 255);
@@ -635,10 +728,30 @@ impl Network {
         let node_keys: Vec<u64> = self.nodes.keys().copied().collect();
         for k in node_keys {    
             if self.mutate_this(m) {
-                //let k = *node_keys.choose().unwrap();
                 let node = self.nodes.get_mut(&k).unwrap();
-                node.memory_type = !node.memory_type;
-                counter += 1;
+                match node.memory {
+                    Some(ref mut memory) => {
+                        match thread_rng().gen_bool(2.0/10.0) {
+                            true => {
+                                node.memory = None;
+                            },
+                            false => {
+                                match vec![true, false].choose().unwrap() {
+                                    true => {
+                                        memory.mutate_mem_rate();
+                                    },
+                                    false => {
+                                        memory.mutate_size();
+                                    },
+                                }
+                            },
+                        }
+                    },
+                    None => {
+                        node.memory = Some(MemStore::new_random());
+                        counter += 1;
+                    },
+                }
             }
         }
         return counter;

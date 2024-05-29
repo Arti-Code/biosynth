@@ -5,7 +5,7 @@
 
 
 pub const SCREEN_WIDTH: f32 = 1800.0;
-pub const SCREEN_HEIGHT: f32 = 850.0;
+pub const SCREEN_HEIGHT: f32 = 950.0;
 pub const WORLD_W: f32 = 3000.0;
 pub const WORLD_H: f32 = 3000.0;
 pub const ZOOM_RATE: f32 = 1.0 / 800.0;
