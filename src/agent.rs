@@ -195,8 +195,8 @@ impl Agent {
         agent.calc_hp();
         //let new_rot = rot-PI;
         let yaw = SharedShape::ball(size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size;
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 

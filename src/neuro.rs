@@ -246,11 +246,10 @@ impl Node {
         if !self.active {
             return (LIGHTGRAY, GRAY);
         }
-        let mut g = 0;
-        if self.new_mut { 
-            g = 255;
-             
-        }
+        let g = 0;
+        //if self.new_mut { 
+        //    g = 255;     
+        //}
         let (color0, color1) = match self.val {
             n if n>0.0 => { 
                 let v0 = clamp(255.0*n, 0.0, 255.0);
@@ -373,19 +372,13 @@ impl Link {
         let l = p1.distance(p0).abs();
         let dir = (p1-p0).normalize_or_zero();
         let mut pt = p0 + (l*(timer)*dir);
-        if !node0.active { pt = p0 }
+        if !node0.active || !node1.active { pt = p0 }
         return (p0, p1, pt);
     }
 
     pub fn get_colors(&self) -> (Color, Color) {
         let s = clamp(self.signal, -1.0, 1.0);
-        let color0: Color = if self.new_mut{
-            ORANGE
-        } else if self.w_mut {
-            YELLOW
-        } else { 
-            Color::new(0.25, 0.25, 0.25, 1.0)
-        };
+        let color0 = Color::new(0.25, 0.25, 0.25, 1.0);
         if s == 0.0 {
             return (color0, color0);
         }
@@ -844,8 +837,9 @@ impl Network {
                             match n.node_type {
                                 NeuronTypes::DEEP => {
                                     let node_key = k;
-                                    nodes_to_del.push(node_key);
                                     let (links_from, links_to) = self.find_connected_links(node_key);
+                                    if !links_from.is_empty() && !links_to.is_empty() { continue; }
+                                    nodes_to_del.push(node_key);
                                     for key in links_from.iter() {
                                         if links_to_del.contains(key) { continue; }
                                         links_to_del.push(*key);

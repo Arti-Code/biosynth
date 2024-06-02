@@ -86,6 +86,7 @@ impl PlantType for Plant {
         let b = clamp(0., 0., 1.,);
         let color = Color::new(r, g, b, 1.0);
         draw_circle(x0, y0, self.size, color);
+        draw_circle_lines(x0, y0, self.size, self.size/5.0, DARKGREEN)
     }
     
     fn update(&mut self, physics: &mut Physics){

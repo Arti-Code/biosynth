@@ -48,6 +48,7 @@ pub struct UISystem {
     title: Option<egui_macroquad::egui::TextureHandle>,
     dice: Option<egui_macroquad::egui::TextureHandle>,
     temp_values: TempValues,
+    timer: f32,
 }
 
 impl UISystem {
@@ -62,6 +63,7 @@ impl UISystem {
             title: None,
             temp_values: TempValues::default(),
             dice: None,
+            timer: 0.0,
         }
     }
 
@@ -75,13 +77,13 @@ impl UISystem {
     
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
-            let img =  Self::load_image(Path::new("assets/img/globe32b.png")).unwrap();
+            let img =  Self::load_image(Path::new("assets/img/hexagon32.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
-            let img2 =  Self::load_image(Path::new("assets/img/globe128b.png")).unwrap();
+            let img2 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
-            let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
+            let img3 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
             self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
-            let img4 =  Self::load_image(Path::new("assets/img/dice24.png")).unwrap();
+            let img4 =  Self::load_image(Path::new("assets/img/hexagon24.png")).unwrap();
             self.dice = Some(egui_ctx.load_texture("dice".to_string(), img4, Default::default()));
         });
     }
@@ -101,6 +103,9 @@ impl UISystem {
     }
 
     pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Plant>, ranking: &Ranking, statistics: &Statistics) {
+        self.timer += dt();
+        self.timer = self.timer%1.0;
+        //self.timer = self.timer%get_settings().neuro_duration;
         egui_macroquad::ui(|egui_ctx| {
             self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
@@ -1901,25 +1906,30 @@ impl UISystem {
 
     fn inside_network(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
         if let Some(agent) = agent {
+            //let period = self.timer/get_settings().neuro_duration;
+            let t = self.timer;
             let network = &agent.network;
-            let w = 320.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.1, 3.6);
+            let w = 340.0; let h = 380.0; let resize = egui_macroquad::egui::Vec2::new(3.2, 3.6);
             let offset = UIVec2::new(5.0, 0.0);
             let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
             let rect = response.rect;
             let zero = rect.left_top().to_vec2()+offset;
             let wi = 1.0;
             for (_, link) in network.links.iter() {
-                let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
+                let (coord0, coord1, coord_t) = link.get_coords(&network.nodes, t);
                 let ui_coord0 = vec2_to_uivec2(&coord0);
                 let ui_coord1 = vec2_to_uivec2(&coord1);
+                let ui_coord_t = vec2_to_uivec2(&coord_t);
                 let w = link.get_width()*wi;
                 let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
                 let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
+                let pt = vec2_to_pos2(&(ui_coord_t*resize+zero));
                 let (_, color1) = link.get_colors();
                 //let c0 = color_to_color32(color0);
                 let c1 = color_to_color32(color1);
                 let points1 = [p1, p2];
                 painter.line_segment(points1, Stroke { color: c1, width: w });
+                painter.circle_filled(pt, w, Color32::YELLOW);
             }
             for (key, node) in network.nodes.iter() {
                 let (_, color1) = node.get_colors();
@@ -1936,11 +1946,11 @@ impl UISystem {
                 painter.circle_filled(p1, r0,  Color32::BLACK);
                 //let w1 = 0.5 + 0.35*r1;
                 //painter.circle_stroke(p1, r1, Stroke { color: Color32::GREEN, width: w1 });
-                if mem > 0.0 {
-                    painter.circle_stroke(p1, mem, Stroke { color: Color32::GREEN, width: 1.0 });
-                }
-                let w0 = 0.5 + 1.0*r0;
+                let w0 = 0.25 + 0.25*r0;
                 painter.circle_stroke(p1, r0, Stroke { color: c0, width: w0 });
+                if mem > 0.0 {
+                    painter.circle_stroke(p1, 1.0+mem*5.0, Stroke { color: Color32::GREEN, width: 1.0 });
+                }
                 let mut font = FontId::default();
                 font.size = 8.0;
                 let txt = format!("{}: {:.1}", label, v);

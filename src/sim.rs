@@ -33,7 +33,7 @@ pub struct Simulation {
     pub physics: Physics,
     pub camera: Camera2D,
     pub running: bool,
-    pub sim_time: f64,
+    //pub sim_time: f64,
     last_autosave: f64,
     pub ui: UISystem,
     pub sim_state: SimState,
@@ -82,7 +82,7 @@ impl Simulation {
             physics: Physics::new(),
             camera: create_camera(),
             running: false,
-            sim_time: 0.0,
+            //sim_time: 0.0,
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
@@ -151,7 +151,7 @@ impl Simulation {
         self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
         self.agents.agents.clear();
         self.plants.plants.clear();
-        self.sim_time = 0.0;
+        //self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
@@ -169,7 +169,7 @@ impl Simulation {
         self.agents = AgentBox::new();
         self.plants = PlantBox::new();
         self.ranking = Ranking::new(settings.ranking_size, 20, 10);
-        self.sim_time = 0.0;
+        //self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from("");
         self.signals = Signals::new();
@@ -282,7 +282,7 @@ impl Simulation {
         self.eat();
         self.update_agents();
         self.update_rank();
-        let (i, _, _) = self.agents.populate(&mut self.physics, self.sim_time);
+        let (i, _, _) = self.agents.populate(&mut self.physics, self.sim_state.sim_time);
         self.borns[0] += i;
         self.borns[1] += i;
         self.monitor.monitor();
@@ -681,7 +681,7 @@ impl Simulation {
                                 set_settings(settings);
                                 self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
                                 for agent_sketch in sim_state.agents.iter() {
-                                    let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics, self.sim_time);
+                                    let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics, self.sim_state.sim_time);
                                     self.agents.add_agent(agent);
                                 }
                                 let settings = get_settings();
@@ -708,7 +708,7 @@ impl Simulation {
                         let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
                         match serde_json::from_str::<AgentSketch>(&save) {
                             Ok(agent_save) => {
-                                let mut agent = Agent::from_sketch(agent_save.clone(), &mut self.physics, self.sim_time);
+                                let mut agent = Agent::from_sketch(agent_save.clone(), &mut self.physics, self.sim_state.sim_time);
                                 let settings = get_settings();
                                 agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
                                 self.agents.add_agent(agent);
@@ -964,7 +964,7 @@ impl Simulation {
         match self.ranking.get_random_agent() {
             Some(sketch) => {
                 let s = sketch.to_owned();
-                let agent = Agent::from_sketch(s, &mut self.physics, self.sim_time);
+                let agent = Agent::from_sketch(s, &mut self.physics, self.sim_state.sim_time);
                 _ = self.agents.add_agent(agent);
                 self.borns[0] += 1;
                 self.borns[2] += 1;
