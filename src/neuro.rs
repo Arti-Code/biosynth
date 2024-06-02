@@ -372,7 +372,8 @@ impl Link {
         let l = p1.distance(p0).abs();
         let dir = (p1-p0).normalize_or_zero();
         let mut pt = p0 + (l*(timer)*dir);
-        if !node0.active || !node1.active { pt = p0 }
+        //if !node0.active || !node1.active { pt = p0 }
+        if self.signal == 0.0 { pt = p0; }
         return (p0, p1, pt);
     }
 
