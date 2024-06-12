@@ -217,14 +217,6 @@ impl Node {
             return (1.0 + 5.0*self.val.abs(), 0.0);
         }
     }
-/* 
-    pub fn get_mem_size(&self) -> Option<f32> {
-        if self.memory_type {
-            return self.memory.;
-        } else {
-            return None;
-        }
-    } */
 
     pub fn get_mem_size(&self) -> f32 {
         if self.memory.is_none() {
@@ -233,14 +225,6 @@ impl Node {
             return self.memory.as_ref().unwrap().get_mean();
         }
     }
-
-/*     pub fn get_size2(&self) -> (f32, f32) {
-        if !self.active {
-            return (1.0, 1.0);
-        } else {
-            return (1.0 + 5.0*self.val.abs(), 1.0 + 5.0*self.memory().abs());
-        }
-    } */
 
     pub fn get_colors(&self) -> (Color, Color) {
         if !self.active {
@@ -317,17 +301,20 @@ impl Node {
             self.sum = 0.0;
             self.val = 0.0;
         }
-        let sum: f32 = self.sum + self.bias;
-        let v = sum.tanh();
-        match self.memory.as_mut() {
+        //let sum: f32 = self.sum + self.bias;
+        let mut sum = match self.memory.as_mut() {
             None => {
-                self.val = v;
+                self.sum
             },
-            Some(memory) => {
-                self.val = memory.memorize(v);
+            Some(m) => {
+                let sum = (self.sum + m.get_mean())/2.0;
+                m.remember(sum);
+                sum
             },
-        }
-        self.val = clamp(self.val, 0.0, 1.0);
+        };
+        sum += self.bias;
+        let v = sum.tanh();
+        self.val = clamp(v, 0.0, 1.0);
         self.sum = 0.0;
     }
 

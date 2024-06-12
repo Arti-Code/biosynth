@@ -2,6 +2,7 @@
 
 use crate::agent::*;
 use crate::camera::*;
+use crate::net_draw::draw_network;
 use crate::plant::*;
 use crate::timer::Timer;
 use crate::ui::*;
@@ -419,6 +420,20 @@ impl Simulation {
         self.draw_plants();
         //self.draw_grid();
         self.draw_agents();
+        if get_settings().show_network {
+            match self.selected {
+                Some(selected) => {
+                    match self.agents.get(selected) {
+                        Some(selected_agent) => {
+                            let phase = self.sim_state.sim_time % 1.0;
+                            draw_network(selected_agent, phase as f32, self.camera.target);
+                        },
+                        None => {},
+                    }
+                },
+                None => {},
+            }
+        }
     }
 
     pub fn debug_physic(&mut self) {

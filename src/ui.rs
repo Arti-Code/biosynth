@@ -350,7 +350,10 @@ impl UISystem {
                         self.state.inspect = !self.state.inspect;
                     }
                     if ui.button(RichText::new("Neural Network").strong().color(Color32::LIGHT_GREEN)).clicked() {
-                        self.state.neuro_lab = !self.state.neuro_lab;
+                        //self.state.neuro_lab = !self.state.neuro_lab;
+                        let mut settings = get_settings();
+                        settings.show_network = !settings.show_network;
+                        set_settings(settings);
                     }
                     if ui.button(RichText::new("Ranking").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.ranking = !self.state.ranking;
@@ -1612,7 +1615,7 @@ impl UISystem {
         if !self.state.left_panel {
             return;
         }
-        SidePanel::left("Sidebar").width_range(100.0..=700.0).show(egui_ctx, |ui| {
+        SidePanel::left("Sidebar").width_range(100.0..=400.0).show(egui_ctx, |ui| {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
@@ -1646,7 +1649,7 @@ impl UISystem {
         });
     }
 
-    fn build_right_panel(&mut self, egui_ctx: &Context, agent: Option<&Agent>, statistics: &Statistics) {
+    fn build_right_panel(&mut self, egui_ctx: &Context, _agent: Option<&Agent>, statistics: &Statistics) {
         if !self.state.right_panel {
             return;
         }
@@ -1654,13 +1657,13 @@ impl UISystem {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
-            if self.state.neuro_lab {
-                ui.vertical(|ui| {
-                    ui.collapsing("Network", |ui| {
-                        self.inside_network(ui, agent);
-                    });
-                });
-            }
+            //if self.state.neuro_lab {
+            //    ui.vertical(|ui| {
+            //        ui.collapsing("Network", |ui| {
+            //            self.inside_network(ui, agent);
+            //        });
+            //    });
+            //}
             if self.state.plot_population {
                 ui.vertical(|ui| {
                     ui.set_height(125.0);
@@ -1934,7 +1937,7 @@ impl UISystem {
             for (key, node) in network.nodes.iter() {
                 let (_, color1) = node.get_colors();
                 let (r0, _) = node.get_size();
-                let mem = node.get_mem_size();
+                let mut mem = node.get_mem_size();
                 let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                 let p1 = vec2_to_pos2(&ipos);
                 let c0 = color_to_color32(color1);
@@ -1949,6 +1952,7 @@ impl UISystem {
                 let w0 = 0.25 + 0.25*r0;
                 painter.circle_stroke(p1, r0, Stroke { color: c0, width: w0 });
                 if mem > 0.0 {
+                    mem = clamp(mem, -1.0, 1.0);
                     painter.circle_stroke(p1, 1.0+mem*5.0, Stroke { color: Color32::GREEN, width: 1.0 });
                 }
                 let mut font = FontId::default();

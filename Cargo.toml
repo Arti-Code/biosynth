@@ -1,6 +1,6 @@
 [package]
 name = "evolve"
-version = "0.8.37"
+version = "0.9.0"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
 

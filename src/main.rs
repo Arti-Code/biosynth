@@ -20,7 +20,7 @@ mod monit;
 mod statistics;
 mod signals;
 mod sketch;
-
+mod net_draw;
 
 use std::env;
 use crate::sim::*;
