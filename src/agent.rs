@@ -777,7 +777,7 @@ impl Agent {
         let y0 = self.pos.y;
         let text_cfg = TextParams {
             font: *font,
-            font_size: 16,
+            font_size: 14,
             color: WHITE,
             ..Default::default()
         };
@@ -788,17 +788,17 @@ impl Agent {
             info = format!("{}", self.specie.to_uppercase());
         } 
         if settings.show_generation {
-            info_gen = format!("[{}]", self.generation);
+            info_gen = format!("{}", self.generation);
         }
         let mut row = 1;
         if settings.show_specie {
             let txt_center = get_text_center(&info, Some(*font), 14, 1.0, 0.0);
-            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 16.0, text_cfg.clone());
+            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 14.0, text_cfg.clone());
             row += 1;
         }
         if settings.show_generation {
-            let txt_center = get_text_center(&info_gen, Some(*font), 18, 1.0, 0.0);
-            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (16.0*row as f32), text_cfg.clone());
+            let txt_center = get_text_center(&info_gen, Some(*font), 14, 1.0, 0.0);
+            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (14.0*row as f32), text_cfg.clone());
         }
     }
 
