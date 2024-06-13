@@ -698,7 +698,7 @@ impl Network {
             if self.mutate_this(m) {
                 //let k = *node_keys.choose().unwrap();
                 let node = self.nodes.get_mut(&k).unwrap();
-                let bias = node.bias + rand::gen_range(-0.1, 0.1);
+                let bias = node.bias + rand::gen_range(-0.2, 0.2);
                 node.bias = clamp(bias, -1.0, 1.0);
                 counter += 1;
             }
@@ -754,7 +754,7 @@ impl Network {
         for k in link_keys {
             if self.mutate_this(m) {
                 let link = self.links.get_mut(&k).unwrap();
-                let weight = link.w + rand::gen_range(-0.1, 0.1);
+                let weight = link.w + rand::gen_range(-0.2, 0.2);
                 link.w = clamp(weight, -1.0, 1.0);
                 link.w_mut = true;
                 counter += 1;
