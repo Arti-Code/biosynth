@@ -300,6 +300,7 @@ impl Node {
         if !self.active { 
             self.sum = 0.0;
             self.val = 0.0;
+            return;
         }
         //let sum: f32 = self.sum + self.bias;
         let mut sum = match self.memory.as_mut() {
@@ -672,18 +673,19 @@ impl Network {
         let mut_link_add = settings.mut_add_link + settings.mut_add_link*m;
         let mut_link_del = settings.mut_del_link + settings.mut_del_link*m;
         let mut_change_val = settings.mut_change_val + settings.mut_change_val*m;
-        self.delete_random_link(mut_link_del);
+        let (dl2, dn2) = self.delete_random_link(mut_link_del);
         let al = self.add_random_link(mut_link_add);
         let w = self.mutate_link_weight(mut_change_val);
         let (an, dn, al2, dl, b) = self.mutate_nodes(mut_node_add, mut_node_del, mut_change_val);
         self.mutate_nodes_mem(mut_node_add);
         let mut stats = get_mutations();
-        stats.add_values(an as i32, dn as i32, (al+al2) as i32, dl as i32, b as i32, w as i32);
+        stats.add_values(an as i32, (dn+dn2) as i32, (al+al2) as i32, (dl+dl2) as i32, b as i32, w as i32);
         set_mutations(stats);
     }
 
-    fn mutate_nodes(&mut self, mut_add: f32, mut_del: f32, mut_mod: f32) -> (usize, usize, usize, usize, usize) {
-        let (dn, dl) = self.del_random_node(mut_del);
+    fn mutate_nodes(&mut self, mut_add: f32, _mut_del: f32, mut_mod: f32) -> (usize, usize, usize, usize, usize) {
+        //let (dn, dl) = self.del_random_node(mut_del);
+        let dn = 0; let dl = 0;
         let (an, al) = self.add_random_node(mut_add);
         let b = self.mutate_nodes_bias(mut_mod);
         return (an, dn, al, dl, b);
@@ -808,6 +810,24 @@ impl Network {
         return (links_from, links_to);
     }
 
+    fn is_node_connected(&self, n_key: u64) -> bool {
+        for (l_key, _) in self.links.iter() {
+            let link = self.links.get(l_key).unwrap();
+            if n_key == link.node_from || n_key == link.node_to { 
+                return true; 
+            }
+        }
+        return false;
+    }
+
+    fn is_node_deep(&self, n_key: u64) -> bool {
+        let node = self.nodes.get(&n_key).unwrap();
+        return match node.node_type {
+            NeuronTypes::DEEP => true,
+            _ => false,
+        };
+    }
+
     fn del_random_node(&mut self, m: f32) -> (usize, usize) {
         let mut counter_n = 0;
         let mut counter_l = 0;
@@ -826,7 +846,7 @@ impl Network {
                                 NeuronTypes::DEEP => {
                                     let node_key = k;
                                     let (links_from, links_to) = self.find_connected_links(node_key);
-                                    if !links_from.is_empty() && !links_to.is_empty() { continue; }
+                                    //if !links_from.is_empty() && !links_to.is_empty() { continue; }
                                     nodes_to_del.push(node_key);
                                     for key in links_from.iter() {
                                         if links_to_del.contains(key) { continue; }
@@ -903,16 +923,33 @@ impl Network {
         return counter;
     }
 
-    fn delete_random_link(&mut self, m: f32) -> usize {
+    fn delete_random_link(&mut self, m: f32) -> (usize, usize) {
         let mut counter: usize = 0;
+        let mut counter_n: usize = 0;
+        let mut nodes_to_check: Vec<u64> = vec![];
         let link_keys: Vec<u64> = self.links.keys().copied().collect();
         for k in link_keys {
             if self.mutate_this(m) {
+                let link = self.links.get(&k).unwrap();
+                let n0 = link.node_from;
+                let n1 = link.node_to;
+                if !nodes_to_check.contains(&n0) {
+                    nodes_to_check.push(n0);
+                }
+                if !nodes_to_check.contains(&n1) {
+                    nodes_to_check.push(n1);
+                }
                 self.links.remove(&k);
                 counter += 1;
             }
         }
-        return counter;
+        for n in nodes_to_check {
+            if !self.is_node_connected(n) && self.is_node_deep(n) {
+                self.nodes.remove(&n);
+                counter_n += 1;
+            }
+        }
+        return (counter, counter_n);
     }
 
 
