@@ -5,17 +5,18 @@ use std::f32::consts::PI;
 use std::{fs, io};
 use std::path::Path;
 use std::time::{UNIX_EPOCH, SystemTime};
-use crate::globals::*;
-use crate::sketch::SimulationSketch;
-use crate::statistics::Statistics;
+
 use egui_macroquad::egui::epaint::ahash::HashMap;
 use egui_macroquad::egui::{Pos2, Color32};
 use macroquad::{color, prelude::*};
 use rapier2d::prelude::*;
 use rapier2d::parry::query::contact; 
 use rapier2d::na::{Isometry2, Vector2, Translation, Point2, Const};
+
 use crate::settings::*;
 use crate::sketch::*;
+use crate::sketch::SimulationSketch;
+use crate::statistics::Statistics;
 
 static NAME_LIST: [&str; 529] = [
     "am","af", "ax", "ar", "av", "al", "aq", "ak", "ar", "at",

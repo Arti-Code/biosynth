@@ -1,16 +1,16 @@
-#![allow(unused)]
-
-//mod physics_misc;
+//#![allow(unused)]
 
 use crate::util::*;
 use macroquad::prelude::*;
+use macroquad::math::clamp;
 use rapier2d::na::*;
 use rapier2d::prelude::*;
-use std::collections::hash_set::{Iter};
+use std::collections::hash_set::Iter;
 use std::collections::{HashMap, HashSet};
 use std::io;
 use crate::settings::*;
 use super::physics_misc::*;
+use crate::phyx::dbg::MacroRapierDebugger;
 
 pub struct Physics {
     pub core: PhysicsCore,
@@ -105,6 +105,10 @@ impl Physics {
         return c;
     }
 
+    pub fn debug_draw(&mut self) {
+        self.core.debug_draw();
+    }
+
 }
 
 
@@ -118,11 +122,13 @@ pub struct PhysicsCore {
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
     island_manager: IslandManager,
-    broad_phase: BroadPhase,
+    broad_phase: BroadPhaseMultiSap,
     narrow_phase: NarrowPhase,
     impulse_joint_set: ImpulseJointSet,
     multibody_joint_set: MultibodyJointSet,
     ccd_solver: CCDSolver,
+    debug_render_pipeline: DebugRenderPipeline,
+    debug_renderer: MacroRapierDebugger,
     query_pipeline: QueryPipeline,
     physics_hooks: (),
     event_handler: (),
@@ -131,12 +137,25 @@ pub struct PhysicsCore {
 impl PhysicsCore {
 
     pub fn new() -> Self {
+
         let params = IntegrationParameters {
-            prediction_distance: 0.02,
-            allowed_linear_error: 0.01,
-            dt: 1.0/45.0,
+            dt: 1./60.,
             ..Default::default()
         };
+
+        let dbg_cfg = DebugRenderStyle {
+            collider_dynamic_color: [0.83, 1.0, 0.5, 1.0],
+            collider_kinematic_color: [0.33, 1.0, 0.5, 1.0],
+            impulse_joint_anchor_color: [0.5, 1.0, 0.5, 1.0],
+            impulse_joint_separation_color: [0.66, 1.0, 0.5, 1.0],
+            ..Default::default()
+        };
+        let dbg_mode = 
+            DebugRenderMode::COLLIDER_SHAPES | 
+            DebugRenderMode::IMPULSE_JOINTS | 
+            DebugRenderMode::JOINTS;
+            DebugRenderMode::SOLVER_CONTACTS;
+
         Self {
             attract_num: 0,
             rigid_bodies: RigidBodySet::new(),
@@ -146,11 +165,13 @@ impl PhysicsCore {
             integration_parameters: params,
             physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
-            broad_phase: BroadPhase::new(),
+            broad_phase: BroadPhaseMultiSap::new(),
             narrow_phase: NarrowPhase::new(),
             impulse_joint_set: ImpulseJointSet::new(),
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
+            debug_render_pipeline: DebugRenderPipeline::new(dbg_cfg, dbg_mode),
+            debug_renderer: MacroRapierDebugger,
             query_pipeline: QueryPipeline::new(),
             physics_hooks: (),
             event_handler: (),
@@ -209,6 +230,7 @@ impl PhysicsCore {
 
     fn add_dynamic_rigidbody(&mut self, position: &Vec2, rotation: f32, linear_damping: f32, angular_damping: f32, can_sleep: bool) -> RigidBodyHandle {
         let pos = make_isometry(position.x, position.y, rotation);
+
         let dynamic_body = RigidBodyBuilder::dynamic().position(pos)
             .linear_damping(linear_damping).angular_damping(angular_damping).can_sleep(can_sleep).build();
         return self.rigid_bodies.insert(dynamic_body);
@@ -216,6 +238,9 @@ impl PhysicsCore {
 
     pub fn add_collider(&mut self, body_handle: RigidBodyHandle, rel_position: &Vec2, rotation: f32, shape: SharedShape, physics_props: PhysicsMaterial, groups: InteractionGroups) -> ColliderHandle {
         let iso = make_isometry(rel_position.x, rel_position.y, rotation);
+        //let iso2 = Vector2::new(rel_position.x, rel_position.y);
+        let r = UnitComplex::from_angle(rotation);
+        Isometry2::from_parts(Translation2::new(rel_position.x, rel_position.y), r);
         let collider = match shape.shape_type() {
             ShapeType::Ball => {
                 //let radius = shape.0.as_ball().unwrap().radius;
@@ -386,6 +411,8 @@ impl PhysicsCore {
     }
 
     pub fn get_closest_agent(&self, agent_body_handle: RigidBodyHandle, detection_range: f32, detection_angle: f32, direction: Vec2) -> Option<RigidBodyHandle> {
+        let mut small_vision = get_settings().peripheral_vision*get_settings().agent_vision_range;
+        small_vision = clamp(small_vision, 0.0, detection_range);
         let rb = self.rigid_bodies.get(agent_body_handle).unwrap();
         let pos1 = matrix_to_vec2(rb.position().translation);
         let mut dist = f32::INFINITY;
@@ -406,7 +433,7 @@ impl PhysicsCore {
                 let new_dist = pos1.distance(pos2);
                 let local_pos = pos2 - pos1;
                 let ang = direction.angle_between((local_pos).normalize_or_zero());
-                if new_dist <= detection_range*0.1 && new_dist < dist {
+                if new_dist <= small_vision && new_dist < dist {
                     dist = new_dist;
                     target = rb2_handle;
                 } else if new_dist < dist && ang.abs() <= detection_angle/2.0 {
@@ -463,9 +490,9 @@ impl PhysicsCore {
 
     pub fn count_near_plants(&self, rbh: RigidBodyHandle, detection_range: f32) -> usize {
         let rb = self.rigid_bodies.get(rbh).unwrap();
-        let pos1 = matrix_to_vec2(rb.position().translation);
-        let mut dist = f32::INFINITY;
-        let mut target: RigidBodyHandle = RigidBodyHandle::invalid();
+        //let pos1 = matrix_to_vec2(rb.position().translation);
+        //let mut dist = f32::INFINITY;
+        //let mut target: RigidBodyHandle = RigidBodyHandle::invalid();
         let detector = ColliderBuilder::ball(detection_range).sensor(true).density(0.0).build();
         let filter = QueryFilter {
             flags: QueryFilterFlags::ONLY_DYNAMIC | QueryFilterFlags::EXCLUDE_SENSORS,
@@ -476,11 +503,22 @@ impl PhysicsCore {
         };
         let mut n: usize = 0;
         self.query_pipeline.intersections_with_shape(&self.rigid_bodies, &self.colliders, rb.position(), detector.shape(), filter,
-         |col_h| {
+         |_| {
             n += 1;
             return true;
         });
         return n;
+    }
+
+    pub fn debug_draw(&mut self) {
+        self.debug_render_pipeline.render(
+            &mut self.debug_renderer, 
+            &self.rigid_bodies, 
+            &self.colliders, 
+            &self.impulse_joint_set, 
+            &self.multibody_joint_set, 
+            &self.narrow_phase
+        );
     }
 
 }

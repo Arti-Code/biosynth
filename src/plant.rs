@@ -10,6 +10,20 @@ use crate::phyx::physics_misc::PhysicsMaterial;
 use crate::settings::*;
 
 
+pub trait PlantType {
+    fn new(physics: &mut Physics) -> Self;
+    fn draw(&self, _show_range: bool);
+    fn update(&mut self, physics: &mut Physics);
+    fn resize(&mut self, physics: &mut Physics);
+    fn drain_eng(&mut self, eng_loss: f32);
+    fn update_physics(&mut self, physics: &mut Physics, _resize: bool);
+    fn update_cloning(&mut self, plant_num: i32, physics: &mut Physics) -> Option<Plant>;
+    fn check_edges(&mut self, body: &mut RigidBody);
+    fn is_alive(&self) -> bool;
+    fn get_body_handle(&self) -> RigidBodyHandle;
+    fn get_lifetime(&self) -> f32;
+}
+
 #[derive(Clone, Copy)]
 pub struct Plant {
     pub pos: Vec2,
@@ -17,10 +31,10 @@ pub struct Plant {
     pub size: f32,
     pub max_eng: f32,
     pub eng: f32,
-    pub color: color::Color,
-    pub shape: Ball,
-    pub physics_handle: RigidBodyHandle,
-    pub alife: bool,
+    color: color::Color,
+    //shape: Ball,
+    physics_handle: RigidBodyHandle,
+    alife: bool,
     pub time: f32,
     clone_timer: Timer,
     growth_timer: Timer,
@@ -28,8 +42,10 @@ pub struct Plant {
     clone_ready: bool,
 }
 
-impl Plant {
-    pub fn new(physics: &mut Physics) -> Self {
+
+impl PlantType for Plant {
+    
+    fn new(physics: &mut Physics) -> Self {
         let settings = get_settings();
         let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let size = 2.0;
@@ -50,7 +66,7 @@ impl Plant {
             max_eng: size.powi(2)*10.0,
             eng: size.powi(2)*10.0,
             color: YELLOW,
-            shape: Ball { radius: size },
+            //shape: Ball { radius: size },
             physics_handle: rbh,
             life_length: max_life,
             time: max_life,
@@ -60,21 +76,20 @@ impl Plant {
             clone_ready: false,
         }
     }
-    pub fn draw(&self, _show_range: bool) {
+    
+    fn draw(&self, _show_range: bool) {
         let x0 = self.pos.x;
         let y0 = self.pos.y;
         let age = self.time/self.life_length;
         let g = clamp(1.0, 0., 1.,);
-        let r = clamp(-0.25+(1.-age/1.0), 0., 1.,);
+        let r = clamp(-0.25+(1.5-age), 0., 0.75,);
         let b = clamp(0., 0., 1.,);
         let color = Color::new(r, g, b, 1.0);
         draw_circle(x0, y0, self.size, color);
-        /* if show_range {
-            let settings = get_settings();
-            draw_circle_lines(x0, y0, settings.plant_detection_radius, 0.5, Color { r: 0.78, g: 0.78, b: 0.78, a: 0.25 });
-        } */
+        draw_circle_lines(x0, y0, self.size, self.size/5.0, DARKGREEN)
     }
-    pub fn update(&mut self, physics: &mut Physics){
+    
+    fn update(&mut self, physics: &mut Physics){
         let dt = dt()*sim_speed();
         let settings = get_settings();
         let mut resize = false;
@@ -113,7 +128,7 @@ impl Plant {
         c.set_shape(SharedShape::ball(self.size));
     }
 
-    pub fn drain_eng(&mut self, eng_loss: f32) {
+    fn drain_eng(&mut self, eng_loss: f32) {
         self.eng -= eng_loss;
     }
 
@@ -129,16 +144,8 @@ impl Plant {
         }
     }
 
-    pub fn update_cloning(&mut self, plant_num: i32, physics: &mut Physics) -> Option<Plant> {
+    fn update_cloning(&mut self, plant_num: i32, physics: &mut Physics) -> Option<Plant> {
         if self.clone_timer.update(dt()*sim_speed()) {
-            //let settings = get_settings();
-            //let b = settings.plant_balance as f32;
-            //let n = physics.count_near_plants(self.physics_handle, settings.plant_detection_radius) as f32;
-            //let mut p = settings.plant_probability;
-            //if n > b {
-            //    p = p - p*((n-b)/b);
-            //}
-            //if random_unit_unsigned() <= p {
             if self.clone_ready {
                 let plant_balance = get_settings().plant_balance as f32;
                 let r = plant_balance/((plant_num as f32));
@@ -177,5 +184,17 @@ impl Plant {
             body.set_position(make_isometry(raw_pos.x, raw_pos.y, self.rot), true);
         }
     }    
+
+    fn is_alive(&self) -> bool {
+        return self.alife;
+    }
+
+    fn get_lifetime(&self) -> f32 {
+        return self.time;
+    }
+
+    fn get_body_handle(&self) -> RigidBodyHandle {
+        return self.physics_handle;
+    }
 
 }

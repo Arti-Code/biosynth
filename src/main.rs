@@ -12,7 +12,6 @@ mod ranking;
 mod agent;
 mod collector;
 mod misc;
-mod globals;
 mod plant;
 mod terrain;
 mod settings;
@@ -20,11 +19,10 @@ mod monit;
 mod statistics;
 mod signals;
 mod sketch;
-
+mod net_draw;
 
 use std::env;
 use crate::sim::*;
-use crate::globals::*;
 use crate::statistics::*;
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
@@ -36,8 +34,11 @@ use crate::settings::*;
 
 fn app_configuration() -> Conf {
     let ico = MyIcon::color_filled(GREEN);
+    let mut title = env!("CARGO_PKG_NAME").to_string().to_uppercase();
+    let version = format!("\t[ver {}]", env!("CARGO_PKG_VERSION"));
+    title.push_str(version.as_str());
     Conf {
-        window_title: env!("CARGO_PKG_NAME").to_string().to_uppercase(),
+        window_title: title,
         window_width: SCREEN_WIDTH as i32,
         window_height: SCREEN_HEIGHT as i32,
         sample_count: 16,
@@ -83,6 +84,7 @@ async fn main() {
         if sim.is_running() {
             sim.update();
             sim.draw();
+            sim.debug_physic();
         } else {
             sim.check_signals();
         }

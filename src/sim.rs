@@ -2,7 +2,8 @@
 
 use crate::agent::*;
 use crate::camera::*;
-use crate::plant::Plant;
+use crate::net_draw::draw_network;
+use crate::plant::*;
 use crate::timer::Timer;
 use crate::ui::*;
 use crate::util::*;
@@ -33,7 +34,7 @@ pub struct Simulation {
     pub physics: Physics,
     pub camera: Camera2D,
     pub running: bool,
-    pub sim_time: f64,
+    //pub sim_time: f64,
     last_autosave: f64,
     pub ui: UISystem,
     pub sim_state: SimState,
@@ -82,7 +83,7 @@ impl Simulation {
             physics: Physics::new(),
             camera: create_camera(),
             running: false,
-            sim_time: 0.0,
+            //sim_time: 0.0,
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
@@ -151,7 +152,7 @@ impl Simulation {
         self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
         self.agents.agents.clear();
         self.plants.plants.clear();
-        self.sim_time = 0.0;
+        //self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
@@ -169,7 +170,7 @@ impl Simulation {
         self.agents = AgentBox::new();
         self.plants = PlantBox::new();
         self.ranking = Ranking::new(settings.ranking_size, 20, 10);
-        self.sim_time = 0.0;
+        //self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from("");
         self.signals = Signals::new();
@@ -183,6 +184,7 @@ impl Simulation {
         let settings = get_settings();
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
+        self.plants.add_many_plants(settings.plant_init_num as usize, &mut self.physics);
         self.plot_x = (self.sim_state.sim_time/100.0) as i32;
         self.init_stats();
     }
@@ -221,7 +223,7 @@ impl Simulation {
                 let mut sketch = agent.get_sketch();
                 sketch.points = (sketch.points).round();
                 self.ranking.add_agent(sketch);
-                self.physics.remove_object(agent.physics_handle);
+                self.physics.remove_object(agent.rbh);
                 self.deaths[0] += 1;
             }
         }
@@ -245,11 +247,11 @@ impl Simulation {
                 }
             }
             plant.update(&mut self.physics);
-            if !plant.alife {
-                self.physics.remove_object(plant.physics_handle);
+            if !plant.is_alive() {
+                self.physics.remove_object(plant.get_body_handle());
             }
         }
-        self.plants.plants.retain(|_, p| p.alife == true);
+        self.plants.plants.retain(|_, p| p.is_alive() == true);
         for plant in new_plants.iter() {
             self.plants.add_plant(plant.to_owned())
         }
@@ -271,7 +273,6 @@ impl Simulation {
     }
 
     pub fn update(&mut self) {
-        //self.tail.update(PI/2.5, &mut self.physics);
         self.check_signals();
         self.check_settings();
         self.update_sim_state();
@@ -282,11 +283,9 @@ impl Simulation {
         self.eat();
         self.update_agents();
         self.update_rank();
-        let (i, _, _) = self.agents.populate(&mut self.physics);
+        let (i, _, _) = self.agents.populate(&mut self.physics, self.sim_state.sim_time);
         self.borns[0] += i;
         self.borns[1] += i;
-        //self.nodes.push(n);
-        //self.links.push(l);
         self.monitor.monitor();
         self.physics.step();
     }
@@ -341,7 +340,7 @@ impl Simulation {
             } else {
                 let dmg = damage.abs() * settings.dmg_to_hp;
                 agent1.get_hit(dmg);
-                agent1.pain = true;
+                agent1.pain = 1.0;
                 if agent1.is_death() { killers.push(*id2); }
             }
         }
@@ -418,9 +417,29 @@ impl Simulation {
         clear_background(color_u8!(35,35,35,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_terrain();
+        self.draw_plants();
         //self.draw_grid();
         self.draw_agents();
-        self.draw_plants();
+        if get_settings().show_network {
+            match self.selected {
+                Some(selected) => {
+                    match self.agents.get(selected) {
+                        Some(selected_agent) => {
+                            let phase = self.sim_state.sim_time % 1.0;
+                            draw_network(selected_agent, phase as f32, self.camera.target);
+                        },
+                        None => {},
+                    }
+                },
+                None => {},
+            }
+        }
+    }
+
+    pub fn debug_physic(&mut self) {
+        if get_settings().debug {
+            self.physics.debug_draw();
+        }
     }
 
     pub fn draw_terrain(&self) {
@@ -443,7 +462,7 @@ impl Simulation {
                     draw_field_of_view = true;
                 };
             }
-            agent.draw(draw_field_of_view, &self.font);
+            agent.draw(draw_field_of_view, &self.font, &self.physics);
         }
 
         match self.selected {
@@ -555,6 +574,46 @@ impl Simulation {
             signals.resize_world = None;
             set_global_signals(signals);
         }
+        if get_signals().export_settings {
+            let mut signals = get_signals();
+            signals.export_settings = false;
+            set_global_signals(signals);
+            self.export_settings();
+        }
+
+        if get_signals().import_settings {
+            let mut signals = get_signals();
+            signals.import_settings = false;
+            set_global_signals(signals);
+            self.import_settings();
+        }
+    }
+
+    fn export_settings(&self) {
+        let export_set = get_settings();
+        let p = format!("saves/settings/");
+        let encoded = BASE64_STANDARD.encode(serde_json::to_string(&export_set).unwrap().as_bytes());
+        match fs::DirBuilder::new().recursive(true).create(p) {
+            Ok(_) => {
+                let p = format!("saves/settings/{}.set", self.simulation_name.to_lowercase());
+                match fs::write(p.clone(), &encoded) {
+                    Ok(_) => {
+                        println!("Settings saved as {}.set", self.simulation_name.to_lowercase());
+                    },
+                    Err(e) => {
+                        println!("{}", e);
+                        println!("{}", p.clone());
+                    },
+                }
+            },
+            Err(e) => {
+                println!("{}", e);
+            },
+        };
+    }
+
+    fn import_settings(&mut self) {
+
     }
 
     fn save_sim(&self) {
@@ -637,7 +696,7 @@ impl Simulation {
                                 set_settings(settings);
                                 self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
                                 for agent_sketch in sim_state.agents.iter() {
-                                    let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics);
+                                    let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics, self.sim_state.sim_time);
                                     self.agents.add_agent(agent);
                                 }
                                 let settings = get_settings();
@@ -664,7 +723,7 @@ impl Simulation {
                         let save = String::from_utf8(decoded).expect("error during decode Vec<u8> to String");
                         match serde_json::from_str::<AgentSketch>(&save) {
                             Ok(agent_save) => {
-                                let mut agent = Agent::from_sketch(agent_save.clone(), &mut self.physics);
+                                let mut agent = Agent::from_sketch(agent_save.clone(), &mut self.physics, self.sim_state.sim_time);
                                 let settings = get_settings();
                                 agent.pos = random_position(settings.world_w as f32, settings.world_h as f32);
                                 self.agents.add_agent(agent);
@@ -728,7 +787,20 @@ impl Simulation {
 
     fn keyboard_input(&mut self) {
         if is_key_pressed(KeyCode::Tab) {
-            self.random_selection();
+            match get_settings().select_mode {
+                SelectMode::RANDOM => {
+                    self.random_selection();
+                },
+                SelectMode::POINTS => {
+                    self.points_selection();
+                },
+                SelectMode::LIFETIME => {
+                    self.lifetime_selection();
+                },
+                _ => {
+                    self.random_selection();
+                }
+            }
         }
         if is_key_pressed(KeyCode::Kp6) {
             let mut n = self.n + 1;
@@ -770,8 +842,8 @@ impl Simulation {
                     }
                 }
                 if self.selected.is_some() { return; }
-                for (id, res) in self.plants.get_iter() {
-                    if contact_mouse(rel_coords, res.pos, res.size) {
+                for (id, plant) in self.plants.get_iter() {
+                    if contact_mouse(rel_coords, plant.pos, plant.size) {
                         self.selected = Some(*id);
                         break;
                     }
@@ -797,6 +869,10 @@ impl Simulation {
             }
         } else if settings.follow_mode && self.selected.is_none() {
             self.random_selection();
+        } else if self.selected.is_some() {
+            if !self.agents.agents.contains_key(&self.selected.unwrap()) {
+                self.points_selection();
+            }
         }
         if settings.water_lvl != self.terrain.water_level() {
             self.terrain.set_water_level(settings.water_lvl);
@@ -903,7 +979,7 @@ impl Simulation {
         match self.ranking.get_random_agent() {
             Some(sketch) => {
                 let s = sketch.to_owned();
-                let agent = Agent::from_sketch(s, &mut self.physics);
+                let agent = Agent::from_sketch(s, &mut self.physics, self.sim_state.sim_time);
                 _ = self.agents.add_agent(agent);
                 self.borns[0] += 1;
                 self.borns[2] += 1;
@@ -948,7 +1024,29 @@ impl Simulation {
         self.selected = Some(*keys[r]);
     }
 
-
+    fn points_selection(&mut self) {
+        let mut selected: Option<RigidBodyHandle> = None;
+        let mut points = 0.0;
+        for (handle, agent) in self.agents.get_iter() {
+            if agent.points > points {
+                selected = Some(*handle);
+                points = agent.points;
+            }
+        }
+        self.selected = selected;
+    }
+  
+    fn lifetime_selection(&mut self) {
+        let mut selected: Option<RigidBodyHandle> = None;
+        let mut lifetime = 0.0;
+        for (handle, agent) in self.agents.get_iter() {
+            if agent.lifetime > lifetime {
+                selected = Some(*handle);
+                lifetime = agent.points;
+            }
+        }
+        self.selected = selected;
+    }
 
 }
 

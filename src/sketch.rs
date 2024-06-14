@@ -1,9 +1,10 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use crate::neuro::*;
 use crate::terrain::*;
 use crate::sim::Simulation;
 use macroquad::prelude::*;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use crate::settings::*;
@@ -76,5 +77,80 @@ impl SimulationSketch {
 
         }
     }
+
+}
+
+
+fn default_memory_type() -> bool {
+    return false;
+}
+
+fn default_memory() -> Option<MemStore> {
+    return None;
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NodeSketch {
+    pub id: u64,
+    pub pos: MyPos2,
+    pub bias: f32,
+    pub node_type: NeuronTypes,
+    pub label: String,
+    #[serde(default = "default_memory")]
+    pub memory: Option<MemStore>,
+    #[serde(default = "default_memory_type")]
+    pub memory_type: bool,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct LinkSketch {
+    pub id: u64,
+    pub w: f32,
+    pub node_from: u64,
+    pub node_to: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NetworkSketch {
+    pub nodes: HashMap<u64, NodeSketch>,
+    pub links: HashMap<u64, LinkSketch>,
+    //pub margins: NeuroMargins,
+}
+
+impl NetworkSketch {
+    
+    pub fn from_sketch(&self) -> Network {
+        let mut nodes: HashMap<u64, Node> = HashMap::new();
+        let mut links: HashMap<u64, Link> = HashMap::new();
+        for (key, sketch_node) in self.nodes.iter() {
+            let mut node = Node::from_sketch(sketch_node.to_owned());
+            if sketch_node.memory_type && sketch_node.memory.is_none() {
+                node.memory = Some(MemStore::new_random());
+            }
+            nodes.insert(*key, node);
+        }
+
+        for (key, sketch_link) in self.links.iter() {
+            let link = Link::from_sketch(sketch_link.to_owned());
+            links.insert(*key, link);
+        }
+
+        let mut net = Network { 
+            nodes: nodes.to_owned(), 
+            links: links.to_owned(), 
+            //margins: self.get_margins(), 
+            input_keys: vec![], 
+            output_keys: vec![], 
+        };
+
+        let (mut i, _, mut o) = net.get_node_keys_by_type();
+        net.input_keys.append(&mut i);
+        net.output_keys.append(&mut o);
+        return net;
+    }
+
+    /* fn get_margins(&self) -> NeuroMargins {
+        return self.margins.to_owned();
+    } */
 
 }

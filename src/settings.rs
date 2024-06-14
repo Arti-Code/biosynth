@@ -3,7 +3,26 @@
 use macroquad::{experimental::collections::storage, prelude::Vec2};
 use serde::{Deserialize, Serialize};
 
-use crate::globals::*;
+//use crate::globals::*;
+
+
+pub const SCREEN_WIDTH: f32 = 1800.0;
+pub const SCREEN_HEIGHT: f32 = 950.0;
+pub const WORLD_W: f32 = 3000.0;
+pub const WORLD_H: f32 = 3000.0;
+pub const ZOOM_RATE: f32 = 1.0 / 800.0;
+pub const SCREEN_RATIO: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum SelectMode {
+    POINTS,
+    LIFETIME,
+    RANDOM,
+    KILLS,
+    CHILDS,
+}
+
+
 pub fn set_settings(settings: Settings) {
     storage::store(settings);
 }
@@ -15,21 +34,21 @@ pub fn get_settings() -> Settings {
 pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
-fn default_stats_limit() -> usize {
-    return 100;
+
+fn born_eng_cost() -> f32 {
+    return 0.5;
 }
 
-
-fn default_eng_bias() -> f32 {
-    return 0.3;
+fn peripheral_vision() -> f32 {
+    return 0.25;
 }
 
-fn default_pause() -> bool {
+fn default_debug() -> bool {
     return false;
 }
 
-fn default_born_eng_min() -> f32 {
-    return 0.8;
+fn default_selection() -> SelectMode {
+    return SelectMode::RANDOM;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -41,7 +60,6 @@ pub struct Settings {
     pub plant_min_num: usize,
     pub plant_init_num: usize,
     pub plant_balance: usize,
-    //pub plant_detection_radius: f32,
     pub plant_clone_size: i32,
     pub agent_speed: f32,
     pub agent_rotate: f32,
@@ -63,7 +81,6 @@ pub struct Settings {
     pub size_cost: f32,
     pub base_hp: i32,
     pub size_to_hp: f32,
-    //pub plant_num: f32,
     pub neuro_duration: f32,
     pub hidden_nodes_num: usize,
     pub hidden_layers_num: usize,
@@ -75,7 +92,6 @@ pub struct Settings {
     pub new_one_probability: f32,
     pub grid_size: u32,
     pub follow_mode: bool,
-    //pub plant_probability: f32,
     pub plant_lifetime: f32,
     pub growth: f32,
     pub water_lvl: i32,
@@ -86,17 +102,20 @@ pub struct Settings {
     pub mut_change_val: f32,
     pub rare_specie_mod: i32,
     pub born_eng: f32,
-    #[serde(default = "default_born_eng_min")]
     pub born_eng_min: f32,
+    #[serde(default = "born_eng_cost")]
+    pub born_eng_cost: f32,
     pub sim_speed: f32,
-    #[serde(default = "default_stats_limit")]
     pub stats_limit: usize,
-    #[serde(default = "default_pause")]
     pub pause: bool,
-    #[serde(default = "default_eng_bias")]
     pub eng_bias: f32,
-    #[serde(default = "default_eng_bias")]
     pub dmg_to_hp: f32,
+    #[serde(default = "peripheral_vision")]
+    pub peripheral_vision: f32,
+    #[serde(default = "default_debug")]
+    pub debug: bool,
+    #[serde(default = "default_selection")]
+    pub select_mode: SelectMode,
 }
 
 impl Default for Settings {
@@ -105,60 +124,71 @@ impl Default for Settings {
         Self {
             world_w: 3000,
             world_h: 3000,
+            
             agent_eng_bar: true,
             agent_init_num: 100,
-            agent_min_num: 10,
-            plant_init_num: 500,
-            plant_balance: 10,
-            plant_lifetime: 350.0,
-            growth: 6.0,
-            plant_min_num: 10,
-            plant_clone_size: 8,
+            agent_min_num: 25,
             agent_rotate: 50.0,
-            agent_speed: 50.0,
+            agent_speed: 40.0,
             agent_size_min: 3,
             agent_size_max: 10,
             agent_vision_range: 400.0,
+
+            mutations: 0.3,
+            damage: 100.0,
+            base_energy_cost: 0.25,
+            move_energy_cost: 0.3,
+            attack_energy_cost: 0.1,
+            size_cost: 3.0,
+            base_hp: 250,
+            size_to_hp: 50.0,
+            eng_bias: 0.15,
+            dmg_to_hp: 0.1,
+            peripheral_vision: 0.25,
+            
+            plant_init_num: 500,
+            plant_balance: 20,
+            plant_lifetime: 300.0,
+            growth: 5.0,
+            plant_min_num: 40,
+            plant_clone_size: 6,
+            
+            neurolink_rate: 0.2,
+            hidden_nodes_num: 0,
+            hidden_layers_num: 0,
+            neuro_duration: 0.5,
+            mut_add_link: 0.035,
+            mut_del_link: 0.035,
+            mut_add_node: 0.015,
+            mut_del_node: 0.015,
+            mut_change_val: 0.05,
+
+            atk_to_eng: 0.8,
+            eat_to_eng: 2.5,
+            
+            ranking_size: 40,
+            repro_points: 30.0,
+            rare_specie_mod: 2500,
+            born_eng: 0.5,
+            born_eng_min: 0.9,
+            born_eng_cost: 0.5,
+            repro_time: 100.0,
+            new_one_probability: 0.2,
+            
+            grid_size: 40,
+            water_lvl: 0,
+            follow_mode: false,
             show_network: true,
             show_specie: true,
             show_generation: true,
             show_cells: false,
             show_plant_rad: false,
-            mutations: 0.25,
-            neurolink_rate: 0.1,
-            damage: 100.0,
-            base_energy_cost: 0.3,
-            move_energy_cost: 0.3,
-            attack_energy_cost: 0.05,
-            size_cost: 1.8,
-            base_hp: 150,
-            size_to_hp: 55.0,
-            hidden_nodes_num: 4,
-            hidden_layers_num: 4,
-            neuro_duration: 0.1,
-            atk_to_eng: 1.0,
-            eat_to_eng: 2.5,
-            ranking_size: 40,
-            repro_points: 30.0,
-            repro_time: 200.0,
-            new_one_probability: 0.2,
-            grid_size: 50,
-            follow_mode: false,
-            //plant_probability: 0.6,
-            water_lvl: 0,
-            mut_add_link: 0.02,
-            mut_del_link: 0.02,
-            mut_add_node: 0.01,
-            mut_change_val: 0.04,
-            mut_del_node: 0.01,
-            rare_specie_mod: 2500,
-            born_eng: 0.5,
-            born_eng_min: 0.9,
+
             sim_speed: 1.0,
-            stats_limit: 20,
+            stats_limit: 100,
             pause: false,
-            eng_bias: 0.15,
-            dmg_to_hp: 0.2
+            debug: false,
+            select_mode: SelectMode::RANDOM,
        }
     }
 

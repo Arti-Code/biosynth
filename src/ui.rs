@@ -1,4 +1,4 @@
-#![allow(unused)]
+//#![allow(unused)]
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -17,11 +17,10 @@ use egui_macroquad::egui::{
 use macroquad::prelude::*;
 use macroquad::math::vec2;
 use base64::prelude::*;
-use crate::plant::Plant;
+use crate::plant::{Plant, PlantType};
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
-use crate::globals::*;
 use crate::settings::*;
 use crate::statistics::*;
 use crate::signals::*;
@@ -45,9 +44,10 @@ pub struct UISystem {
     temp_sim_name: String,
     logo: Option<egui_macroquad::egui::TextureHandle>,
     big_logo: Option<egui_macroquad::egui::TextureHandle>,
-    title: Option<egui_macroquad::egui::TextureHandle>,
+    //title: Option<egui_macroquad::egui::TextureHandle>,
     dice: Option<egui_macroquad::egui::TextureHandle>,
     temp_values: TempValues,
+    timer: f32,
 }
 
 impl UISystem {
@@ -59,9 +59,10 @@ impl UISystem {
             temp_sim_name: String::new(),
             logo: None,
             big_logo: None,
-            title: None,
+            //title: None,
             temp_values: TempValues::default(),
             dice: None,
+            timer: 0.0,
         }
     }
 
@@ -75,13 +76,13 @@ impl UISystem {
     
     pub fn load_textures(&mut self) {
         egui_macroquad::ui(|egui_ctx| {
-            let img =  Self::load_image(Path::new("assets/img/globe32b.png")).unwrap();
+            let img =  Self::load_image(Path::new("assets/img/hexagon32.png")).unwrap();
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
-            let img2 =  Self::load_image(Path::new("assets/img/globe128b.png")).unwrap();
+            let img2 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
-            let img3 =  Self::load_image(Path::new("assets/img/evolve.png")).unwrap();
-            self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
-            let img4 =  Self::load_image(Path::new("assets/img/dice24.png")).unwrap();
+            //let img3 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
+            //self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
+            let img4 =  Self::load_image(Path::new("assets/img/hexagon24.png")).unwrap();
             self.dice = Some(egui_ctx.load_texture("dice".to_string(), img4, Default::default()));
         });
     }
@@ -101,6 +102,9 @@ impl UISystem {
     }
 
     pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Plant>, ranking: &Ranking, statistics: &Statistics) {
+        self.timer += dt();
+        self.timer = self.timer%1.0;
+        //self.timer = self.timer%get_settings().neuro_duration;
         egui_macroquad::ui(|egui_ctx| {
             self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
@@ -154,21 +158,29 @@ impl UISystem {
                     if ui.button(RichText::new("New Simulation").strong().color(Color32::GREEN)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::LIGHT_BLUE)).clicked() {
+                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         //signals.load_sim = true;
                         self.state.load_sim = true;
                     }
-                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::LIGHT_RED)).clicked() {
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::LIGHT_BLUE)).clicked() {
                         signals.save_sim = true;
                     }
-                    if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_BLUE)).clicked() {
+                    if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.load_agent = true;
                     }
-                    if ui.button(RichText::new("Save Agent").strong().color(Color32::LIGHT_RED),).clicked() {
+                    if ui.button(RichText::new("Save Agent").strong().color(Color32::LIGHT_BLUE),).clicked() {
                         //let mut signals = mod_signals();
                         signals.save_selected = true;
                     }
-                    if ui.button(RichText::new("Resize World").strong().color(Color32::GOLD),).clicked() {
+                    if ui.button(RichText::new("Export Settings").strong().color(Color32::GRAY),).clicked() {
+                        //let mut signals = mod_signals();
+                        signals.export_settings = true;
+                    }
+                    if ui.button(RichText::new("Import Settings").strong().color(Color32::GRAY),).clicked() {
+                        //let mut signals = mod_signals();
+                        signals.import_settings = true;
+                    }
+                    if ui.button(RichText::new("Resize World").strong().color(Color32::LIGHT_RED),).clicked() {
                         if !self.state.resize_world {
                             let settings = get_settings();
                             self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
@@ -184,9 +196,9 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
                 let speed = sim_speed();
-                let accel_label = format!("SpeedUp {}>>{}", speed as i32, speed as i32 + 1);
-                let mut deccel_color = Color32::GOLD;
-                let mut deccel_label = format!("SlowDown {}<<{}", speed as i32 - 1, speed as i32);
+                let accel_label = format!("SPEED [+]");
+                let mut deccel_color = Color32::YELLOW;
+                let mut deccel_label = format!("SPEED [-]");
                 if speed == 1.0 {
                     deccel_color = Color32::GRAY;
                     deccel_label = format!("---");
@@ -199,7 +211,7 @@ impl UISystem {
                 }
 
                 menu::menu_button(ui, RichText::new("SIMULATE").strong(), |ui| {
-                    if ui.button(RichText::new("Normal Speed (x1)").strong().color(Color32::GREEN)).clicked() {
+                    if ui.button(RichText::new("Normal").strong().color(Color32::GREEN)).clicked() {
                         let mut settings = get_settings();
                         settings.sim_speed = 1.0;
                         set_settings(settings);
@@ -222,6 +234,41 @@ impl UISystem {
                             set_settings(settings);
                     }
                 });
+
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
+                
+                menu::menu_button(ui, RichText::new("SELECTION").strong(), |ui| {
+                    if ui.button(RichText::new("Random").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::RANDOM;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Points").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::POINTS;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Lifetime").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::LIFETIME;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Childs").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::CHILDS;
+                        set_settings(settings);
+                    }
+                    if ui.button(RichText::new("Kills").strong().color(Color32::GREEN)).clicked() {
+                        let mut settings = get_settings();
+                        settings.select_mode = SelectMode::KILLS;
+                        set_settings(settings);
+                    }
+                });
+
 
                 ui.add_space(10.0);
                 ui.separator();
@@ -302,7 +349,10 @@ impl UISystem {
                         self.state.inspect = !self.state.inspect;
                     }
                     if ui.button(RichText::new("Neural Network").strong().color(Color32::LIGHT_GREEN)).clicked() {
-                        self.state.neuro_lab = !self.state.neuro_lab;
+                        //self.state.neuro_lab = !self.state.neuro_lab;
+                        let mut settings = get_settings();
+                        settings.show_network = !settings.show_network;
+                        set_settings(settings);
                     }
                     if ui.button(RichText::new("Ranking").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.ranking = !self.state.ranking;
@@ -321,6 +371,11 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.info = !self.state.info;
+                    }
+                    if ui.button(RichText::new("Physic Debuger").strong().color(Color32::LIGHT_BLUE)).clicked() {
+                        let mut settings = get_settings();
+                        settings.debug = ! settings.debug;
+                        set_settings(settings);
                     }
                 });
 
@@ -353,7 +408,7 @@ impl UISystem {
                 });
                 ui.add_space(6.0);
                 ui.vertical_centered(|author| {
-                    author.label(RichText::new("Artur Gwoździowski 2023").color(Color32::BLUE).strong());
+                    author.label(RichText::new("Artur Gwoździowski 2023-2024").color(Color32::BLUE).strong());
                 });
                 ui.add_space(6.0);
                 ui.vertical_centered(|author| {
@@ -709,14 +764,14 @@ impl UISystem {
             let w = 500.0; let h = 220.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h]).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
-                let title = self.title.clone().unwrap();
+                //let title = self.title.clone().unwrap();
                 ui.vertical_centered(|pic| {
                     pic.image(big_logo.id(), big_logo.size_vec2());
                 });
-                ui.add_space(4.0);
+                /* ui.add_space(4.0);
                 ui.vertical_centered(|pic| {
                     pic.image(title.id(), title.size_vec2()*0.7);
-                });
+                }); */
                 ui.add_space(1.0);
                 ui.vertical_centered(|author| {
                     let txt = format!("Artur Gwoździowski 2023  |  ver.{}", env!("CARGO_PKG_VERSION"));
@@ -730,7 +785,7 @@ impl UISystem {
                 });
                 ui.add_space(3.0);
                 ui.vertical_centered(|txt| {
-                    let response = txt.add(widgets::TextEdit::singleline(&mut self.temp_sim_name));
+                    let response = txt.text_edit_singleline(&mut self.temp_sim_name);
                     let rnd_btn = txt.add(
                         Button::image_and_text(
                             self.dice.clone().unwrap().id(), 
@@ -756,13 +811,14 @@ impl UISystem {
                     }
                     if response.gained_focus() {
                     }
-                    if response.changed() {
-                    }
+                    //if response.changed() {
+                    //    response.
+                    //}
                     if response.lost_focus() && txt.input(|i| i.key_pressed(Key::Enter)) {
                         self.state.new_sim = false;
                         signals.new_sim = true;
                         signals.new_sim_name = String::from(&self.temp_sim_name);
-                        self.temp_sim_name = String::new();
+                        //self.temp_sim_name = String::new();
                     }
                 });
                 ui.add_space(3.0);
@@ -915,7 +971,9 @@ impl UISystem {
                 }
                 for (key, node) in network.nodes.iter() {
                     let (_, color1) = node.get_colors();
-                    let r = node.get_size()*1.2;
+                    let (mut r0, mut r1) = node.get_size();
+                    r0 = r0*1.2;
+                    r1 = r1*1.2;
                     let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                     let p1 = vec2_to_pos2(&ipos);
                     let c0 = color_to_color32(color1);
@@ -925,10 +983,14 @@ impl UISystem {
                         None => 0.0,
                         Some(v) => v,
                     };
-                    painter.circle_filled(p1, r,  Color32::BLACK);
+                    painter.circle_filled(p1, r0,  Color32::BLACK);
                     //painter.circle_filled(p1, r,  c1);
-                    let w = 0.75 + 0.24*r;
-                    painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
+                    let w = 0.75 + 0.24*r0;
+                    painter.circle_stroke(p1, r0, Stroke { color: c0, width: w });
+                    //painter.circle_filled(p1, r0,  Color32::BLACK);
+                    //painter.circle_filled(p1, r,  c1);
+                    let w = 0.75 + 0.24*r1;
+                    painter.circle_stroke(p1, r1, Stroke { color: c0, width: w });
                     let mut font = FontId::default();
                     font.size = 8.0;
                     let txt = format!("{}: {:.1}", label, v);
@@ -951,11 +1013,6 @@ impl UISystem {
             Window::new("ABOUT").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(380.).min_width(300.)
             .title_bar(true).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
-                let title = self.title.clone().unwrap();
-                ui.vertical_centered(|pic| {
-                    pic.image(title.id(), title.size_vec2());
-                });
-                ui.add_space(10.0);
                 ui.vertical_centered(|pic| {
                     pic.image(big_logo.id(), big_logo.size_vec2());
                 });
@@ -966,6 +1023,10 @@ impl UISystem {
                 ui.add_space(10.0);
                 ui.vertical_centered(|author| {
                     author.label(RichText::new(format!("version {}", env!("CARGO_PKG_VERSION"))).color(Color32::YELLOW).italics());
+                });
+                ui.add_space(10.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new(format!("{}", env!("CARGO_PKG_DESCRIPTION"))).color(Color32::WHITE).italics());
                 });
                 ui.add_space(10.0);
                 ui.vertical_centered(|closer| {
@@ -1119,6 +1180,16 @@ impl UISystem {
             ui.columns(2, |column| {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut peripheral_vision = settings.peripheral_vision;
+                column[0].label(RichText::new("PERIPHERAL VISION").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut peripheral_vision, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.peripheral_vision = peripheral_vision;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut mutations: f32 = settings.mutations;
                 column[0].label(RichText::new("MUTATIONS").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut mutations, 0.0..=0.5).step_by(0.05)).changed() {
@@ -1197,9 +1268,19 @@ impl UISystem {
                 column[0].set_max_size(UIVec2::new(80., 75.));
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut born_eng_min = settings.born_eng_min;
-                column[0].label(RichText::new("MIN BORN ENERGY").color(Color32::WHITE).strong());
+                column[0].label(RichText::new("MIN REPRODUCE ENERGY").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new(&mut born_eng_min, 0.0..=1.0).step_by(0.05)).changed() {
                     settings.born_eng_min = born_eng_min;
+                    signals.new_settings = true;
+                }
+            });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut born_eng_cost = settings.born_eng_cost;
+                column[0].label(RichText::new("REPRODUCTION COST").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut born_eng_cost, 0.0..=1.0).step_by(0.05)).changed() {
+                    settings.born_eng_cost = born_eng_cost;
                     signals.new_settings = true;
                 }
             });
@@ -1417,7 +1498,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut neurolink_rate: f32 = settings.neurolink_rate;
                 column[0].label(RichText::new("NEURON LINKS RATE").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=0.5).step_by(0.05)).changed() {
+                if column[1].add(Slider::new(&mut neurolink_rate, 0.0..=1.0).step_by(0.05)).changed() {
                     settings.neurolink_rate = neurolink_rate;
                     signals.new_settings = true;
                 }
@@ -1427,7 +1508,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut neuro_duration: f32 = settings.neuro_duration;
                 column[0].label(RichText::new("ANALIZE PERIOD").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut neuro_duration, 0.01..=0.5).step_by(0.01)).changed() {
+                if column[1].add(Slider::new(&mut neuro_duration, 0.01..=1.0).step_by(0.01)).changed() {
                     settings.neuro_duration = neuro_duration;
                     signals.new_settings = true;
                 }
@@ -1528,7 +1609,7 @@ impl UISystem {
         if !self.state.left_panel {
             return;
         }
-        SidePanel::left("Sidebar").width_range(100.0..=700.0).show(egui_ctx, |ui| {
+        SidePanel::left("Sidebar").width_range(100.0..=400.0).show(egui_ctx, |ui| {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
@@ -1562,7 +1643,7 @@ impl UISystem {
         });
     }
 
-    fn build_right_panel(&mut self, egui_ctx: &Context, agent: Option<&Agent>, statistics: &Statistics) {
+    fn build_right_panel(&mut self, egui_ctx: &Context, _agent: Option<&Agent>, statistics: &Statistics) {
         if !self.state.right_panel {
             return;
         }
@@ -1570,13 +1651,13 @@ impl UISystem {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
-            if self.state.neuro_lab {
-                ui.vertical(|ui| {
-                    ui.collapsing("Network", |ui| {
-                        self.inside_network(ui, agent);
-                    });
-                });
-            }
+            //if self.state.neuro_lab {
+            //    ui.vertical(|ui| {
+            //        ui.collapsing("Network", |ui| {
+            //            self.inside_network(ui, agent);
+            //        });
+            //    });
+            //}
             if self.state.plot_population {
                 ui.vertical(|ui| {
                     ui.set_height(125.0);
@@ -1730,6 +1811,7 @@ impl UISystem {
             ui.label(RichText::new(format!("TIME: {}", time.round())).monospace());
             ui.label(RichText::new(format!("FPS: {}", fps)).monospace());
             ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).monospace());
+            ui.label(RichText::new(format!("SPEED: x{}", sim_speed())).monospace());
         });
         ui.horizontal(|ui| {
             ui.set_max_height(16.0);
@@ -1767,6 +1849,11 @@ impl UISystem {
             let shell = agent.shell;
             let mutations = agent.mutations;
             let eyes = agent.eyes;
+            let water: bool = if agent.get_water() == 0 {
+                false
+            } else {
+                true
+            };
             let attributes = format!("S: {} | M: {} | P: {} | D: {} | X: {} | V: {}", size, speed, power, shell, mutations, eyes);
             ui.horizontal(|ui| {
                 ui.set_max_height(16.0);
@@ -1802,33 +1889,49 @@ impl UISystem {
                 ui.separator();
                 ui.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
             });
+            ui.horizontal(|ui| {
+                ui.set_max_height(14.0);
+                let txt = if water {
+                    "water".to_string()
+                } else {
+                    "".to_string()
+                };
+                ui.label(RichText::new(txt).strong().color(Color32::BLUE));
+            });
         }
     }
 
     fn inside_network(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
         if let Some(agent) = agent {
+            //let period = self.timer/get_settings().neuro_duration;
+            let t = self.timer;
             let network = &agent.network;
-            let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
-            let offset = UIVec2::new(0.0, 0.0);
+            let w = 340.0; let h = 380.0; let resize = egui_macroquad::egui::Vec2::new(3.2, 3.6);
+            let offset = UIVec2::new(5.0, 0.0);
             let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
             let rect = response.rect;
             let zero = rect.left_top().to_vec2()+offset;
             let wi = 1.0;
             for (_, link) in network.links.iter() {
-                let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
+                let (coord0, coord1, coord_t) = link.get_coords(&network.nodes, t);
                 let ui_coord0 = vec2_to_uivec2(&coord0);
                 let ui_coord1 = vec2_to_uivec2(&coord1);
+                let ui_coord_t = vec2_to_uivec2(&coord_t);
                 let w = link.get_width()*wi;
                 let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
                 let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
+                let pt = vec2_to_pos2(&(ui_coord_t*resize+zero));
                 let (_, color1) = link.get_colors();
+                //let c0 = color_to_color32(color0);
                 let c1 = color_to_color32(color1);
                 let points1 = [p1, p2];
                 painter.line_segment(points1, Stroke { color: c1, width: w });
+                painter.circle_filled(pt, w, Color32::YELLOW);
             }
             for (key, node) in network.nodes.iter() {
                 let (_, color1) = node.get_colors();
-                let r = node.get_size()*wi;
+                let (r0, _) = node.get_size();
+                let mut mem = node.get_mem_size();
                 let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
                 let p1 = vec2_to_pos2(&ipos);
                 let c0 = color_to_color32(color1);
@@ -1837,9 +1940,15 @@ impl UISystem {
                     None => 0.0,
                     Some(v) => v,
                 };
-                painter.circle_filled(p1, r,  Color32::BLACK);
-                let w = 0.75 + 0.24*r;
-                painter.circle_stroke(p1, r, Stroke { color: c0, width: w });
+                painter.circle_filled(p1, r0,  Color32::BLACK);
+                //let w1 = 0.5 + 0.35*r1;
+                //painter.circle_stroke(p1, r1, Stroke { color: Color32::GREEN, width: w1 });
+                let w0 = 0.25 + 0.25*r0;
+                painter.circle_stroke(p1, r0, Stroke { color: c0, width: w0 });
+                if mem > 0.0 {
+                    mem = clamp(mem, -1.0, 1.0);
+                    painter.circle_stroke(p1, 1.0+mem*5.0, Stroke { color: Color32::GREEN, width: 1.0 });
+                }
                 let mut font = FontId::default();
                 font.size = 8.0;
                 let txt = format!("{}: {:.1}", label, v);
