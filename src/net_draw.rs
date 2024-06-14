@@ -14,7 +14,8 @@ pub fn draw_network(agent: &Agent, timer: f32, cam_offset: Vec2) {
     let resize = Vec2::new(4.0, 4.0);
     let offset = Vec2::new((SCREEN_WIDTH as f32)/2.0-520.0, (SCREEN_HEIGHT as f32)/2.0-450.0);
     let zero = Vec2::ZERO+offset+cam_offset;
-    let wi = 1.0;
+    draw_rectangle(zero.x, zero.y, resize.x*100.0, resize.y*100.0, Color::new(0.0, 0.0, 0.0, 0.65));
+    let wi = 0.75;
     for (_, link) in network.links.iter() {
         let (coord0, coord1, coord_t) = link.get_coords(&network.nodes, t);
         let w = link.get_width()*wi;
@@ -36,7 +37,7 @@ pub fn draw_network(agent: &Agent, timer: f32, cam_offset: Vec2) {
             None => 0.0,
             Some(v) => v,
         };
-        let w0 = 0.25 + 0.25*r0;
+        let w0 = 1.0 + 1.0*r0;
         draw_circle_lines(pos.x, pos.y, w0, 1.0, color1);
         if mem > 0.0 {
             mem = clamp(mem, -1.0, 1.0);

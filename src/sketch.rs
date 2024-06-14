@@ -114,7 +114,7 @@ pub struct LinkSketch {
 pub struct NetworkSketch {
     pub nodes: HashMap<u64, NodeSketch>,
     pub links: HashMap<u64, LinkSketch>,
-    pub margins: NeuroMargins,
+    //pub margins: NeuroMargins,
 }
 
 impl NetworkSketch {
@@ -138,7 +138,7 @@ impl NetworkSketch {
         let mut net = Network { 
             nodes: nodes.to_owned(), 
             links: links.to_owned(), 
-            margins: self.get_margins(), 
+            //margins: self.get_margins(), 
             input_keys: vec![], 
             output_keys: vec![], 
         };
@@ -149,8 +149,8 @@ impl NetworkSketch {
         return net;
     }
 
-    fn get_margins(&self) -> NeuroMargins {
+    /* fn get_margins(&self) -> NeuroMargins {
         return self.margins.to_owned();
-    }
+    } */
 
 }

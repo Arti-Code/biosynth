@@ -44,7 +44,7 @@ pub struct UISystem {
     temp_sim_name: String,
     logo: Option<egui_macroquad::egui::TextureHandle>,
     big_logo: Option<egui_macroquad::egui::TextureHandle>,
-    title: Option<egui_macroquad::egui::TextureHandle>,
+    //title: Option<egui_macroquad::egui::TextureHandle>,
     dice: Option<egui_macroquad::egui::TextureHandle>,
     temp_values: TempValues,
     timer: f32,
@@ -59,7 +59,7 @@ impl UISystem {
             temp_sim_name: String::new(),
             logo: None,
             big_logo: None,
-            title: None,
+            //title: None,
             temp_values: TempValues::default(),
             dice: None,
             timer: 0.0,
@@ -80,8 +80,8 @@ impl UISystem {
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
             let img2 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
-            let img3 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
-            self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
+            //let img3 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
+            //self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
             let img4 =  Self::load_image(Path::new("assets/img/hexagon24.png")).unwrap();
             self.dice = Some(egui_ctx.load_texture("dice".to_string(), img4, Default::default()));
         });
@@ -196,9 +196,9 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
                 let speed = sim_speed();
-                let accel_label = format!("Fast [>>>]");
-                let mut deccel_color = Color32::GOLD;
-                let mut deccel_label = format!("Slow [<<<]");
+                let accel_label = format!("SPEED [+]");
+                let mut deccel_color = Color32::YELLOW;
+                let mut deccel_label = format!("SPEED [-]");
                 if speed == 1.0 {
                     deccel_color = Color32::GRAY;
                     deccel_label = format!("---");
@@ -764,14 +764,14 @@ impl UISystem {
             let w = 500.0; let h = 220.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h]).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
-                let title = self.title.clone().unwrap();
+                //let title = self.title.clone().unwrap();
                 ui.vertical_centered(|pic| {
                     pic.image(big_logo.id(), big_logo.size_vec2());
                 });
-                ui.add_space(4.0);
+                /* ui.add_space(4.0);
                 ui.vertical_centered(|pic| {
                     pic.image(title.id(), title.size_vec2()*0.7);
-                });
+                }); */
                 ui.add_space(1.0);
                 ui.vertical_centered(|author| {
                     let txt = format!("Artur Gwoździowski 2023  |  ver.{}", env!("CARGO_PKG_VERSION"));

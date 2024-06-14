@@ -30,7 +30,7 @@ pub fn generate_id() -> u64 {
     return rand::gen_range(u64::MIN, u64::MAX);
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+/* #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct NeuroMargins {
     pub x_min: f32,
     pub x_max: f32,
@@ -42,7 +42,7 @@ impl Debug for NeuroMargins {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("").field(&self.x_min).field(&self.x_max).field(&self.y_min).field(&self.y_max).finish()
     }
-}
+} */
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum NeuronTypes {
@@ -91,7 +91,7 @@ pub struct Link {
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
-    pub margins: NeuroMargins,
+    //pub margins: NeuroMargins,
     pub input_keys: Vec<u64>,
     pub output_keys: Vec<u64>,
 }
@@ -208,7 +208,7 @@ impl Node {
 
     pub fn get_size(&self) -> (f32, f32) {
         if !self.active {
-            return (1.0, 1.0);
+            return (2.0, 1.0);
         } else {
             return (1.0 + 5.0*self.val.abs(), 0.0);
         }
@@ -399,7 +399,7 @@ impl Network {
         Self {
             nodes: HashMap::new(),
             links: HashMap::new(),
-            margins: NeuroMargins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 },
+            //margins: NeuroMargins { x_min: 0.01, x_max: 0.99, y_min: 0.01, y_max: 0.99 },
             input_keys: vec![],
             output_keys: vec![],
         }
@@ -613,7 +613,7 @@ impl Network {
         Self {
             nodes: nodes_map,
             links: links_map,
-            margins: NeuroMargins { x_min: 25.0, x_max: 25.0, y_min: 375.0, y_max: 375.0 },
+            //margins: NeuroMargins { x_min: 25.0, x_max: 25.0, y_min: 375.0, y_max: 375.0 },
             input_keys: self.input_keys.to_owned(),
             output_keys: self.output_keys.to_owned(),
         }
@@ -636,7 +636,7 @@ impl Network {
         NetworkSketch { 
             nodes: nodes_sketch, 
             links: links_sketch,
-            margins: self.margins.to_owned() 
+            //margins: self.margins.to_owned() 
         }
     }
 
