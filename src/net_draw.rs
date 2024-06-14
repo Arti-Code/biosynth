@@ -1,7 +1,11 @@
 use macroquad::prelude::*;
 
-use crate::{agent::Agent, neuro::NeuronTypes, util::*}; 
-use crate::globals::*;
+use crate::{
+    agent::Agent, 
+    neuro::NeuronTypes, 
+    util::*,
+    settings::*,
+}; 
 
 
 pub fn draw_network(agent: &Agent, timer: f32, cam_offset: Vec2) {

@@ -12,7 +12,6 @@ mod ranking;
 mod agent;
 mod collector;
 mod misc;
-mod globals;
 mod plant;
 mod terrain;
 mod settings;
@@ -24,7 +23,6 @@ mod net_draw;
 
 use std::env;
 use crate::sim::*;
-use crate::globals::*;
 use crate::statistics::*;
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;

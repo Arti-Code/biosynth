@@ -18,19 +18,6 @@
 			"problemMatcher": [
 				"$rustc"
 			],
-			"label": "rust: cargo build wasm32 (--release)",
-			"args": [
-				"--target", 
-				"wasm32-unknown-unknown",
-				"--release"
-			]
-		},
-		{
-			"type": "cargo",
-			"command": "build",
-			"problemMatcher": [
-				"$rustc"
-			],
 			"group": "build",
 			"label": "rust: cargo build (--release)",
 			"args": [

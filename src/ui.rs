@@ -21,7 +21,6 @@ use crate::plant::{Plant, PlantType};
 use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
-use crate::globals::*;
 use crate::settings::*;
 use crate::statistics::*;
 use crate::signals::*;
@@ -1014,11 +1013,6 @@ impl UISystem {
             Window::new("ABOUT").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(380.).min_width(300.)
             .title_bar(true).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
-                //let title = self.title.clone().unwrap();
-                //ui.vertical_centered(|pic| {
-                //    pic.image(title.id(), title.size_vec2());
-                //});
-                //ui.add_space(10.0);
                 ui.vertical_centered(|pic| {
                     pic.image(big_logo.id(), big_logo.size_vec2());
                 });

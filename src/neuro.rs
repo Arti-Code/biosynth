@@ -74,8 +74,6 @@ pub struct Node {
     pub label: String,
     new_mut: bool,
     pub memory: Option<MemStore>,
-    //memory_type: bool,
-    //mem: VecDeque<f32>,
 }
 
 #[derive(Clone, Copy)]
@@ -172,8 +170,6 @@ impl Node {
             active: false,
             label: label.to_string(),
             new_mut: false,
-            //memory_type: memory_node,
-            //mem: VecDeque::from([0.0; 100]),
             memory: match memory_node {
                 true => Some(MemStore::new_random()),
                 false => None,
@@ -231,9 +227,6 @@ impl Node {
             return (LIGHTGRAY, GRAY);
         }
         let g = 0;
-        //if self.new_mut { 
-        //    g = 255;     
-        //}
         let (color0, color1) = match self.val {
             n if n>0.0 => { 
                 let v0 = clamp(255.0*n, 0.0, 255.0);
@@ -319,21 +312,6 @@ impl Node {
         self.sum = 0.0;
     }
 
-/*     pub fn calc2(&mut self) {
-        if !self.active { 
-            self.sum = 0.0;
-            self.remember(self.val);
-            self.val = 0.0;
-            return;
-        } else {
-            let sum: f32 = self.sum + self.bias + self.memory();
-            let v = sum.tanh();
-            self.remember(self.val);
-            self.val = clamp(v, 0.0, 1.0);
-            self.sum = 0.0;
-        }
-    } */
-
 }
 
 impl Link {
@@ -360,7 +338,6 @@ impl Link {
         let l = p1.distance(p0).abs();
         let dir = (p1-p0).normalize_or_zero();
         let mut pt = p0 + (l*(timer)*dir);
-        //if !node0.active || !node1.active { pt = p0 }
         if self.signal == 0.0 { pt = p0; }
         return (p0, p1, pt);
     }
@@ -627,9 +604,6 @@ impl Network {
     pub fn replicate(&self) -> Self {
         let mut nodes_map: HashMap<u64, Node> = HashMap::new();
         nodes_map.clone_from(&self.nodes);
-        //nodes_map.iter_mut().map(|(_, n)| {
-        //    n.
-        //});
         let mut links_map: HashMap<u64, Link> = HashMap::new();
         links_map.clone_from(&self.links);
         links_map.iter_mut().map(|(_, l)| {
@@ -769,9 +743,6 @@ impl Network {
         let mut counter_l = 0;
         for k in link_keys {
             if self.mutate_this(m) {
-                //let num = link_keys.len();
-                //let rand_key = rand::gen_range(0, num);
-                //let link_key = link_keys[rand_key];
                 let link = self.links.get_mut(&k).unwrap();
                 let n0 = link.node_from;
                 let n1 = link.node_to;
@@ -881,11 +852,8 @@ impl Network {
         let node_keys1: Vec<u64> = self.nodes.keys().copied().collect();
         for k0 in node_keys {
             if self.mutate_this(m) {
-                //let k0 = rand::gen_range(0, num);
                 let k1 = *node_keys1.choose().unwrap();
                 if k0 == k1 { return counter; }
-                //let n0 = node_keys[k0 as usize];
-                //let n1 = node_keys[k1 as usize];
                 let node0 = self.nodes.get(&k0).unwrap();
                 let node1 = self.nodes.get(&k1).unwrap();
                 match node0.node_type {

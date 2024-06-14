@@ -1,4 +1,4 @@
-use crate::globals::*;
+
 use macroquad::prelude::*;
 use crate::settings::*;
 

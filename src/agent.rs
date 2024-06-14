@@ -928,7 +928,12 @@ impl Agent {
 
     fn watch(&mut self, physics: &Physics) {
         let direction = Vec2::from_angle(self.rot);
-        if let Some(tg) = physics.get_closest_agent(self.rbh, self.vision_range, self.vision_angle, direction) {
+        if let Some(tg) = physics.get_closest_agent(
+            self.rbh, 
+            self.vision_range, 
+            self.vision_angle, 
+            direction
+        ) {
             self.enemy = Some(tg);
         } else {
             self.enemy_family = None;
@@ -936,7 +941,12 @@ impl Agent {
             self.enemy_position = None;
             self.enemy_dir = None;
         }
-        if let Some(tg) = physics.get_closest_plant(self.rbh, self.vision_range, self.vision_angle, direction) {
+        if let Some(tg) = physics.get_closest_plant(
+            self.rbh, 
+            self.vision_range, 
+            self.vision_angle, 
+            direction
+        ) {
             self.plant = Some(tg);
         } else {
             self.plant = None;
@@ -1059,8 +1069,11 @@ impl Agent {
         let color_second = self.color_second.to_owned();
         let shape = SharedShape::ball(self.size);
         let rot = 0.0; //random_rotation();
-        let pos = self.pos;
-        let interactions = InteractionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_1 );
+        let pos = self.pos + random_unit_vec2()*100.0;
+        let interactions = InteractionGroups::new(
+            Group::GROUP_1, 
+            Group::GROUP_2 | Group::GROUP_1 
+        );
         let rbh = physics.add_dynamic_object(
             &pos, 
             rot, 
@@ -1077,7 +1090,7 @@ impl Agent {
         neuro_map.add_effectors(output_pairs);
         let mut agent = Agent {
             key,
-            pos: pos + random_unit_vec2()*30.0,
+            pos,
             rot,
             mass: 0.0,
             vel: 0.0,
