@@ -295,7 +295,6 @@ impl Node {
             self.val = 0.0;
             return;
         }
-        //let sum: f32 = self.sum + self.bias;
         let mut sum = match self.memory.as_mut() {
             None => {
                 self.sum
@@ -308,7 +307,7 @@ impl Node {
         };
         sum += self.bias;
         let v = sum.tanh();
-        self.val = clamp(v, 0.0, 1.0);
+        self.val = clamp(v, -1.0, 1.0);
         self.sum = 0.0;
     }
 

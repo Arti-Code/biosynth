@@ -24,7 +24,7 @@ pub fn draw_network(agent: &Agent, timer: f32, cam_offset: Vec2) {
         let pt = coord_t*resize+zero;
         let (_, color1) = link.get_colors();
         draw_line(p1.x, p1.y, p2.x, p2.y, w, color1);
-        draw_circle(pt.x, pt.y, w, YELLOW);
+        draw_circle(pt.x, pt.y, w, color1);
     }
     for (key, node) in network.nodes.iter() {
         let (_, color1) = node.get_colors();

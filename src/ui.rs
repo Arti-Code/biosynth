@@ -2101,7 +2101,7 @@ impl UIState {
             plot_lifetime: true,
             plot_neuro: true,
             left_panel: true,
-            right_panel: true,
+            right_panel: false,
             deaths: false,
             bottom_panel: true,
             gen_random_name: false,

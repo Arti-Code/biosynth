@@ -641,7 +641,7 @@ impl Agent {
         if self.neuro_map.get_action("MOV") > 0.0 {
             self.vel = self.neuro_map.get_action("MOV");
         } else {
-            self.vel = 0.0;
+            self.vel = self.neuro_map.get_action("MOV")*0.2;
         }
         
         if self.neuro_map.get_action("RUN") >= 0.9 {
@@ -656,13 +656,13 @@ impl Agent {
             self.ang_vel = 0.0;
         }
         
-        if self.neuro_map.get_action("ATK") >= 0.75 {
+        if self.neuro_map.get_action("ATK") >= 0.7 {
             self.attacking = true;
         } else {
             self.attacking = false;
         }
 
-        if self.neuro_map.get_action("EAT") >= 0.6 {
+        if self.neuro_map.get_action("EAT") >= 0.7 {
             self.eating = true;
         } else {
             self.eating = false;
@@ -968,7 +968,7 @@ impl Agent {
         }
         let shell_loss = self.shell as f32 * 0.25; 
         let speed_loss = self.speed as f32 * 3.0;
-        let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
+        let mut move_loss = self.vel.abs() * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
