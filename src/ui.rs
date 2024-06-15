@@ -1843,6 +1843,7 @@ impl UISystem {
         if let Some(agent) = agent {
             let contacts_num = agent.contacts.len();
             let lifetime = agent.lifetime.round();
+            let repro_time = agent.repro_time.round();
             let generation = agent.generation;
             let childs = agent.childs;
             let kills = agent.kills;
@@ -1885,7 +1886,7 @@ impl UISystem {
                 ui.label(RichText::new(format!("[ENG: {}/{}]", agent.eng.round(), agent.max_eng.round())).strong().monospace().color(Color32::YELLOW));
             });
             ui.horizontal(|ui| {
-                ui.label(RichText::new(format!("T: {}", lifetime)).monospace());
+                ui.label(RichText::new(format!("T: {} | REPRO: {:.0}", lifetime, repro_time)).monospace());
                 ui.separator();
                 ui.label(RichText::new(format!("PTS: {}", points.round())).monospace());
             });

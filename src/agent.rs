@@ -41,6 +41,7 @@ pub struct Agent {
     pub network: Network,
     pub alife: bool,
     pub lifetime: f32,
+    pub repro_time: f32,
     pub generation: u32,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
@@ -154,6 +155,7 @@ impl Agent {
             network,
             alife: true,
             lifetime: 0.0,
+            repro_time: 0.0,
             generation: 0,
             enemy: None,
             enemy_family: None,
@@ -315,6 +317,7 @@ impl Agent {
             network,
             alife: true,
             lifetime: 0.0,
+            repro_time: 0.0,
             generation: gen,
             enemy: None,
             enemy_family: None,
@@ -448,6 +451,11 @@ impl Agent {
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
         let dt = dt()*sim_speed();
         self.lifetime += dt;
+        if self.repro_time < get_settings().repro_time {
+            self.repro_time += dt;
+        } else if self.repro_time > get_settings().repro_time {
+            self.repro_time = get_settings().repro_time;
+        }
         if self.timer_analize.update(dt) {
             self.update_contacts(other, physics);
             self.watch(physics);
@@ -1110,6 +1118,7 @@ impl Agent {
             network,
             alife: true,
             lifetime: 0.0,
+            repro_time: 0.0,
             generation: self.generation + 1,
             enemy: None,
             enemy_family: None,
