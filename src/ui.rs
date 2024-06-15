@@ -126,6 +126,7 @@ impl UISystem {
                 None => {},
             }
             self.build_about_window(egui_ctx);
+            self.build_doc_window(egui_ctx);
             self.build_settings_enviro_window(egui_ctx, signals);
             self.build_settings_agent_window(egui_ctx, signals);
             self.build_load_sim_window(egui_ctx);
@@ -1051,6 +1052,49 @@ impl UISystem {
                 ui.vertical_centered(|closer| {
                     if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_BLUE).strong()).clicked() {
                         self.state.about = false;
+                    }
+                });
+            });
+        }
+    }
+
+    fn build_doc_window(&mut self, egui_ctx: &Context) {
+        if self.state.docs {
+            let text = "
+                Introduction
+                Evolve 2 is a simulation program written in rust language with Bevy game engine and Rapier 2D rust physics engine. The aim of the simulation is trying to model some kind of environment and multiple agents interacting themself and changing the environment dynamically.
+
+
+                Environment
+                Environment is a grid structure reflecting terrain height and water level. Terrain height is created based on perlin noise. Water level is dynamically updated between single grid cells. 
+
+
+                Plants
+                Semi-active agents without neural network, but with evolution based physical attributes. They can grow, dye, multiply, inherit attributes, and evolve.
+
+
+                Agents
+                The crucial elements of simulation. Agents have physical attributes and neural networks based on genetic algorithm. They can grow, dye, multiply, inherit attributes, and evolve.
+            ";
+            Window::new("Information").resizable(false).default_pos((SCREEN_WIDTH/2.-150., SCREEN_HEIGHT/6.)).min_height(380.).min_width(400.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                let big_logo = self.big_logo.clone().unwrap();
+                ui.vertical_centered(|pic| {
+                    pic.image(big_logo.id(), big_logo.size_vec2());
+                });
+                ui.add_space(5.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new("Evolve 2").color(Color32::WHITE).strong());
+                });
+                ui.add_space(5.0);
+                ui.vertical_centered(|author| {
+                    author.label(RichText::new(text).color(Color32::WHITE).strong());
+                });
+                
+                ui.add_space(5.0);
+                ui.vertical_centered(|closer| {
+                    if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_BLUE).strong()).clicked() {
+                        self.state.docs = false;
                     }
                 });
             });
