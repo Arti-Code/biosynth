@@ -453,8 +453,6 @@ impl Agent {
         self.lifetime += dt;
         if self.repro_time < get_settings().repro_time {
             self.repro_time += dt;
-        } else if self.repro_time > get_settings().repro_time {
-            self.repro_time = get_settings().repro_time;
         }
         if self.timer_analize.update(dt) {
             self.update_contacts(other, physics);

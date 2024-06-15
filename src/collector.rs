@@ -91,6 +91,7 @@ impl AgentBox {
                 agent.childs += 1;
                 agent.points += settings.repro_points;
                 agent.eng -= settings.born_eng_cost*agent.max_eng;
+                agent.repro_time = 0.0;
             }
         }
         loop {
