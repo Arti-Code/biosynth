@@ -383,6 +383,25 @@ impl UISystem {
                 ui.separator();
                 ui.add_space(10.0);
 
+                menu::menu_button(ui, RichText::new("TERRAIN").strong(), |ui| {
+                    if ui.button(RichText::new("Show Tools").strong().color(Color32::WHITE)).clicked() {
+                        self.state.terrain_tools = !self.state.terrain_tools;
+                        let mut settings = get_settings();
+                        settings.terrain_edit = !settings.terrain_edit;
+                        set_settings(settings);
+
+                    }
+                    if ui.button(RichText::new("Update").strong().color(Color32::WHITE)).clicked() {
+                        let mut signals = get_signals();
+                        signals.update_terrain = true;
+                        set_signals(signals);
+                    }
+                });
+
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+
                 menu::menu_button(ui, RichText::new("ABOUT").strong(), |ui| {
                     if ui.button(RichText::new("About").strong().color(Color32::WHITE)).clicked() {
                         self.state.about = !self.state.about;
@@ -480,13 +499,13 @@ impl UISystem {
                             columns[1].horizontal(|col| {
                                     if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
                                         signals.load_sim_name = Some(String::from(&sim));
-                                        set_global_signals(signals.clone());
+                                        set_signals(signals.clone());
                                         self.state.load_sim = false;
                                     }
                                     col.separator();
                                     if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
                                         signals.del_sim_name = Some(String::from(&sim));
-                                        set_global_signals(signals.clone());
+                                        set_signals(signals.clone());
                                         self.state.load_sim = false;
                                     }
                             })
@@ -573,12 +592,12 @@ impl UISystem {
                             columns[1].horizontal(|col| {
                                 if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
                                     signals.load_agent_name = Some(filename.clone());
-                                    set_global_signals(signals.clone());
+                                    set_signals(signals.clone());
                                 }
                                 col.separator();
                                 if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
                                     signals.del_agent_name = Some(String::from(filename.clone()));
-                                    set_global_signals(signals.clone());
+                                    set_signals(signals.clone());
                                 }
                             });
                         });
@@ -901,13 +920,13 @@ impl UISystem {
                             self.temp_values.world_size = None;
                             let mut signals = get_signals();
                             signals.resize_world = None;
-                            set_global_signals(signals);
+                            set_signals(signals);
                         }
                         if columns[1].button(RichText::new("APPLY").color(Color32::BLUE).strong()).clicked() {
                             self.state.resize_world = false;
                             let mut signals = get_signals();
                             signals.resize_world = self.temp_values.world_size;
-                            set_global_signals(signals);
+                            set_signals(signals);
                         }
                     });
                 });
@@ -2065,6 +2084,7 @@ pub struct UIState {
     pub bottom_panel: bool,
     pub deaths: bool,
     pub gen_random_name: bool,
+    pub terrain_tools: bool,
 }
 
 impl UIState {
@@ -2105,6 +2125,7 @@ impl UIState {
             deaths: false,
             bottom_panel: true,
             gen_random_name: false,
+            terrain_tools: false,
         }
     }
 }

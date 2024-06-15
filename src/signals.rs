@@ -2,7 +2,7 @@
 
 use macroquad::{experimental::collections::storage, prelude::Vec2};
 
-pub fn set_global_signals(signals: Signals) {
+pub fn set_signals(signals: Signals) {
     storage::store(signals);
 }
 
@@ -35,6 +35,7 @@ pub struct Signals {
     pub resize_world: Option<Vec2>,
     pub export_settings: bool,
     pub import_settings: bool,
+    pub update_terrain: bool,
 }
 
 impl Signals {
@@ -62,6 +63,7 @@ impl Signals {
             resize_world: None,
             export_settings: false,
             import_settings: false,
+            update_terrain: false,
         }
     }
 

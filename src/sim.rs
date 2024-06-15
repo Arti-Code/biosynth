@@ -266,10 +266,13 @@ impl Simulation {
             for (_, agent) in self.agents.get_iter_mut() {
                 let coordinates = self.terrain.pos_to_coord(&agent.pos);
                 coords.push(coordinates);
-                agent.set_water_tile(self.terrain.get_water_lvl(coordinates) as i32);
+                agent.set_water_tile(self.terrain.get_water_level(coordinates) as i32);
             }
             self.terrain.set_occupied(coords);
         }
+        let (mouse_x, mouse_y) = mouse_position();
+        let cursor = self.camera.screen_to_world(vec2(mouse_x, mouse_y));
+        self.terrain.set_cursor_vec2(cursor);
     }
 
     pub fn update(&mut self) {
@@ -444,7 +447,7 @@ impl Simulation {
 
     pub fn draw_terrain(&self) {
         let settings = get_settings();
-        self.terrain.draw(settings.show_cells);
+        self.terrain.draw(settings.show_cells, settings.terrain_edit);
     }
 
     fn draw_plants(&self) {
@@ -523,7 +526,7 @@ impl Simulation {
                     let sim_name = name.to_owned();
                     let mut signals = get_signals();
                     signals.load_sim_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                     self.load_sim(&sim_name, false);
                     self.init_stats();
                 },
@@ -537,7 +540,7 @@ impl Simulation {
                     let mut signals = get_signals();
                     self.delete_sim(&sim_name);
                     signals.del_sim_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                 },
             }
         }
@@ -547,7 +550,7 @@ impl Simulation {
                     self.load_encoded_agent(&agent_file_name);
                     let mut signals = get_signals();
                     signals.load_agent_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                 },
                 None => {},
             }
@@ -558,7 +561,7 @@ impl Simulation {
                     self.delete_agent(&agent_file_name);
                     let mut signals = get_signals();
                     signals.del_agent_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                 },
                 None => {},
             }
@@ -572,20 +575,26 @@ impl Simulation {
             self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
             let mut signals = get_signals();
             signals.resize_world = None;
-            set_global_signals(signals);
+            set_signals(signals);
         }
         if get_signals().export_settings {
             let mut signals = get_signals();
             signals.export_settings = false;
-            set_global_signals(signals);
+            set_signals(signals);
             self.export_settings();
         }
 
         if get_signals().import_settings {
             let mut signals = get_signals();
             signals.import_settings = false;
-            set_global_signals(signals);
+            set_signals(signals);
             self.import_settings();
+        }
+
+        if get_signals().update_terrain {
+            let mut signals = get_signals();
+            signals.update_terrain = false;
+            set_signals(signals);
         }
     }
 

@@ -51,6 +51,10 @@ fn default_selection() -> SelectMode {
     return SelectMode::RANDOM;
 }
 
+fn edit_terrain() -> bool {
+    return false;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -116,6 +120,8 @@ pub struct Settings {
     pub debug: bool,
     #[serde(default = "default_selection")]
     pub select_mode: SelectMode,
+    #[serde(default = "edit_terrain")]
+    pub terrain_edit: bool,
 }
 
 impl Default for Settings {
@@ -189,6 +195,7 @@ impl Default for Settings {
             pause: false,
             debug: false,
             select_mode: SelectMode::RANDOM,
+            terrain_edit: false,
        }
     }
 

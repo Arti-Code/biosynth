@@ -356,7 +356,7 @@ impl Link {
         if s < 0.0 {
             let mut b = 100 + (155.0 * s.abs()) as u8;
             b = clamp(b, 0, 255);
-            color1 = color_u8!(0, 0, b, (100.0+155.0*s.abs()) as u8);
+            color1 = color_u8!(0, b, b, (100.0+155.0*s.abs()) as u8);
         }
         return (color0, color1);
     }

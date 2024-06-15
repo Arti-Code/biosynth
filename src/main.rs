@@ -1,5 +1,5 @@
 #![allow(unused)]
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 mod camera;
 mod neuro;
@@ -55,7 +55,7 @@ fn app_configuration() -> Conf {
 
 fn setup() {
     set_settings(Settings::default());
-    set_global_signals(Signals::new());
+    set_signals(Signals::new());
     set_mutations(MutationStats::new(0.0, 0.0));
 }
 
