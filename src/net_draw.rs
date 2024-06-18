@@ -41,7 +41,7 @@ pub fn draw_network(agent: &Agent, timer: f32, cam_offset: Vec2) {
         draw_circle_lines(pos.x, pos.y, w0, 1.0, color1);
         if mem > 0.0 {
             mem = clamp(mem, -1.0, 1.0).abs();
-            draw_circle_lines(pos.x, pos.y, mem*7.0, 1.0, GREEN);
+            draw_circle_lines(pos.x, pos.y, mem*9.0, 1.0, GREEN);
         }
         let txt = format!("{}: {:.1}", label, v);
         match node.node_type {

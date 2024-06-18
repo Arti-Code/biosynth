@@ -160,8 +160,8 @@ impl Default for Settings {
             plant_clone_size: 6,
             
             neurolink_rate: 0.15,
-            hidden_nodes_num: 4,
-            hidden_layers_num: 2,
+            hidden_nodes_num: 5,
+            hidden_layers_num: 5,
             neuro_duration: 0.2,
             mut_add_link: 0.025,
             mut_del_link: 0.010,

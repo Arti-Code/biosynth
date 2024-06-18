@@ -226,9 +226,9 @@ impl Node {
 
     pub fn get_size(&self) -> (f32, f32) {
         if !self.active {
-            return (2.0, 2.0);
+            return (4.0, 4.0);
         } else {
-            return (2.0 + 5.0*self.val.abs(), 2.0);
+            return (4.0 + 5.0*self.val.abs(), 4.0);
         }
     }
 
