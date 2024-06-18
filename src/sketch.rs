@@ -89,6 +89,14 @@ fn default_memory() -> Option<MemStore> {
     return None;
 }
 
+fn default_active_rate() -> f32 {
+    return 1.0;
+}
+
+fn default_lazy_num() -> u32 {
+    return 0;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeSketch {
     pub id: u64,
@@ -100,6 +108,10 @@ pub struct NodeSketch {
     pub memory: Option<MemStore>,
     #[serde(default = "default_memory_type")]
     pub memory_type: bool,
+    #[serde(default = "default_active_rate")]
+    pub active_rate: f32,
+    #[serde(default = "default_lazy_num")]
+    pub lazy_num: u32,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

@@ -142,7 +142,7 @@ impl Simulation {
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
-        self.simulation_name = match sim_name {
+        /* self.simulation_name = match sim_name {
             Some(name) => name.to_string(),
             None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
         };
@@ -152,6 +152,7 @@ impl Simulation {
         self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
         self.agents.agents.clear();
         self.plants.plants.clear();
+        self.ranking = Ranking::new(settings.ranking_size, 20, 10);
         //self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
@@ -159,11 +160,16 @@ impl Simulation {
         self.selected = None;
         self.select_phase = 0.0;
         self.mouse_state = MouseState { pos: Vec2::NAN };
-        self.running = true;
+        self.running = true; */
+        self.clear_sim(sim_name);
         self.init();
     }
 
-    fn clear_sim(&mut self) {
+    fn clear_sim(&mut self, sim_name: Option<&str>) {
+        self.simulation_name = match sim_name {
+            Some(name) => name.to_string(),
+            None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
+        };
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
@@ -172,7 +178,7 @@ impl Simulation {
         self.ranking = Ranking::new(settings.ranking_size, 20, 10);
         //self.sim_time = 0.0;
         self.sim_state = SimState::new();
-        self.sim_state.sim_name = String::from("");
+        self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
         self.selected = None;
         self.select_phase = 0.0;
@@ -691,27 +697,27 @@ impl Simulation {
                             Err(_) => {
                                 println!("can't deserialize saved sim... [{}]", &f);
                             },
-                            Ok(sim_state) => {
-                                self.clear_sim();
-                                self.simulation_name = sim_state.simulation_name.to_owned();
-                                self.sim_state.sim_name = sim_state.simulation_name.to_owned();
-                                self.sim_state.sim_time = sim_state.sim_time;
-                                self.plot_x = sim_state.sim_time as i32 / 100;
-                                self.last_autosave = sim_state.last_autosave;
-                                self.world_size = sim_state.world_size.to_vec2();
-                                let mut settings = sim_state.settings.to_owned();
-                                settings.world_h = sim_state.world_size.y as i32;
-                                settings.world_w = sim_state.world_size.x as i32;
+                            Ok(sim_sketch) => {
+                                self.reset_sim(Some(sim_sketch.simulation_name.as_str()));
+                                //self.simulation_name = sim_sketch.simulation_name.to_owned();
+                                self.sim_state.sim_name = sim_sketch.simulation_name.to_owned();
+                                self.sim_state.sim_time = sim_sketch.sim_time;
+                                self.plot_x = sim_sketch.sim_time as i32 / 100;
+                                self.last_autosave = sim_sketch.last_autosave;
+                                self.world_size = sim_sketch.world_size.to_vec2();
+                                let mut settings = sim_sketch.settings.to_owned();
+                                settings.world_h = sim_sketch.world_size.y as i32;
+                                settings.world_w = sim_sketch.world_size.x as i32;
                                 set_settings(settings);
-                                self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
-                                for agent_sketch in sim_state.agents.iter() {
+                                self.terrain = Terrain::from_serialized_terrain(&sim_sketch.terrain);
+                                for agent_sketch in sim_sketch.agents.iter() {
                                     let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics, self.sim_state.sim_time);
                                     self.agents.add_agent(agent);
                                 }
                                 let settings = get_settings();
                                 self.plants.add_many_plants(settings.plant_init_num, &mut self.physics);
-                                self.ranking.general = sim_state.ranking.to_owned();
-                                self.ranking.school =  sim_state.school.to_owned();
+                                self.ranking.general = sim_sketch.ranking.to_owned();
+                                self.ranking.school =  sim_sketch.school.to_owned();
                             },
                         }
                     }

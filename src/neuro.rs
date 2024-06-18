@@ -16,7 +16,7 @@ use crate::util::*;
 use crate::settings::*;
 
 
-pub trait Neural {
+/* pub trait Neural {
     fn get_links_t0_draw(&self) -> HashMap<u64, (Vec2, Vec2, Color, Color)>;
     fn get_nodes_t0_draw(&self) -> HashMap<u64, (Vec2, Color, Color)>;
     fn new_random(&mut self, node_num: usize, link_rate: f32);
@@ -24,7 +24,7 @@ pub trait Neural {
     fn send_input(&mut self, inputs: Vec<(u64, f32)>);
     fn recv_output(&self) -> Vec<(u64, f32)>;
     fn analize(&mut self);
-}
+} */
 
 pub fn generate_id() -> u64 {
     return rand::gen_range(u64::MIN, u64::MAX);
@@ -63,7 +63,7 @@ pub struct MemStore {
 
 #[derive(Clone)]
 pub struct Node {
-    pub id: u64,
+    id: u64,
     pub pos: IVec2,
     bias: f32,
     pub val: f32,
@@ -74,6 +74,10 @@ pub struct Node {
     pub label: String,
     new_mut: bool,
     pub memory: Option<MemStore>,
+    counter: [u32; 2],
+    active_rate: f32,
+    lazy_num:u32,
+    lazy: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -174,6 +178,10 @@ impl Node {
                 true => Some(MemStore::new_random()),
                 false => None,
             },
+            counter: [0; 2],
+            active_rate: 1.0,
+            lazy_num:0,
+            lazy: true,
         }
     }
 
@@ -189,6 +197,12 @@ impl Node {
             label: self.label.to_owned(),
             memory_type: self.memory.is_some(),
             memory: self.memory.to_owned(),
+            active_rate: self.counter[1] as f32/self.counter[0] as f32,
+            lazy_num: if !self.lazy {
+                0
+            } else {
+                self.lazy_num + 1
+            },
         }
     }
 
@@ -203,6 +217,10 @@ impl Node {
             label: sketch.label.to_string(), 
             new_mut: false,
             memory: sketch.memory,
+            counter: [0; 2],
+            active_rate: sketch.active_rate,
+            lazy_num: sketch.lazy_num,
+            lazy: true,
         }
     }
 
@@ -293,7 +311,10 @@ impl Node {
         if !self.active { 
             self.sum = 0.0;
             self.val = 0.0;
-            return;
+            if self.memory.is_none() {
+                self.count(false);
+                return;
+            }
         }
         let mut sum = match self.memory.as_mut() {
             None => {
@@ -309,8 +330,16 @@ impl Node {
         let v = sum.tanh();
         self.val = clamp(v, -1.0, 1.0);
         self.sum = 0.0;
+        self.count(true);
+        self.lazy = false;
     }
 
+    pub fn count(&mut self, is_active: bool) {
+        self.counter[0] += 1;
+        if is_active {
+            self.counter[1] += 1;
+        }
+    }
 }
 
 impl Link {
@@ -600,7 +629,7 @@ impl Network {
         self.nodes.remove(&id);
     }
 
-    pub fn replicate(&self) -> Self {
+/*     pub fn replicate2(&self) -> Self {
         let mut nodes_map: HashMap<u64, Node> = HashMap::new();
         nodes_map.clone_from(&self.nodes);
         let mut links_map: HashMap<u64, Link> = HashMap::new();
@@ -616,6 +645,12 @@ impl Network {
             input_keys: self.input_keys.to_owned(),
             output_keys: self.output_keys.to_owned(),
         }
+    } */
+
+    pub fn replicate(&self) -> Network {
+        let sketch: NetworkSketch = self.get_sketch();
+        let network = sketch.from_sketch();
+        return network;
     }
 
     pub fn get_sketch(&self) -> NetworkSketch {
@@ -642,9 +677,9 @@ impl Network {
     pub fn mutate(&mut self, m: f32) {
         let settings = get_settings();
         let mut_node_add = settings.mut_add_node + settings.mut_add_node*m;
-        let mut_node_del = settings.mut_del_node + settings.mut_del_node*m;
+        let mut_node_del = settings.mut_del_node + settings.mut_del_node*-m;
         let mut_link_add = settings.mut_add_link + settings.mut_add_link*m;
-        let mut_link_del = settings.mut_del_link + settings.mut_del_link*m;
+        let mut_link_del = settings.mut_del_link + settings.mut_del_link*-m;
         let mut_change_val = settings.mut_change_val + settings.mut_change_val*m;
         let (dl2, dn2) = self.delete_random_link(mut_link_del);
         let al = self.add_random_link(mut_link_add);
@@ -656,9 +691,9 @@ impl Network {
         set_mutations(stats);
     }
 
-    fn mutate_nodes(&mut self, mut_add: f32, _mut_del: f32, mut_mod: f32) -> (usize, usize, usize, usize, usize) {
-        //let (dn, dl) = self.del_random_node(mut_del);
-        let dn = 0; let dl = 0;
+    fn mutate_nodes(&mut self, mut_add: f32, mut_del: f32, mut_mod: f32) -> (usize, usize, usize, usize, usize) {
+        let (dn, dl) = self.del_random_node(mut_del);
+        //let dn = 0; let dl = 0;
         let (an, al) = self.add_random_node(mut_add);
         let b = self.mutate_nodes_bias(mut_mod);
         return (an, dn, al, dl, b);
@@ -798,12 +833,12 @@ impl Network {
         };
     }
 
-    fn del_random_node(&mut self, m: f32) -> (usize, usize) {
+    fn del_random_node(&mut self, _m: f32) -> (usize, usize) {
         let mut counter_n = 0;
         let mut counter_l = 0;
         let mut nodes_to_del: Vec<u64> = vec![]; 
         let mut links_to_del: Vec<u64> = vec![]; 
-        if self.mutate_this(m) {
+        if true {
             let (_, deep_keys, _) = self.get_node_keys_by_type();
             if !deep_keys.is_empty() {
                 for k in deep_keys {
@@ -817,14 +852,20 @@ impl Network {
                                     let node_key = k;
                                     let (links_from, links_to) = self.find_connected_links(node_key);
                                     //if !links_from.is_empty() && !links_to.is_empty() { continue; }
-                                    nodes_to_del.push(node_key);
-                                    for key in links_from.iter() {
-                                        if links_to_del.contains(key) { continue; }
-                                        links_to_del.push(*key);
-                                    }
-                                    for key in links_to.iter() {
-                                        if links_to_del.contains(key) { continue; }
-                                        links_to_del.push(*key);
+                                    //let a = self.nodes.get(&k).unwrap().active_rate;
+                                    let lazy = (self.nodes.get(&k).unwrap().lazy_num as f32 / 10.0).powi(2);
+                                    let r: f32 = thread_rng().gen();
+                                    if r <= lazy {
+                                        println!("REMOVE LAZY NODE: r:{:.3} -> lazy{:.3}", r, lazy);
+                                        nodes_to_del.push(node_key);
+                                        for key in links_from.iter() {
+                                            if links_to_del.contains(key) { continue; }
+                                            links_to_del.push(*key);
+                                        }
+                                        for key in links_to.iter() {
+                                            if links_to_del.contains(key) { continue; }
+                                            links_to_del.push(*key);
+                                        }
                                     }
                                 },
                                 _ => {},

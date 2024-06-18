@@ -1047,7 +1047,7 @@ impl Agent {
 
     pub fn mutate(&mut self) {
         let settings = get_settings();
-        let m = ((self.mutations - 5) as f32) / 10.0;
+        let m = ((self.mutations - 5) as f32) / 20.0;
         let mut_rate = settings.mutations + settings.mutations * m;
         self.mutations = Self::mutate_one(self.mutations, mut_rate);
         self.size = Self::mutate_one(self.size as i32, mut_rate) as f32;
