@@ -17,6 +17,7 @@ use crate::misc::*;
 use crate::sketch::*;
 use crate::phyx::physics::Physics;
 use crate::phyx::physics_misc::PhysicsMaterial;
+use ::rand::prelude::*;
 
 #[derive(Clone)]
 pub struct Agent {
@@ -116,9 +117,15 @@ impl Agent {
         ];
         let hid = settings.hidden_nodes_num;
         let hid_layers = settings.hidden_layers_num;
-        let deep = vec![hid; hid_layers];
-        //let hid1 = rand::gen_range(1, hid);
-        //let hid2 = rand::gen_range(1, hid);
+        let hid_range = 0..=hid;
+        let layers_range = 0..=hid_layers;
+        //let h = thread_rng().gen_range(hid_range);
+        let l = thread_rng().gen_range(layers_range);
+        let mut deep = vec![];
+        for _ in 0..l {
+            let node_num = thread_rng().gen_range(hid_range.clone());
+            deep.push(node_num);
+        }
         network.build(
             inp_labs.len(), 
             inp_labs, 
