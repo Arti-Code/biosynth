@@ -188,6 +188,7 @@ impl Simulation {
 
     pub fn init(&mut self) {
         let settings = get_settings();
+        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
         self.plants.add_many_plants(settings.plant_init_num as usize, &mut self.physics);

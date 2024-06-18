@@ -226,9 +226,9 @@ impl Node {
 
     pub fn get_size(&self) -> (f32, f32) {
         if !self.active {
-            return (2.0, 1.0);
+            return (2.0, 2.0);
         } else {
-            return (1.0 + 5.0*self.val.abs(), 0.0);
+            return (2.0 + 5.0*self.val.abs(), 2.0);
         }
     }
 
@@ -294,7 +294,7 @@ impl Node {
     fn is_memory_empty(&self) -> bool {
         if self.memory.is_none() {
             return true;
-        } else if self.memory.as_ref().unwrap().get_mean().round() == 0.0 {
+        } else if self.memory.as_ref().unwrap().get_mean().abs() < 0.05 {
             return true;
         } else {
             return false;
@@ -400,9 +400,11 @@ impl Link {
         let n1 = self.node_to;
         let w = self.w;
         let node0 = nodes.get(&n0).unwrap();
-        if !node0.active { 
-            self.signal = 0.0;
-            return;
+        if !node0.active {
+            if node0.is_memory_empty() {
+                self.signal = 0.0;
+                return;
+            } 
         }
         let v = node0.send_impulse()*w;
         let node1 = nodes.get_mut(&n1).unwrap();
