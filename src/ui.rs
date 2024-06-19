@@ -93,9 +93,13 @@ impl UISystem {
             let img4 =  Self::load_image(Path::new("assets/img/hexagon24.png")).unwrap();
             let img_terrain_up = Self::load_image(Path::new("assets/img/terrain_up.png")).unwrap();
             let img_terrain_down = Self::load_image(Path::new("assets/img/terrain_down.png")).unwrap();
+            let img_water_up = Self::load_image(Path::new("assets/img/water_up.png")).unwrap();
+            let img_water_down = Self::load_image(Path::new("assets/img/water_down.png")).unwrap();
             self.dice = Some(egui_ctx.load_texture("dice".to_string(), img4, Default::default()));
             self.terrain_up = Some(egui_ctx.load_texture("terrain_up".to_string(), img_terrain_up, Default::default()));
             self.terrain_down = Some(egui_ctx.load_texture("terrain_down".to_string(), img_terrain_down, Default::default()));
+            self.water_up = Some(egui_ctx.load_texture("water_up".to_string(), img_water_up, Default::default()));
+            self.water_down = Some(egui_ctx.load_texture("water_down".to_string(), img_water_down, Default::default()));
         });
     }
 
@@ -1078,7 +1082,7 @@ impl UISystem {
             let terrain_up = self.terrain_up.clone().unwrap();
             let water_down = self.water_down.clone().unwrap();
             let water_up = self.water_up.clone().unwrap();
-            Window::new("TERRAIN EDITOR").resizable(false).default_pos((SCREEN_WIDTH/2.-150., 0.)).min_height(380.).min_width(300.)
+            Window::new("TERRAIN EDITOR").resizable(false).default_pos((SCREEN_WIDTH/2.-150., 0.)).min_height(380.).min_width(450.)
             .title_bar(true).show(egui_ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.add(widgets::ImageButton::new(terrain_down.id(), UIVec2::new(32.0, 32.0)));
