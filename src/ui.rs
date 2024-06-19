@@ -46,6 +46,10 @@ pub struct UISystem {
     big_logo: Option<egui_macroquad::egui::TextureHandle>,
     //title: Option<egui_macroquad::egui::TextureHandle>,
     dice: Option<egui_macroquad::egui::TextureHandle>,
+    terrain_up: Option<egui_macroquad::egui::TextureHandle>,
+    terrain_down: Option<egui_macroquad::egui::TextureHandle>,
+    water_up: Option<egui_macroquad::egui::TextureHandle>,
+    water_down: Option<egui_macroquad::egui::TextureHandle>,
     temp_values: TempValues,
     timer: f32,
 }
@@ -62,6 +66,10 @@ impl UISystem {
             //title: None,
             temp_values: TempValues::default(),
             dice: None,
+            terrain_up: None,
+            terrain_down: None,
+            water_up: None,
+            water_down: None,
             timer: 0.0,
         }
     }
@@ -83,7 +91,11 @@ impl UISystem {
             //let img3 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
             //self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
             let img4 =  Self::load_image(Path::new("assets/img/hexagon24.png")).unwrap();
+            let img_terrain_up = Self::load_image(Path::new("assets/img/terrain_up.png")).unwrap();
+            let img_terrain_down = Self::load_image(Path::new("assets/img/terrain_down.png")).unwrap();
             self.dice = Some(egui_ctx.load_texture("dice".to_string(), img4, Default::default()));
+            self.terrain_up = Some(egui_ctx.load_texture("terrain_up".to_string(), img_terrain_up, Default::default()));
+            self.terrain_down = Some(egui_ctx.load_texture("terrain_down".to_string(), img_terrain_down, Default::default()));
         });
     }
 
@@ -101,7 +113,7 @@ impl UISystem {
         egui_ctx.set_style(style);
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, res: Option<&Plant>, ranking: &Ranking, statistics: &Statistics) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, plant: Option<&Plant>, ranking: &Ranking, statistics: &Statistics) {
         self.timer += dt();
         self.timer = self.timer%1.0;
         //self.timer = self.timer%get_settings().neuro_duration;
@@ -119,13 +131,14 @@ impl UISystem {
                 },
                 None => {},
             }
-            match res {
-                Some(res) => {
-                    self.build_plant_window(egui_ctx, res);
+            match plant {
+                Some(plant) => {
+                    self.build_plant_window(egui_ctx, plant);
                 },
                 None => {},
             }
             self.build_about_window(egui_ctx);
+            self.build_terrain_editor_window(egui_ctx);
             self.build_doc_window(egui_ctx);
             self.build_settings_enviro_window(egui_ctx, signals);
             self.build_settings_agent_window(egui_ctx, signals);
@@ -1053,6 +1066,25 @@ impl UISystem {
                     if closer.button(RichText::new("CLOSE").color(Color32::LIGHT_BLUE).strong()).clicked() {
                         self.state.about = false;
                     }
+                });
+            });
+        }
+    }
+
+
+    fn build_terrain_editor_window(&mut self, egui_ctx: &Context) {
+        if self.state.terrain_tools {
+            let terrain_down = self.terrain_down.clone().unwrap();
+            let terrain_up = self.terrain_up.clone().unwrap();
+            let water_down = self.water_down.clone().unwrap();
+            let water_up = self.water_up.clone().unwrap();
+            Window::new("TERRAIN EDITOR").resizable(false).default_pos((SCREEN_WIDTH/2.-150., 0.)).min_height(380.).min_width(300.)
+            .title_bar(true).show(egui_ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.add(widgets::ImageButton::new(terrain_down.id(), UIVec2::new(32.0, 32.0)));
+                    ui.add(widgets::ImageButton::new(terrain_up.id(), UIVec2::new(32.0, 32.0)));
+                    ui.add(widgets::ImageButton::new(water_down.id(), UIVec2::new(32.0, 32.0)));
+                    ui.add(widgets::ImageButton::new(water_up.id(), UIVec2::new(32.0, 32.0)));
                 });
             });
         }
