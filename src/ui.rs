@@ -1075,7 +1075,6 @@ impl UISystem {
         }
     }
 
-
     fn build_terrain_editor_window(&mut self, egui_ctx: &Context) {
         if self.state.terrain_tools {
             let terrain_down = self.terrain_down.clone().unwrap();
