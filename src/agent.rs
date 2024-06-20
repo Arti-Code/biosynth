@@ -418,8 +418,12 @@ impl Agent {
     fn draw_limbs(&self, physics: &Physics) {
         let colh_l = physics.core.colliders.get(self.colliders[0]).unwrap();
         //let tl_l = colh_l.position_wrt_parent().unwrap().translation;
-        let rot_l = colh_l.rotation().angle();
-        let pos_l = self.pos+Vec2::from_angle(self.rot+rot_l)*(self.size+self.size/5.0);
+        //let rot_l = colh_l.rotation().angle();
+        let (mut pos_l, _) = iso_to_vec2_rot(colh_l.position_wrt_parent().unwrap());
+        
+        pos_l.rotate(Vec2::from_angle(self.rot));
+        pos_l += self.pos;
+        //let pos_l = self.pos+Vec2::from_angle(self.rot+rot_l)*(self.size+self.size/5.0);
         //let loc_l = vec2(tl_l.x, tl_l.y) + self.pos;
         let colh_r = physics.core.colliders.get(self.colliders[1]).unwrap();
         let tl_r = colh_r.position_wrt_parent().unwrap().translation;

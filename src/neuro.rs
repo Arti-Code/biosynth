@@ -16,33 +16,9 @@ use crate::util::*;
 use crate::settings::*;
 
 
-/* pub trait Neural {
-    fn get_links_t0_draw(&self) -> HashMap<u64, (Vec2, Vec2, Color, Color)>;
-    fn get_nodes_t0_draw(&self) -> HashMap<u64, (Vec2, Color, Color)>;
-    fn new_random(&mut self, node_num: usize, link_rate: f32);
-    fn get_random_io_keys(&self, n: usize) -> Vec<u64>;
-    fn send_input(&mut self, inputs: Vec<(u64, f32)>);
-    fn recv_output(&self) -> Vec<(u64, f32)>;
-    fn analize(&mut self);
-} */
-
 pub fn generate_id() -> u64 {
     return rand::gen_range(u64::MIN, u64::MAX);
 }
-
-/* #[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct NeuroMargins {
-    pub x_min: f32,
-    pub x_max: f32,
-    pub y_min: f32,
-    pub y_max: f32,
-}
-
-impl Debug for NeuroMargins {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("").field(&self.x_min).field(&self.x_max).field(&self.y_min).field(&self.y_max).finish()
-    }
-} */
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum NeuronTypes {
@@ -74,8 +50,6 @@ pub struct Node {
     pub label: String,
     new_mut: bool,
     pub memory: Option<MemStore>,
-    counter: [u32; 2],
-    active_rate: f32,
     lazy_num:u32,
     lazy: bool,
 }
@@ -178,8 +152,6 @@ impl Node {
                 true => Some(MemStore::new_random()),
                 false => None,
             },
-            counter: [0; 2],
-            active_rate: 1.0,
             lazy_num:0,
             lazy: true,
         }
@@ -197,7 +169,6 @@ impl Node {
             label: self.label.to_owned(),
             memory_type: self.memory.is_some(),
             memory: self.memory.to_owned(),
-            active_rate: self.counter[1] as f32/self.counter[0] as f32,
             lazy_num: if !self.lazy {
                 0
             } else {
@@ -217,8 +188,6 @@ impl Node {
             label: sketch.label.to_string(), 
             new_mut: false,
             memory: sketch.memory,
-            counter: [0; 2],
-            active_rate: sketch.active_rate,
             lazy_num: sketch.lazy_num,
             lazy: true,
         }
@@ -282,8 +251,8 @@ impl Node {
     }
 
     pub fn recv_input(&mut self, v: f32) {
-        let val = v+self.bias;
-        self.val = clamp(val, -1.0, 1.0);
+        //let val = v+self.bias;
+        self.sum = clamp(v, -1.0, 1.0);
         if v == 0.0 && self.is_memory_empty() { 
             self.active = false;
         } else {
@@ -312,7 +281,6 @@ impl Node {
             self.sum = 0.0;
             self.val = 0.0;
             if self.memory.is_none() {
-                self.count(false);
                 return;
             }
         }
@@ -326,19 +294,22 @@ impl Node {
                 sum
             },
         };
-        sum += self.bias;
-        let v = sum.tanh();
+        let mut v = 0.0;
+        match self.node_type {
+            NeuronTypes::INPUT => {
+                v = sum;
+            },
+            NeuronTypes::OUTPUT => {
+                v = sum.tanh();
+            }
+            _ => {
+                sum += self.bias;
+                v = sum.tanh();
+            },
+        }
         self.val = clamp(v, -1.0, 1.0);
         self.sum = 0.0;
-        self.count(true);
         self.lazy = false;
-    }
-
-    pub fn count(&mut self, is_active: bool) {
-        self.counter[0] += 1;
-        if is_active {
-            self.counter[1] += 1;
-        }
     }
 }
 

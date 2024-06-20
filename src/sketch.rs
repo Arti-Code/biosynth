@@ -108,8 +108,6 @@ pub struct NodeSketch {
     pub memory: Option<MemStore>,
     #[serde(default = "default_memory_type")]
     pub memory_type: bool,
-    #[serde(default = "default_active_rate")]
-    pub active_rate: f32,
     #[serde(default = "default_lazy_num")]
     pub lazy_num: u32,
 }
