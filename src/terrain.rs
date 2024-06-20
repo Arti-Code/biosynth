@@ -6,10 +6,7 @@ use macroquad::prelude::*;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
 use noise::{
-    core::perlin::perlin_2d, 
-    permutationtable::PermutationTable, 
-    utils::{NoiseMap, NoiseMapBuilder, PlaneMapBuilder}, 
-    Perlin,
+    core::perlin::perlin_2d, permutationtable::PermutationTable, utils::{NoiseMap, NoiseMapBuilder, PlaneMapBuilder}, Fbm, NoiseFn, OpenSimplex, Perlin
 };
 use ::rand::prelude::*;
 
@@ -49,10 +46,26 @@ impl Cell {
         return self.water;
     }
 
-    pub fn get_color(&self, water_level: i32) -> Color {
+    pub fn get_color(&self, _water_level: i32) -> Color {
+        let dif = self.alt - self.water;
+        if dif < 0 {
+            let mut b = 1.0 + (dif as f32 / 100.0);
+            let r = clamp(b-0.75, 0.0, 1.0);
+            let g = clamp(b-0.75, 0.0, 1.0);
+            b = clamp(b, 0.5, 1.0);
+            //let a = 0.5 - (water_level as f32 / 10.0) * 0.5;
+            return Color::new(r, g, b, 1.0);
+        }
+        let alt = self.alt as f32;
+        let c = (alt * 2.0 + 55.0) as i32;
+        let color = color_u8!(c, c, c, 255);
+        return color;
+    }
+
+    pub fn get_color2(&self, water_level: i32) -> Color {
         let dif: i32 = self.alt as i32 - water_level as i32;
         if dif < 0 {
-            let mut b = 1.0 + (dif as f32 / 10.0);
+            let mut b = 1.0 + (dif as f32 / 100.0);
             let r = clamp(b-0.75, 0.0, 1.0);
             let g = clamp(b-0.75, 0.0, 1.0);
             b = clamp(b, 0.5, 1.0);
@@ -124,12 +137,19 @@ impl Terrain {
         }
         for c in 0..self.cells.len() {
             for r in 0..self.cells[c].len() {
-                let cell = &mut self.cells[c][r];
+                let cell = self.cells.get_mut(c).unwrap().get_mut(r).unwrap();
                 let w0 = cell.get_water();
                 let a0 = cell.get_altitude();
                 for x in 0..=2 {
                     for y in 0..=2 {
                         if x == 1 && y == 1 { continue; }
+                        if (c as i32+x as i32-1) < 0 
+                            || (r as i32+y as i32-1) < 0 
+                            || (c as i32+x as i32-1) >= self.cells.len() as i32 
+                            || (r as i32+y as i32-1) >= self.cells[c].len() as i32 
+                        {
+                            continue;
+                        }
                         let w1 = self.cells[c+x-1][r+y-1].get_water();
                         let a1 = self.cells[c+x-1][r+y-1].get_altitude();
                         //let sum0 = a0+w0;
@@ -231,9 +251,14 @@ d = 10 - 7 - 5 = -2
     }
 
     fn generate_noise_map(w: usize, h: usize) -> NoiseMap {
-        let seed = generate_seed() as u32;        
-        let perlin = Perlin::new(seed);
-        return PlaneMapBuilder::new(perlin)
+        let seed = generate_seed() as u32;
+        let mut fbm = Fbm::<Perlin>::new(seed);
+        fbm.frequency = 1.0;
+        fbm.octaves = 3;
+        fbm.lacunarity = 2.0;
+        //let perlin = Perlin::new(seed);
+        
+        return PlaneMapBuilder::new(&fbm)
             .set_size(w, h)
             .set_x_bounds(-6.0, 6.0)
             .set_y_bounds(-6.0, 6.0)
@@ -259,6 +284,19 @@ d = 10 - 7 - 5 = -2
             return w;
         } else {
             return 0;
+        }
+    }
+
+    pub fn add_water_at_cursor(&mut self, amount: i32) {
+        match self.cursor {
+            None => {},
+            Some(coord) => {
+                println!("coord {:?}", coord);
+                let cell = &mut self.cells[coord[0] as usize][coord[1] as usize];
+                let w = cell.get_water();
+                println!("water {:?} | amount {:?}", w, amount);
+                cell.set_water((w+amount) as f32);
+            },
         }
     }
 

@@ -275,7 +275,8 @@ impl Agent {
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics, time: f64) -> Agent {
         let key = gen_range(u64::MIN, u64::MAX);
         let settings = get_settings();
-        let pos = random_position(settings.world_w as f32, settings.world_h as f32);
+        let pos = vec2(sketch.pos[0], sketch.pos[1])+random_unit_vec2()*100.0;
+        //let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
         let color_second = Color::new(sketch.color_second[0], sketch.color_second[1], sketch.color_second[2], sketch.color_second[3]);
         let size = sketch.size;
@@ -1210,6 +1211,7 @@ impl Agent {
             color: self.color.to_vec().to_array(),
             color_second: self.color_second.to_vec().to_array(),  
             network: self.network.get_sketch(),
+            pos: [self.pos.x, self.pos.y],
             points: self.points, 
             neuro_map: self.neuro_map.clone(),
             power: self.power,

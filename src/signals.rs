@@ -68,3 +68,19 @@ impl Signals {
     }
 
 }
+
+
+#[derive(Clone)]
+pub enum UserAction {
+    Idle,
+    WaterAdd,
+    WaterRemove,
+}
+
+impl UserAction {
+
+    pub fn new() -> Self {
+        Self::Idle
+    }
+
+}

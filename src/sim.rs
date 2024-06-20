@@ -34,7 +34,7 @@ pub struct Simulation {
     pub physics: Physics,
     pub camera: Camera2D,
     pub running: bool,
-    //pub sim_time: f64,
+    user_action: UserAction,
     last_autosave: f64,
     pub ui: UISystem,
     pub sim_state: SimState,
@@ -65,6 +65,7 @@ pub struct Simulation {
     population_agents: Vec<i32>,
     population_plants: Vec<i32>,
     stats_timer: Timer,
+    terrain_timer: Timer,
     statistics: Statistics,
     n: usize,
 }
@@ -83,7 +84,7 @@ impl Simulation {
             physics: Physics::new(),
             camera: create_camera(),
             running: false,
-            //sim_time: 0.0,
+            user_action: UserAction::new(),
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
@@ -98,6 +99,7 @@ impl Simulation {
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
             coord_timer: Timer::new(0.25, true, true, true),
+            terrain_timer: Timer::new(1.0, true, true, false),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
             //lifetimes: vec![],
@@ -282,10 +284,19 @@ impl Simulation {
         self.terrain.set_cursor_vec2(cursor);
     }
 
+    fn update_terrain(&mut self) {
+        if self.sim_state.update_terrain {
+            if self.terrain_timer.update(dt()) {
+                self.terrain.update();
+            }
+        }
+    }
+
     pub fn update(&mut self) {
         self.check_signals();
         self.check_settings();
         self.update_sim_state();
+        self.update_terrain();
         self.check_agents_num();
         self.update_plants();
         self.calc_selection_time();
@@ -602,6 +613,7 @@ impl Simulation {
             let mut signals = get_signals();
             signals.update_terrain = false;
             set_signals(signals);
+            self.sim_state.update_terrain = !self.sim_state.update_terrain;
         }
     }
 
@@ -845,26 +857,36 @@ impl Simulation {
     }
 
     fn mouse_input(&mut self) {
-        if is_mouse_button_released(MouseButton::Left) {
-            if !self.ui.pointer_over {
-                self.selected = None;
-                let (mouse_posx, mouse_posy) = mouse_position();
-                let mouse_pos = Vec2::new(mouse_posx, mouse_posy);
-                let rel_coords = self.camera.screen_to_world(mouse_pos);
-                for (id, agent) in self.agents.get_iter() {
-                    if contact_mouse(rel_coords, agent.pos, agent.size) {
-                        self.selected = Some(*id);
-                        break;
+        match self.user_action {
+            UserAction::Idle => {
+                if is_mouse_button_released(MouseButton::Left) {
+                    if !self.ui.pointer_over {
+                        self.selected = None;
+                        let (mouse_posx, mouse_posy) = mouse_position();
+                        let mouse_pos = Vec2::new(mouse_posx, mouse_posy);
+                        let rel_coords = self.camera.screen_to_world(mouse_pos);
+                        for (id, agent) in self.agents.get_iter() {
+                            if contact_mouse(rel_coords, agent.pos, agent.size) {
+                                self.selected = Some(*id);
+                                break;
+                            }
+                        }
+                        if self.selected.is_some() { return; }
+                        for (id, plant) in self.plants.get_iter() {
+                            if contact_mouse(rel_coords, plant.pos, plant.size) {
+                                self.selected = Some(*id);
+                                break;
+                            }
+                        }
                     }
                 }
-                if self.selected.is_some() { return; }
-                for (id, plant) in self.plants.get_iter() {
-                    if contact_mouse(rel_coords, plant.pos, plant.size) {
-                        self.selected = Some(*id);
-                        break;
-                    }
+            },
+            UserAction::WaterAdd => {
+                if is_mouse_button_released(MouseButton::Left) {
+                    self.terrain.add_water_at_cursor(10);
                 }
-            }
+            },
+            _ => {},
         }
     }
 
@@ -1022,7 +1044,16 @@ impl Simulation {
             },
             None => None,
         };
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected_agent, selected_plant, &self.ranking, &self.statistics);
+        self.ui.ui_process(
+            &self.sim_state, 
+            &mut self.signals, 
+            &self.camera, 
+            selected_agent, 
+            selected_plant, 
+            &self.ranking, 
+            &self.statistics,
+            &mut self.user_action
+        );
     }
 
     pub fn draw_ui(&self) {

@@ -117,7 +117,7 @@ impl UISystem {
         egui_ctx.set_style(style);
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, plant: Option<&Plant>, ranking: &Ranking, statistics: &Statistics) {
+    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, plant: Option<&Plant>, ranking: &Ranking, statistics: &Statistics, user_action: &mut UserAction) {
         self.timer += dt();
         self.timer = self.timer%1.0;
         //self.timer = self.timer%get_settings().neuro_duration;
@@ -142,7 +142,7 @@ impl UISystem {
                 None => {},
             }
             self.build_about_window(egui_ctx);
-            self.build_terrain_editor_window(egui_ctx);
+            self.build_terrain_editor_window(egui_ctx, user_action);
             self.build_doc_window(egui_ctx);
             self.build_settings_enviro_window(egui_ctx, signals);
             self.build_settings_agent_window(egui_ctx, signals);
@@ -1075,7 +1075,7 @@ impl UISystem {
         }
     }
 
-    fn build_terrain_editor_window(&mut self, egui_ctx: &Context) {
+    fn build_terrain_editor_window(&mut self, egui_ctx: &Context, user_action: &mut UserAction) {
         if self.state.terrain_tools {
             let terrain_down = self.terrain_down.clone().unwrap();
             let terrain_up = self.terrain_up.clone().unwrap();
@@ -1087,7 +1087,16 @@ impl UISystem {
                     ui.add(widgets::ImageButton::new(terrain_down.id(), UIVec2::new(32.0, 32.0)));
                     ui.add(widgets::ImageButton::new(terrain_up.id(), UIVec2::new(32.0, 32.0)));
                     ui.add(widgets::ImageButton::new(water_down.id(), UIVec2::new(32.0, 32.0)));
-                    ui.add(widgets::ImageButton::new(water_up.id(), UIVec2::new(32.0, 32.0)));
+                    if ui.add(widgets::ImageButton::new(water_up.id(), UIVec2::new(32.0, 32.0))).clicked() {
+                        match user_action {
+                            UserAction::WaterAdd => {
+                                *user_action = UserAction::Idle;
+                            },
+                            _ => {
+                                *user_action = UserAction::WaterAdd;
+                            },
+                        }
+                    }
                 });
             });
         }
@@ -1516,7 +1525,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut water_lvl = settings.water_lvl;
                 column[0].label(RichText::new("WATER LEVEL").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<i32>(&mut water_lvl, 0..=10)).changed() {
+                if column[1].add(Slider::new::<i32>(&mut water_lvl, 0..=100)).changed() {
                     settings.water_lvl = water_lvl;
                     signals.new_settings = true;
                 }

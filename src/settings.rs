@@ -128,8 +128,8 @@ impl Default for Settings {
 
     fn default() -> Self {
         Self {
-            world_w: 3000,
-            world_h: 3000,
+            world_w: 4500,
+            world_h: 4500,
             
             agent_eng_bar: true,
             agent_init_num: 100,
@@ -142,18 +142,18 @@ impl Default for Settings {
 
             mutations: 0.3,
             damage: 100.0,
-            base_energy_cost: 0.25,
-            move_energy_cost: 0.3,
+            base_energy_cost: 0.2,
+            move_energy_cost: 0.2,
             attack_energy_cost: 0.1,
             size_cost: 3.0,
             base_hp: 250,
             size_to_hp: 50.0,
-            eng_bias: 0.15,
+            eng_bias: 0.1,
             dmg_to_hp: 0.1,
-            peripheral_vision: 0.25,
+            peripheral_vision: 0.15,
             
             plant_init_num: 500,
-            plant_balance: 20,
+            plant_balance: 40,
             plant_lifetime: 300.0,
             growth: 5.0,
             plant_min_num: 40,
@@ -166,13 +166,13 @@ impl Default for Settings {
             mut_add_link: 0.025,
             mut_del_link: 0.010,
             mut_add_node: 0.020,
-            mut_del_node: 0.010,
-            mut_change_val: 0.04,
+            mut_del_node: 0.08,
+            mut_change_val: 0.045,
 
             atk_to_eng: 0.8,
             eat_to_eng: 2.5,
             
-            ranking_size: 40,
+            ranking_size: 30,
             repro_points: 30.0,
             rare_specie_mod: 2500,
             born_eng: 0.5,
@@ -181,7 +181,7 @@ impl Default for Settings {
             repro_time: 100.0,
             new_one_probability: 0.2,
             
-            grid_size: 40,
+            grid_size: 20,
             water_lvl: 0,
             follow_mode: false,
             show_network: true,

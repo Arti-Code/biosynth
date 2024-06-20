@@ -225,8 +225,8 @@ impl Node {
             n if n<0.0 => { 
                 let v0 = clamp(255.0*n.abs(), 0.0, 255.0);
                 let v = v0 as u8;
-                let c1 = color_u8!(0, g, 255, v);
-                let c0 = color_u8!(0, g, 255, 255);
+                let c1 = color_u8!(0, 150, 255, v);
+                let c0 = color_u8!(0, 150, 255, 255);
                 (c0, c1) 
             },
             _ => {
