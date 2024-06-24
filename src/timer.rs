@@ -2,7 +2,7 @@
 
 use macroquad::rand::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Timer {
     pub time: f32,
     pub duration: f32,

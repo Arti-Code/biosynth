@@ -19,7 +19,7 @@ use crate::phyx::physics::Physics;
 use crate::phyx::physics_misc::PhysicsMaterial;
 use ::rand::prelude::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Agent {
     pub key: u64,
     pub pos: Vec2,
@@ -839,9 +839,8 @@ impl Agent {
             Some(body) => {
                 let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
-                let v =(self.speed as f32 + 5.0) * settings.agent_speed * 5.0;
+                let v =(self.speed as f32 + 15.0-(self.shell as f32*0.25)) * settings.agent_speed;
                 let mut vel = dir * self.vel * v * dt;
-                //let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
                 let w = clamp(self.water, 0, 4);
                 if w > 1 {
                     vel = vel/4.0;
@@ -849,7 +848,7 @@ impl Agent {
                 if self.run && self.water == 0 {
                     vel *= 1.5;
                 }
-                let rot = self.ang_vel * settings.agent_rotate * dt / (self.shell as f32 * 0.5);
+                let rot = (self.ang_vel * (settings.agent_rotate/(self.shell as f32 * 0.5))) * dt ;
                 body.set_linvel(Vector2::new(vel.x, vel.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);

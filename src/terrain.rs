@@ -1,6 +1,6 @@
 //#![allow(unused)]
 
-
+use std::i32::*;
 use crate::util::*;
 use macroquad::prelude::*;
 use std::fmt::Debug;
@@ -47,19 +47,39 @@ impl Cell {
     }
 
     pub fn get_color(&self, _water_level: i32) -> Color {
-        let dif = self.alt - self.water;
-        if dif < 0 {
-            let mut b = 1.0 + (dif as f32 / 100.0);
+        //let dif = self.alt - self.water;
+        if self.water >= 10 {
+            let mut b = self.water as f32 / 100.0;
             let r = clamp(b-0.75, 0.0, 1.0);
             let g = clamp(b-0.75, 0.0, 1.0);
             b = clamp(b, 0.5, 1.0);
             //let a = 0.5 - (water_level as f32 / 10.0) * 0.5;
             return Color::new(r, g, b, 1.0);
+        } else {
+            let alt = self.alt as f32;
+            let c = (alt * 2.0 + 55.0) as i32;
+            let color = color_u8!(c, c, c, 255);
+            return color;
         }
-        let alt = self.alt as f32;
-        let c = (alt * 2.0 + 55.0) as i32;
-        let color = color_u8!(c, c, c, 255);
-        return color;
+    }
+
+    pub fn get_colors(&self) -> (Color, Option<Color>) {
+        let alt = self.alt as f32 / 100.0;
+        let c0 = alt*0.8 + 0.2;;
+        let terrain = Color::new(c0, c0, c0, 1.0);
+        if self.water == 0 {
+            return (terrain, None);
+        } else {
+            let mut a = self.water as f32 / 100.0;
+            //let b = clamp(a, 0.5, 1.0);
+            let b = 1.0;
+            a = clamp(a, 0.1, 1.0);
+            let r = clamp(b-0.75, 0.0, 1.0);
+            let g = clamp(b-0.75, 0.0, 1.0);
+            let water = Some(Color::new(r, g, b, a));
+            return (terrain, water);
+        }
+        
     }
 
     pub fn get_color2(&self, water_level: i32) -> Color {
@@ -98,19 +118,26 @@ impl Terrain {
         let row_num = (h/s) as usize;
         let col_num = (w/s) as usize;
         let map = Self::generate_noise_map(col_num, row_num);
-        let mut cells: Vec<Vec<Cell>> = vec![];
+        let mut cells: Vec<Vec<Cell>> = Vec::new();
         for c in 0..col_num {
-            let mut row: Vec<Cell> = vec![];
+            let mut row: Vec<Cell> = Vec::new();
             for r in 0..row_num {
                 let mut v = map.get_value(c, r) as f32;
-                v = v + 0.25;
+                v = v+0.15;
                 v = clamp(v, 0.0, 1.0);
                 let cell = Cell::new(v*100.0, 0.0);
                 row.push(cell);
             }
             cells.push(row);
         }
-        Self {cells, width: col_num, height: row_num, cell_size: s, occupied: vec![], water_lvl, cursor: None}
+        Self {
+            cells, 
+            width: col_num, 
+            height: row_num, 
+            cell_size: s, 
+            occupied: Vec::new(), 
+            water_lvl, cursor: None
+        }
     }
 
     pub fn from_serialized_terrain(serialized: &SerializedTerrain) -> Self {
@@ -126,82 +153,97 @@ impl Terrain {
     }
 
     pub fn update(&mut self) {
-        let mut water_buf: Vec<Vec<f32>> = vec![vec![]];
+        let mut water_buf: Vec<Vec<f32>> = Vec::new();
         for c in 0..self.cells.len() {
-            let mut col: Vec<f32> = vec![];
+            let mut col: Vec<f32> = Vec::new();
             for r in 0..self.cells[c].len() {
-                let cell = &mut self.cells[c][r];
-                col.push(cell.get_water() as f32);
+                //let cell = &mut self.cells[c][r];
+                match self.get_cell(c, r) {
+                    Some(cell) => {
+                        col.push(cell.get_water() as f32);
+                    },
+                    None => {
+                        let msg = format!("cell not exist: (x: {} | y {})", c, r);
+                        warn!("{}", msg);
+                        col.push(0.0);
+                    },
+                }
             }
             water_buf.push(col);
         }
-        for c in 0..self.cells.len() {
-            for r in 0..self.cells[c].len() {
-                let cell = self.cells.get_mut(c).unwrap().get_mut(r).unwrap();
-                let w0 = cell.get_water();
-                let a0 = cell.get_altitude();
-                for x in 0..=2 {
-                    for y in 0..=2 {
-                        if x == 1 && y == 1 { continue; }
-                        if (c as i32+x as i32-1) < 0 
-                            || (r as i32+y as i32-1) < 0 
-                            || (c as i32+x as i32-1) >= self.cells.len() as i32 
-                            || (r as i32+y as i32-1) >= self.cells[c].len() as i32 
-                        {
-                            continue;
-                        }
-                        let w1 = self.cells[c+x-1][r+y-1].get_water();
-                        let a1 = self.cells[c+x-1][r+y-1].get_altitude();
-                        //let sum0 = a0+w0;
-                        //let sum1 = a1+w1;
-                        let d =  (a0+w0)-(a1+w1)-(a0-a1);
-                        let mut water0 = 0;
-                        if d > 0 {
-                            if thread_rng().gen_bool(d as f64/6.0 as f64) {
-                                water0 += 1;
-                                water_buf[c+x-1][r+y-1] += 1.0;
+        for c in 0..self.cells.len()-1 {
+            for r in 0..self.cells[c].len()-1 {
+                if let Some(cell) = self.get_cell(c, r) {
+                    let w0 = cell.get_water();
+                    let a0 = cell.get_altitude();
+                    let mut water0 = 0;
+                    for x in 0_i32..=2_i32 {
+                        for y in 0_i32..=2_i32 {
+                            //if (c as i32+x as i32-1) < 0 
+                            //    || (r as i32+y as i32-1) < 0 
+                            //    || (c as i32+x as i32-1) >= self.cells.len() as i32
+                            //    || (r as i32+y as i32-1) >= self.cells[c].len() as i32 
+                            //    {
+                                //        continue;
+                                //    }
+                            //if x == 1 && y == 1 { continue; }
+                            if x.abs() == y.abs() { continue; }
+                            let c2 = c as i32 + x as i32 - 1;
+                            let r2 = r as i32 + y as i32 - 1;
+                            if c2 < 0 || r2 < 0 { continue; }
+                            if water0 >= w0 { continue; }
+                            if let Some(cell2) = self.get_cell(c2 as usize, r2 as usize) {
+                                let w1 = cell2.get_water();
+                                let a1 = cell2.get_altitude();
+                                let d =  (a0+w0)-(a1+w1);
+
+                                if d > 0 && w0 > 0 {
+                                    let over = clamp(d, 0, w0);
+                                    let p = clamp(over as f64/5.0 as f64, 0.0, 1.0);
+                                    if thread_rng().gen_bool(p) {
+                                        water0 += 1;
+                                        water_buf[c2 as usize][r2 as usize] += 1.0;
+                                    }
+                                }
+
+                            } else {
+                                let msg = format!("cell not exist: (x: {} | y {})", c2, r2);
+                                warn!("{}", msg);
                             }
                         }
-                        water_buf[c][r] -= water0 as f32;
                     }
+                    water_buf[c][r] -= water0 as f32;
                 }
             }
         }
-        for c in 0..self.cells.len() {
-            for r in 0..self.cells[c].len() {
+        for c in 0..self.cells.len()-1 {
+            for r in 0..self.cells[c].len()-1 {
                 self.cells[c][r].set_water(water_buf[c][r]);
             }
         }
     }
-/* 
-w0 = 3
-a0 = 7
-w1 = 5
-a1 = 2
 
-sum0 = 10
-sum1 = 7
-d = 10 - 7 - 5 = -2
-
-*/
     pub fn get_altitude(&self, x: usize, y: usize) -> i32 {
         return self.cells[x][y].get_altitude();
     }
 
-    pub fn get_color(&self, x: usize, y: usize) -> Color {
-        return self.cells[x][y].get_color(self.water_lvl);
+    pub fn get_color(&self, x: usize, y: usize) -> (Color, Option<Color>) {
+        return self.cells[x][y].get_colors();
     }
 
     pub fn draw(&self, show_occupied: bool, edit: bool) {
         for c in 0..self.cells.len() {
             for r in 0..self.cells[c].len() {
-                let mut color = self.get_color(c, r);
-                if color.a == 1.0 {
-                    color.a = 0.35;
-                }
+                let (terrain, water) = self.get_color(c, r);
                 let x0 = c as f32 * self.cell_size;
                 let y0 = r as f32 * self.cell_size;
-                draw_rectangle(x0, y0, self.cell_size, self.cell_size, color);
+                draw_rectangle(x0, y0, self.cell_size, self.cell_size, terrain);
+                match water {
+                    None => {},
+                    Some(water) => {
+                        draw_rectangle(x0, y0, self.cell_size, self.cell_size, water);
+                    },
+                }
             }
         }
         if show_occupied {
@@ -222,6 +264,18 @@ d = 10 - 7 - 5 = -2
                     draw_rectangle_lines(x, y, self.cell_size, self.cell_size, 2.0, color_u8!(0, 0, 255, 255));
                 },
             }
+        }
+    }
+
+    fn get_cell(&self, x: usize, y: usize) -> Option<&Cell> {
+        return match self.cells.get(x) {
+            None => None,
+            Some(col) => {
+                match col.get(y) {
+                    None => None,
+                    Some(cell) => Some(cell),
+                }
+            },
         }
     }
 
@@ -253,9 +307,10 @@ d = 10 - 7 - 5 = -2
     fn generate_noise_map(w: usize, h: usize) -> NoiseMap {
         let seed = generate_seed() as u32;
         let mut fbm = Fbm::<Perlin>::new(seed);
-        fbm.frequency = 1.0;
-        fbm.octaves = 3;
-        fbm.lacunarity = 2.0;
+        fbm.frequency = 0.6;
+        fbm.octaves = 6;
+        fbm.lacunarity = 0.7;
+        fbm.persistence = 0.5;
         //let perlin = Perlin::new(seed);
         
         return PlaneMapBuilder::new(&fbm)
@@ -270,7 +325,7 @@ d = 10 - 7 - 5 = -2
     }
 
     pub fn set_water_level(&mut self, new_level: i32) {
-        self.water_lvl = clamp(new_level, 0, 20);
+        self.water_lvl = clamp(new_level, 0, 100);
     }
 
     pub fn get_water_level(&self, coord: [i32; 2]) -> i32 {
@@ -291,10 +346,11 @@ d = 10 - 7 - 5 = -2
         match self.cursor {
             None => {},
             Some(coord) => {
-                println!("coord {:?}", coord);
+                //println!("coord {:?}", coord);
                 let cell = &mut self.cells[coord[0] as usize][coord[1] as usize];
                 let w = cell.get_water();
-                println!("water {:?} | amount {:?}", w, amount);
+                let a = cell.get_altitude();
+                println!("terrain: {:?} | water {:?}", a, w);
                 cell.set_water((w+amount) as f32);
             },
         }

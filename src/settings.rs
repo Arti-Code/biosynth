@@ -128,8 +128,8 @@ impl Default for Settings {
 
     fn default() -> Self {
         Self {
-            world_w: 4500,
-            world_h: 4500,
+            world_w: 2000,
+            world_h: 2000,
             
             agent_eng_bar: true,
             agent_init_num: 100,

@@ -27,6 +27,8 @@ use crate::sketch::*;
 use crate::phyx::physics::Physics;
 use crate::ranking::Ranking;
 
+
+//#[derive(Debug)]
 pub struct Simulation {
     pub simulation_name: String,
     pub world_size: Vec2,
@@ -99,7 +101,7 @@ impl Simulation {
             population_timer: Timer::new(1.0, true, true, false),
             terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
             coord_timer: Timer::new(0.25, true, true, true),
-            terrain_timer: Timer::new(1.0, true, true, false),
+            terrain_timer: Timer::new(0.1, true, true, false),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
             //lifetimes: vec![],
@@ -288,6 +290,7 @@ impl Simulation {
         if self.sim_state.update_terrain {
             if self.terrain_timer.update(dt()) {
                 self.terrain.update();
+                //dbg!(self.terrain.update());
             }
         }
     }
@@ -384,7 +387,7 @@ impl Simulation {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
                     self.plants.plants.get(tg).inspect(|_target| {
-                        let power1 = agent.size + 5.0;
+                        let power1 = agent.size/2.0 + 10.0;
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
@@ -883,7 +886,10 @@ impl Simulation {
             },
             UserAction::WaterAdd => {
                 if is_mouse_button_released(MouseButton::Left) {
-                    self.terrain.add_water_at_cursor(10);
+                    self.terrain.add_water_at_cursor(100);
+                }
+                if is_mouse_button_released(MouseButton::Right) {
+                    self.terrain.add_water_at_cursor(0);
                 }
             },
             _ => {},

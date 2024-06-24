@@ -96,7 +96,7 @@ impl NeuroMap {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EnergyCost {
     pub basic: f32,
     pub movement: f32,

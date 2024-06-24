@@ -37,7 +37,7 @@ pub struct MemStore {
     mean: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Node {
     id: u64,
     pub pos: IVec2,
@@ -54,7 +54,7 @@ pub struct Node {
     lazy: bool,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Link {
     pub id: u64,
     pub w: f32,
@@ -65,7 +65,7 @@ pub struct Link {
     w_mut: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Network {
     pub nodes: HashMap<u64, Node>,
     pub links: HashMap<u64, Link>,
@@ -87,7 +87,7 @@ impl MemStore {
 
     pub fn new_random() -> Self {
         let mut rng = thread_rng();
-        let size: usize = rng.gen_range(1..=100);
+        let size: usize = rng.gen_range(1..=50);
         let memory: VecDeque<f32> = VecDeque::from(vec![0.0; size]);
         let mem_rate: f32 = rng.gen_range(0.0..=1.0);
         Self {
@@ -100,8 +100,8 @@ impl MemStore {
 
     pub fn mutate_size(&mut self) {
         let mut rng = thread_rng();
-        let size: isize = rng.gen_range(-10..=10);
-        self.size = clamp(self.size as isize + size, 1, 100) as usize;
+        let size: isize = rng.gen_range(-5..=5);
+        self.size = clamp(self.size as isize + size, 1, 50) as usize;
         self.memory = VecDeque::from(vec![0.0; self.size]);
     }
 
