@@ -47,13 +47,11 @@ impl Cell {
     }
 
     pub fn get_color(&self, _water_level: i32) -> Color {
-        //let dif = self.alt - self.water;
         if self.water >= 10 {
             let mut b = self.water as f32 / 100.0;
             let r = clamp(b-0.75, 0.0, 1.0);
             let g = clamp(b-0.75, 0.0, 1.0);
             b = clamp(b, 0.5, 1.0);
-            //let a = 0.5 - (water_level as f32 / 10.0) * 0.5;
             return Color::new(r, g, b, 1.0);
         } else {
             let alt = self.alt as f32;
@@ -66,12 +64,11 @@ impl Cell {
     pub fn get_colors(&self) -> (Color, Option<Color>) {
         let alt = self.alt as f32 / 100.0;
         let c0 = alt*0.8 + 0.2;;
-        let terrain = Color::new(c0, c0, c0, 1.0);
+        let terrain = Color::new(c0, c0, c0, 0.8);
         if self.water == 0 {
             return (terrain, None);
         } else {
             let mut a = self.water as f32 / 100.0;
-            //let b = clamp(a, 0.5, 1.0);
             let b = 1.0;
             a = clamp(a, 0.1, 1.0);
             let r = clamp(b-0.75, 0.0, 1.0);
@@ -89,7 +86,6 @@ impl Cell {
             let r = clamp(b-0.75, 0.0, 1.0);
             let g = clamp(b-0.75, 0.0, 1.0);
             b = clamp(b, 0.5, 1.0);
-            //let a = 0.5 - (water_level as f32 / 10.0) * 0.5;
             return Color::new(r, g, b, 1.0);
         }
         let alt = self.alt as f32;
@@ -157,7 +153,6 @@ impl Terrain {
         for c in 0..self.cells.len() {
             let mut col: Vec<f32> = Vec::new();
             for r in 0..self.cells[c].len() {
-                //let cell = &mut self.cells[c][r];
                 match self.get_cell(c, r) {
                     Some(cell) => {
                         col.push(cell.get_water() as f32);
@@ -179,14 +174,6 @@ impl Terrain {
                     let mut water0 = 0;
                     for x in 0_i32..=2_i32 {
                         for y in 0_i32..=2_i32 {
-                            //if (c as i32+x as i32-1) < 0 
-                            //    || (r as i32+y as i32-1) < 0 
-                            //    || (c as i32+x as i32-1) >= self.cells.len() as i32
-                            //    || (r as i32+y as i32-1) >= self.cells[c].len() as i32 
-                            //    {
-                                //        continue;
-                                //    }
-                            //if x == 1 && y == 1 { continue; }
                             if x.abs() == y.abs() { continue; }
                             let c2 = c as i32 + x as i32 - 1;
                             let r2 = r as i32 + y as i32 - 1;
@@ -253,14 +240,12 @@ impl Terrain {
                 draw_rectangle_lines(x0, y0, self.cell_size, self.cell_size, 2.0, color_u8!(255, 0, 0, 255));
             }
         }
-        //println!("cursor");
         if edit {
             match self.cursor {
                 None => {},
                 Some(coord) => {
                     let x = coord[0] as f32 * self.cell_size;
                     let y = coord[1] as f32 * self.cell_size;
-                    //println!("cursor: x{}|y{}", x as i32, y as i32);
                     draw_rectangle_lines(x, y, self.cell_size, self.cell_size, 2.0, color_u8!(0, 0, 255, 255));
                 },
             }
@@ -308,10 +293,9 @@ impl Terrain {
         let seed = generate_seed() as u32;
         let mut fbm = Fbm::<Perlin>::new(seed);
         fbm.frequency = 0.6;
-        fbm.octaves = 6;
-        fbm.lacunarity = 0.7;
-        fbm.persistence = 0.5;
-        //let perlin = Perlin::new(seed);
+        fbm.octaves = 4;
+        fbm.lacunarity = 0.5;
+        fbm.persistence = 0.4;
         
         return PlaneMapBuilder::new(&fbm)
             .set_size(w, h)
@@ -330,7 +314,6 @@ impl Terrain {
 
     pub fn get_water_level(&self, coord: [i32; 2]) -> i32 {
         if self.width as i32 <= coord[0] || self.height as i32 <= coord[1] || coord[0] < 0 || coord[1] < 0 {
-            //warn!("get_water_lvl: coord out of bounds: {:?}", coord);
             return 0;
         }
         let alt = self.cells[coord[0] as usize][coord[1] as usize].alt;
@@ -346,7 +329,6 @@ impl Terrain {
         match self.cursor {
             None => {},
             Some(coord) => {
-                //println!("coord {:?}", coord);
                 let cell = &mut self.cells[coord[0] as usize][coord[1] as usize];
                 let w = cell.get_water();
                 let a = cell.get_altitude();

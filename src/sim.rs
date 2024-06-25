@@ -438,7 +438,7 @@ impl Simulation {
     pub fn draw(&self) {
         //set_default_camera();
         set_camera(&self.camera);
-        clear_background(color_u8!(35,35,35,255));
+        clear_background(color_u8!(0,0,0,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_terrain();
         self.draw_plants();

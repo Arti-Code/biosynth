@@ -44,7 +44,6 @@ pub struct UISystem {
     temp_sim_name: String,
     logo: Option<egui_macroquad::egui::TextureHandle>,
     big_logo: Option<egui_macroquad::egui::TextureHandle>,
-    //title: Option<egui_macroquad::egui::TextureHandle>,
     dice: Option<egui_macroquad::egui::TextureHandle>,
     terrain_up: Option<egui_macroquad::egui::TextureHandle>,
     terrain_down: Option<egui_macroquad::egui::TextureHandle>,
@@ -63,7 +62,6 @@ impl UISystem {
             temp_sim_name: String::new(),
             logo: None,
             big_logo: None,
-            //title: None,
             temp_values: TempValues::default(),
             dice: None,
             terrain_up: None,
@@ -88,8 +86,6 @@ impl UISystem {
             self.logo = Some(egui_ctx.load_texture("logo".to_string(), img, Default::default()));
             let img2 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
-            //let img3 =  Self::load_image(Path::new("assets/img/hexagon128.png")).unwrap();
-            //self.title = Some(egui_ctx.load_texture("title".to_string(), img3, Default::default()));
             let img4 =  Self::load_image(Path::new("assets/img/hexagon24.png")).unwrap();
             let img_terrain_up = Self::load_image(Path::new("assets/img/terrain_up.png")).unwrap();
             let img_terrain_down = Self::load_image(Path::new("assets/img/terrain_down.png")).unwrap();
@@ -129,7 +125,6 @@ impl UISystem {
     ) {
         self.timer += dt();
         self.timer = self.timer%1.0;
-        //self.timer = self.timer%get_settings().neuro_duration;
         egui_macroquad::ui(|egui_ctx| {
             self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
@@ -140,7 +135,6 @@ impl UISystem {
             match agent {
                 Some(agent) => {
                     self.build_ancestors_window(egui_ctx, agent);
-                    //self.build_network(egui_ctx, agent)
                 },
                 None => {},
             }
@@ -376,7 +370,6 @@ impl UISystem {
                         self.state.inspect = !self.state.inspect;
                     }
                     if ui.button(RichText::new("Neural Network").strong().color(Color32::LIGHT_GREEN)).clicked() {
-                        //self.state.neuro_lab = !self.state.neuro_lab;
                         let mut settings = get_settings();
                         settings.show_network = !settings.show_network;
                         set_settings(settings);
@@ -810,14 +803,9 @@ impl UISystem {
             let w = 500.0; let h = 220.0;
             Window::new("EVOLVE").default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h]).show(egui_ctx, |ui| {
                 let big_logo = self.big_logo.clone().unwrap();
-                //let title = self.title.clone().unwrap();
                 ui.vertical_centered(|pic| {
                     pic.image(big_logo.id(), big_logo.size_vec2());
                 });
-                /* ui.add_space(4.0);
-                ui.vertical_centered(|pic| {
-                    pic.image(title.id(), title.size_vec2()*0.7);
-                }); */
                 ui.add_space(1.0);
                 ui.vertical_centered(|author| {
                     let txt = format!("Artur Gwoździowski 2023  |  ver.{}", env!("CARGO_PKG_VERSION"));
@@ -852,19 +840,14 @@ impl UISystem {
                         let n1 = rand::gen_range(0, l1);
                         let name0 = names0.get(n0).unwrap();
                         let name1 = names1.get(n1).unwrap();
-                        //let id = rand::gen_range(100, 999);
                         self.temp_sim_name = format!("{} {}",name0.to_uppercase(), name1.to_uppercase());
                     }
                     if response.gained_focus() {
                     }
-                    //if response.changed() {
-                    //    response.
-                    //}
                     if response.lost_focus() && txt.input(|i| i.key_pressed(Key::Enter)) {
                         self.state.new_sim = false;
                         signals.new_sim = true;
                         signals.new_sim_name = String::from(&self.temp_sim_name);
-                        //self.temp_sim_name = String::new();
                     }
                 });
                 ui.add_space(3.0);
@@ -912,7 +895,6 @@ impl UISystem {
     fn build_resize_world_window(&mut self, egui_ctx: &Context) {
         if self.state.resize_world {
             let win_w = 500.0; let win_h = 220.0;
-            //let mut settings = get_settings();
             let xy = self.temp_values.world_size.unwrap_or(vec2(1800.0, 900.0));
             let mut w = xy.x; let mut h = xy.y;
             Window::new("WORD RESIZE").default_pos((SCREEN_WIDTH / 2.0 - win_w/2.0, 100.0)).default_size([win_w, win_h]).show(egui_ctx, |ui| {
@@ -992,7 +974,7 @@ impl UISystem {
         }
     }
 
-    fn build_network(&mut self, egui_ctx: &Context, agent: &Agent) {
+/*     fn build_network(&mut self, egui_ctx: &Context, agent: &Agent) {
         if self.state.neuro_lab {
             let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
             Window::new(RichText::new("NEURO NETWORK").strong().color(Color32::GREEN)).default_pos((SCREEN_WIDTH-w, 0.0)).fixed_size((w, h)).show(egui_ctx, |ui| {
@@ -1052,7 +1034,7 @@ impl UISystem {
                 }
             });
         }
-    }
+    } */
 
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {
@@ -1578,7 +1560,6 @@ impl UISystem {
                 column[0].label(RichText::new("SHOW PLANT RADIUS").color(Color32::WHITE).strong());
                 if column[1].add(Checkbox::without_text(&mut show_res_rad)).changed() {
                     settings.show_plant_rad = show_res_rad;
-                    //signals.new_settings = true;
                 }
             });
             ui.columns(2, |column| {
@@ -1594,7 +1575,6 @@ impl UISystem {
             ui.add_space(2.0);
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::new(2.0, Color32::DARK_GREEN);
             ui.vertical_centered(|closer| {
-                //let mut stylus = closer.style();
                 if closer.button(RichText::new("CLOSE").color(Color32::GREEN).strong()).clicked() {
                     self.state.environment = false;
                     set_settings(settings.clone());
@@ -1740,12 +1720,6 @@ impl UISystem {
             }
             if self.state.inspect {
                 ui.vertical(|ui| {
-/*                     let name = match agent {
-                        Some(agent) => {
-                            agent.specie.to_uppercase()
-                        },
-                        None => String::from("Inspector"),
-                    }; */
                     ui.collapsing("Inspector", |ui| {
                         self.inside_agent(ui, agent);
                     });
@@ -1769,13 +1743,6 @@ impl UISystem {
             if !self.pointer_over {
                 self.pointer_over = ui.ui_contains_pointer();
             }
-            //if self.state.neuro_lab {
-            //    ui.vertical(|ui| {
-            //        ui.collapsing("Network", |ui| {
-            //            self.inside_network(ui, agent);
-            //        });
-            //    });
-            //}
             if self.state.plot_population {
                 ui.vertical(|ui| {
                     ui.set_height(125.0);
@@ -1847,7 +1814,6 @@ impl UISystem {
             position: plot::Corner::LeftTop,
             ..Default::default()
         };
-        //let statistics = statistics.get_statistics();
         let plot_lifetimes = Plot::new("lifetimes").legend(legend);
         let lifetimes = statistics.get_data_as_slice("lifetimes");
         let agents = statistics.get_data_as_slice("agents");
@@ -1865,7 +1831,6 @@ impl UISystem {
             position: plot::Corner::LeftTop,
             ..Default::default()
         };
-        //let statistics = statistics.get_statistics();
         let born_plot = Plot::new("borns").legend(legend);
         let born = statistics.get_data_as_slice("borns");
         let points = statistics.get_data_as_slice("points");
@@ -1894,13 +1859,11 @@ impl UISystem {
     }
 
     fn inside_plot_attributes(&mut self, ui: &mut Ui, statistics: &Statistics) {
-        //let w = 500.0; let h = 120.0;
         let legend = Legend {
             position: plot::Corner::LeftTop,
             ..Default::default()
         };
         let my_plot = Plot::new("attributes").legend(legend);
-        //let statistics = statistics.get_statistics();
         let sizes = statistics.get_data_as_slice("sizes");
         let powers = statistics.get_data_as_slice("powers");
         let speeds = statistics.get_data_as_slice("speeds");
@@ -2022,7 +1985,6 @@ impl UISystem {
 
     fn inside_network(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
         if let Some(agent) = agent {
-            //let period = self.timer/get_settings().neuro_duration;
             let t = self.timer;
             let network = &agent.network;
             let w = 340.0; let h = 380.0; let resize = egui_macroquad::egui::Vec2::new(3.2, 3.6);
@@ -2041,7 +2003,6 @@ impl UISystem {
                 let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
                 let pt = vec2_to_pos2(&(ui_coord_t*resize+zero));
                 let (_, color1) = link.get_colors();
-                //let c0 = color_to_color32(color0);
                 let c1 = color_to_color32(color1);
                 let points1 = [p1, p2];
                 painter.line_segment(points1, Stroke { color: c1, width: w });
@@ -2060,8 +2021,6 @@ impl UISystem {
                     Some(v) => v,
                 };
                 painter.circle_filled(p1, r0,  Color32::BLACK);
-                //let w1 = 0.5 + 0.35*r1;
-                //painter.circle_stroke(p1, r1, Stroke { color: Color32::GREEN, width: w1 });
                 let w0 = 0.25 + 0.25*r0;
                 painter.circle_stroke(p1, r0, Stroke { color: c0, width: w0 });
                 if mem > 0.0 {
