@@ -49,6 +49,10 @@ pub struct UISystem {
     terrain_down: Option<egui_macroquad::egui::TextureHandle>,
     water_up: Option<egui_macroquad::egui::TextureHandle>,
     water_down: Option<egui_macroquad::egui::TextureHandle>,
+    info: Option<egui_macroquad::egui::TextureHandle>,
+    idle: Option<egui_macroquad::egui::TextureHandle>,
+    quit: Option<egui_macroquad::egui::TextureHandle>,
+
     temp_values: TempValues,
     timer: f32,
 }
@@ -68,6 +72,9 @@ impl UISystem {
             terrain_down: None,
             water_up: None,
             water_down: None,
+            info: None,
+            idle: None,
+            quit: None,
             timer: 0.0,
         }
     }
@@ -88,6 +95,10 @@ impl UISystem {
             self.big_logo = Some(egui_ctx.load_texture("big_logo".to_string(), img2, Default::default()));
             let img4 =  Self::load_image(Path::new("assets/img/hexagon24.png")).unwrap();
             let img_terrain_up = Self::load_image(Path::new("assets/img/terrain_up.png")).unwrap();
+            let img_info = Self::load_image(Path::new("assets/img/info.png")).unwrap();
+            let img_idle = Self::load_image(Path::new("assets/img/idle.png")).unwrap();
+            let img_quit = Self::load_image(Path::new("assets/img/x.png")).unwrap();
+
             let img_terrain_down = Self::load_image(Path::new("assets/img/terrain_down.png")).unwrap();
             let img_water_up = Self::load_image(Path::new("assets/img/water_up.png")).unwrap();
             let img_water_down = Self::load_image(Path::new("assets/img/water_down.png")).unwrap();
@@ -96,6 +107,10 @@ impl UISystem {
             self.terrain_down = Some(egui_ctx.load_texture("terrain_down".to_string(), img_terrain_down, Default::default()));
             self.water_up = Some(egui_ctx.load_texture("water_up".to_string(), img_water_up, Default::default()));
             self.water_down = Some(egui_ctx.load_texture("water_down".to_string(), img_water_down, Default::default()));
+            self.idle = Some(egui_ctx.load_texture("idle".to_string(), img_idle, Default::default()));
+            self.info = Some(egui_ctx.load_texture("info".to_string(), img_info, Default::default()));
+            self.quit = Some(egui_ctx.load_texture("quit".to_string(), img_quit, Default::default()));
+
         });
     }
 
@@ -1068,16 +1083,55 @@ impl UISystem {
 
     fn build_terrain_editor_window(&mut self, egui_ctx: &Context, user_action: &mut UserAction) {
         if self.state.terrain_tools {
+            
             let terrain_down = self.terrain_down.clone().unwrap();
             let terrain_up = self.terrain_up.clone().unwrap();
             let water_down = self.water_down.clone().unwrap();
             let water_up = self.water_up.clone().unwrap();
+            let idle = self.idle.clone().unwrap();
+            let info = self.info.clone().unwrap();
+            let quit = self.quit.clone().unwrap();
             Window::new("TERRAIN EDITOR").resizable(false).default_pos((SCREEN_WIDTH/2.-150., 0.)).min_height(380.).min_width(450.)
             .title_bar(true).show(egui_ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.add(widgets::ImageButton::new(terrain_down.id(), UIVec2::new(32.0, 32.0)));
-                    ui.add(widgets::ImageButton::new(terrain_up.id(), UIVec2::new(32.0, 32.0)));
-                    ui.add(widgets::ImageButton::new(water_down.id(), UIVec2::new(32.0, 32.0)));
+                    ui.label(RichText::new("COORD [ x: | y: ] [height: | water: ").color(Color32::WHITE));
+                });
+                ui.horizontal(|ui| {
+                    if ui.add(widgets::ImageButton::new(idle.id(), UIVec2::new(32.0, 32.0))).clicked() {
+                        match user_action {
+                            _ => {
+                                *user_action = UserAction::Idle;
+                            },
+                        }
+                    }
+                    if ui.add(widgets::ImageButton::new(info.id(), UIVec2::new(32.0, 32.0))).clicked() {
+                        match user_action {
+                            _ => {
+                                *user_action = UserAction::Info;
+                            },
+                        }
+                    }
+                    if ui.add(widgets::ImageButton::new(quit.id(), UIVec2::new(32.0, 32.0))).clicked() {
+                        match user_action {
+                            _ => {
+                                *user_action = UserAction::Idle;
+                            },
+                        }
+                    }
+                });
+                ui.horizontal(|ui| {
+                    //ui.add(widgets::ImageButton::new(terrain_down.id(), UIVec2::new(32.0, 32.0)));
+                    if ui.add(widgets::ImageButton::new(terrain_up.id(), UIVec2::new(32.0, 32.0))).clicked() {
+                        match user_action {
+                            UserAction::TerrainAdd => {
+                                *user_action = UserAction::Idle;
+                            },
+                            _ => {
+                                *user_action = UserAction::TerrainAdd;
+                            },
+                        }
+                    }
+                    //ui.add(widgets::ImageButton::new(water_down.id(), UIVec2::new(32.0, 32.0)));
                     if ui.add(widgets::ImageButton::new(water_up.id(), UIVec2::new(32.0, 32.0))).clicked() {
                         match user_action {
                             UserAction::WaterAdd => {

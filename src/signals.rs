@@ -73,8 +73,10 @@ impl Signals {
 #[derive(Clone)]
 pub enum UserAction {
     Idle,
+    Info,
     WaterAdd,
     WaterRemove,
+    TerrainAdd,
 }
 
 impl UserAction {

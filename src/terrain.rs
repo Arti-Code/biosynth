@@ -18,24 +18,24 @@ pub struct Cell {
 
 impl Cell {
 
-    pub fn new(altitude: f32, water: f32) -> Self {
+    pub fn new(altitude: i32, water: i32) -> Self {
         Self {
-            alt: clamp(altitude, 0.0, 100.0) as i32,
-            water: water as i32,
+            alt: clamp(altitude, 0, 100),
+            water: water,
         }
     }
 
-    pub fn set_cell(&mut self, altitude: f32, water: f32) {
+    pub fn set_cell(&mut self, altitude: i32, water: i32) {
         self.set_altitude(altitude);
         self.set_water(water);
     }
 
-    pub fn set_altitude(&mut self, altitude: f32) {
-        self.alt = clamp(altitude, 0.0, 100.0) as i32;
+    pub fn set_altitude(&mut self, altitude: i32) {
+        self.alt = clamp(altitude, 0, 100);
     }
 
-    pub fn set_water(&mut self, water: f32) {
-        self.water = clamp(water, 0.0, 100.0) as i32;
+    pub fn set_water(&mut self, water: i32) {
+        self.water = clamp(water, 0, 100);
     }
 
     pub fn get_altitude(&self) -> i32 {
@@ -46,12 +46,12 @@ impl Cell {
         return self.water;
     }
 
-    pub fn get_color(&self, _water_level: i32) -> Color {
+/*     pub fn get_color(&self, _water_level: i32) -> Color {
         if self.water >= 10 {
-            let mut b = self.water as f32 / 100.0;
+            let mut b = (self.water as f32 / 100.0)*3.0;
             let r = clamp(b-0.75, 0.0, 1.0);
             let g = clamp(b-0.75, 0.0, 1.0);
-            b = clamp(b, 0.5, 1.0);
+            b = clamp(b*3.0, 0.5, 1.0);
             return Color::new(r, g, b, 1.0);
         } else {
             let alt = self.alt as f32;
@@ -59,7 +59,7 @@ impl Cell {
             let color = color_u8!(c, c, c, 255);
             return color;
         }
-    }
+    } */
 
     pub fn get_colors(&self) -> (Color, Option<Color>) {
         let alt = self.alt as f32 / 100.0;
@@ -69,29 +69,14 @@ impl Cell {
             return (terrain, None);
         } else {
             let mut a = self.water as f32 / 100.0;
-            let b = 1.0;
-            a = clamp(a, 0.1, 1.0);
-            let r = clamp(b-0.75, 0.0, 1.0);
-            let g = clamp(b-0.75, 0.0, 1.0);
-            let water = Some(Color::new(r, g, b, a));
+            //let b = 1.0;
+            a = clamp(a+0.4, 0.0, 1.0);
+            //let r = clamp(b-0.75, 0.0, 1.0);
+            //let g = clamp(b-0.75, 0.0, 1.0);
+            let water = Some(Color::new(0.0, 0.0, 1.0, a));
             return (terrain, water);
         }
         
-    }
-
-    pub fn get_color2(&self, water_level: i32) -> Color {
-        let dif: i32 = self.alt as i32 - water_level as i32;
-        if dif < 0 {
-            let mut b = 1.0 + (dif as f32 / 100.0);
-            let r = clamp(b-0.75, 0.0, 1.0);
-            let g = clamp(b-0.75, 0.0, 1.0);
-            b = clamp(b, 0.5, 1.0);
-            return Color::new(r, g, b, 1.0);
-        }
-        let alt = self.alt as f32;
-        let c = (alt * 2.0 + 55.0) as i32;
-        let color = color_u8!(c, c, c, 255);
-        return color;
     }
 
 }
@@ -120,8 +105,8 @@ impl Terrain {
             for r in 0..row_num {
                 let mut v = map.get_value(c, r) as f32;
                 v = v+0.15;
-                v = clamp(v, 0.0, 1.0);
-                let cell = Cell::new(v*100.0, 0.0);
+                v = clamp(v*100.0, 0.0, 100.0);
+                let cell = Cell::new(v as i32, 0);
                 row.push(cell);
             }
             cells.push(row);
@@ -149,18 +134,18 @@ impl Terrain {
     }
 
     pub fn update(&mut self) {
-        let mut water_buf: Vec<Vec<f32>> = Vec::new();
+        let mut water_buf: Vec<Vec<i32>> = Vec::new();
         for c in 0..self.cells.len() {
-            let mut col: Vec<f32> = Vec::new();
+            let mut col: Vec<i32> = Vec::new();
             for r in 0..self.cells[c].len() {
                 match self.get_cell(c, r) {
                     Some(cell) => {
-                        col.push(cell.get_water() as f32);
+                        col.push(cell.get_water());
                     },
                     None => {
                         let msg = format!("cell not exist: (x: {} | y {})", c, r);
                         warn!("{}", msg);
-                        col.push(0.0);
+                        col.push(0);
                     },
                 }
             }
@@ -189,7 +174,7 @@ impl Terrain {
                                     let p = clamp(over as f64/5.0 as f64, 0.0, 1.0);
                                     if thread_rng().gen_bool(p) {
                                         water0 += 1;
-                                        water_buf[c2 as usize][r2 as usize] += 1.0;
+                                        water_buf[c2 as usize][r2 as usize] += 1;
                                     }
                                 }
 
@@ -199,7 +184,7 @@ impl Terrain {
                             }
                         }
                     }
-                    water_buf[c][r] -= water0 as f32;
+                    water_buf[c][r] -= water0;
                 }
             }
         }
@@ -294,8 +279,8 @@ impl Terrain {
         let mut fbm = Fbm::<Perlin>::new(seed);
         fbm.frequency = 0.6;
         fbm.octaves = 4;
-        fbm.lacunarity = 0.5;
-        fbm.persistence = 0.4;
+        fbm.lacunarity = 0.8;
+        fbm.persistence = 0.8;
         
         return PlaneMapBuilder::new(&fbm)
             .set_size(w, h)
@@ -333,7 +318,20 @@ impl Terrain {
                 let w = cell.get_water();
                 let a = cell.get_altitude();
                 println!("terrain: {:?} | water {:?}", a, w);
-                cell.set_water((w+amount) as f32);
+                cell.set_water(w+amount);
+            },
+        }
+    }
+    
+    pub fn add_terrain_at_cursor(&mut self, amount: i32) {
+        match self.cursor {
+            None => {},
+            Some(coord) => {
+                let cell = &mut self.cells[coord[0] as usize][coord[1] as usize];
+                let w = cell.get_water();
+                let a = cell.get_altitude();
+                println!("terrain: {:?} | water {:?}", a, w);
+                cell.set_altitude(a+amount);
             },
         }
     }

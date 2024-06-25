@@ -885,11 +885,20 @@ impl Simulation {
                 }
             },
             UserAction::WaterAdd => {
-                if is_mouse_button_released(MouseButton::Left) {
-                    self.terrain.add_water_at_cursor(100);
+                if self.ui.pointer_over {
+
+                } else if is_mouse_button_released(MouseButton::Left) {
+                    self.terrain.add_water_at_cursor(50);
+                } else if is_mouse_button_released(MouseButton::Right) {
+                    self.terrain.add_water_at_cursor(-50);
                 }
-                if is_mouse_button_released(MouseButton::Right) {
-                    self.terrain.add_water_at_cursor(0);
+            },
+            UserAction::TerrainAdd => {
+                if self.ui.pointer_over {
+                } else if is_mouse_button_released(MouseButton::Left) {
+                    self.terrain.add_terrain_at_cursor(10);
+                } else if is_mouse_button_released(MouseButton::Right) {
+                    self.terrain.add_terrain_at_cursor(-10);
                 }
             },
             _ => {},
