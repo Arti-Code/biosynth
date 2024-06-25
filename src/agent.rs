@@ -810,13 +810,13 @@ impl Agent {
         }
         let mut row = 1;
         if settings.show_specie {
-            let txt_center = get_text_center(&info, Some(*font), 14, 1.0, 0.0);
-            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 14.0, text_cfg.clone());
+            let txt_center = get_text_center(&info, Some(*font), 10, 1.0, 0.0);
+            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 10.0, text_cfg.clone());
             row += 1;
         }
         if settings.show_generation {
-            let txt_center = get_text_center(&info_gen, Some(*font), 14, 1.0, 0.0);
-            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (14.0*row as f32), text_cfg.clone());
+            let txt_center = get_text_center(&info_gen, Some(*font), 10, 1.0, 0.0);
+            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (10.0*row as f32), text_cfg.clone());
         }
     }
 
