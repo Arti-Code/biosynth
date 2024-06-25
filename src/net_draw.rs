@@ -8,12 +8,14 @@ use crate::{
 }; 
 
 
-pub fn draw_network(agent: &Agent, timer: f32, cam_offset: Vec2) {
+pub fn draw_network(agent: &Agent, timer: f32, cam_offset: Vec2, _cam_zoom: Vec2) {
     let t = timer;
     let network = &agent.network;
     let resize = Vec2::new(4.0, 4.0);
-    let offset = Vec2::new((SCREEN_WIDTH as f32)/2.0-520.0, (SCREEN_HEIGHT as f32)/2.0-450.0);
-    let zero = Vec2::ZERO+offset+cam_offset;
+    let offset = Vec2::new((SCREEN_WIDTH as f32)/2.0-500.0, (SCREEN_HEIGHT as f32)/2.0-450.0);
+    //let norm_zoom = cam_zoom/ZOOM_RATE;
+    //let zero = offset+(cam_offset*norm_zoom);
+    let zero = offset+(cam_offset);
     draw_rectangle(zero.x, zero.y, resize.x*100.0, resize.y*100.0, Color::new(0.0, 0.0, 0.0, 0.65));
     let wi = 0.75;
     for (_, link) in network.links.iter() {

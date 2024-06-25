@@ -450,7 +450,7 @@ impl Simulation {
                     match self.agents.get(selected) {
                         Some(selected_agent) => {
                             let phase = self.sim_state.sim_time % 1.0;
-                            draw_network(selected_agent, phase as f32, self.camera.target);
+                            draw_network(selected_agent, phase as f32, self.camera.target, self.camera.zoom);
                         },
                         None => {},
                     }

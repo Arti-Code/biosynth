@@ -117,7 +117,16 @@ impl UISystem {
         egui_ctx.set_style(style);
     }
 
-    pub fn ui_process(&mut self, sim_state: &SimState, signals: &mut Signals, camera2d: &Camera2D, agent: Option<&Agent>, plant: Option<&Plant>, ranking: &Ranking, statistics: &Statistics, user_action: &mut UserAction) {
+    pub fn ui_process(&mut self,
+        sim_state: &SimState,
+        signals: &mut Signals,
+        camera2d: &Camera2D,
+        agent: Option<&Agent>,
+        plant: Option<&Plant>,
+        ranking: &Ranking,
+        statistics: &Statistics,
+        user_action: &mut UserAction
+    ) {
         self.timer += dt();
         self.timer = self.timer%1.0;
         //self.timer = self.timer%get_settings().neuro_duration;
@@ -411,7 +420,7 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Update").strong().color(Color32::WHITE)).clicked() {
                         let mut signals = get_signals();
-                        signals.update_terrain = true;
+                        signals.update_terrain = !signals.update_terrain;
                         set_signals(signals);
                     }
                 });
@@ -1099,6 +1108,8 @@ impl UISystem {
                     }
                 });
             });
+        } else {
+            *user_action = UserAction::Idle;
         }
     }
 

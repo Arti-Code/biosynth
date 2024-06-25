@@ -64,7 +64,8 @@ async fn main() {
     setup();
     let seed = generate_seed();
     rand::srand(seed);
-    let font = Font::default();
+    //let font = Font::
+    let font = load_ttf_font("assets/fonts/firacode.ttf").await.unwrap();
     let mut sim = Simulation::new(font.clone());
     sim.init();
     sim.ui.load_textures();
@@ -75,7 +76,6 @@ async fn main() {
             sim.load_sim(&save_path, true);
         },
         None => {},
-        //let font = load_ttf_font("assets/fonts/firacode.ttf").await;
     }
 
     loop {

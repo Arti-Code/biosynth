@@ -795,7 +795,7 @@ impl Agent {
         let y0 = self.pos.y;
         let text_cfg = TextParams {
             font: *font,
-            font_size: 14,
+            font_size: 10,
             color: WHITE,
             ..Default::default()
         };
