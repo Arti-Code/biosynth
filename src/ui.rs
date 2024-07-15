@@ -705,10 +705,12 @@ impl UISystem {
                         }
                     },
                 }
-                let rare = get_settings().rare_specie_mod;
-                let r1 = (((rare * 1) as f32).log2() * 1000.0) as i32 + 500;
-                let r5 = (((rare * 5) as f32).log2() * 1000.0) as i32 + 500;
+                let factor = get_settings().rare_specie_mod;
+                let r1 = specie_mod_rate(factor, 1);
+                let r5 = specie_mod_rate(factor, 5);
+                ui.separator();
                 ui.label(format!("mod spec: 1log: {} | 5log: {}", r1, r5));
+
             });
         }
     }

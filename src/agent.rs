@@ -253,8 +253,8 @@ impl Agent {
     fn mod_specie(&mut self, time: f64) {
         let settings = get_settings();
         let n = self.ancestors.get_ancestors().len() as i32;
-        let rare = settings.rare_specie_mod;
-        let r = (((rare * n) as f32).log2() * 1000.0) as i32 + 500;
+        let factor = settings.rare_specie_mod;
+        let r = specie_mod_rate(factor, n);
         if rand::gen_range(0, r) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;

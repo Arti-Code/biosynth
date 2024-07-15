@@ -479,3 +479,7 @@ pub fn draw_smooth_arc(r: f32, center: Vec2, rotation: f32, half_angle: f32, det
     let p1 = center + Vec2::from_angle(rotation + half_angle) * r;
     draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
 }
+
+pub fn specie_mod_rate(factor: i32, ancestor_num: i32) -> i32 {
+    return (((factor * ancestor_num) as f32).log2() * 500.0) as i32 + 500;
+}
