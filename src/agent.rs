@@ -9,6 +9,9 @@ use crate::util::*;
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use rapier2d::geometry::*;
+use rapier2d::na::vector;
+use rapier2d::na::Isometry2;
+use rapier2d::na::Point2;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use crate::settings::*;
@@ -203,14 +206,15 @@ impl Agent {
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
         //let new_rot = rot-PI;
-        let yaw = SharedShape::ball(size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size;
+        //let limb = SharedShape::ball(size/2.0);
+        let limb = SharedShape::ball(size/2.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size*1.25;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size*1.25;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -221,7 +225,7 @@ impl Agent {
             agent.rbh, 
             &right, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -366,14 +370,14 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let yaw = SharedShape::ball(size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size;
+        let limb = SharedShape::ball(size/2.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size*1.25;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size*1.25;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -384,7 +388,7 @@ impl Agent {
             agent.rbh, 
             &right, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -396,7 +400,7 @@ impl Agent {
         return agent;
     }
 
-    pub fn draw(&self, selected: bool, font: &Font, _physics: &Physics) {
+    pub fn draw(&self, selected: bool, font: &Font, physics: &Physics) {
         let settings = get_settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
@@ -404,10 +408,10 @@ impl Agent {
             self.draw_status_bar(hp, GREEN, RED, Vec2::new(0.0, self.size*1.5+4.0));
             self.draw_status_bar(e, SKYBLUE, YELLOW, Vec2::new(0.0, self.size*1.5+6.0));
         }
+        self.draw_limbs(physics);
         self.draw_body();
         self.draw_front();
         self.draw_eyes(selected);
-        //self.draw_limbs(physics);
         if selected {
             self.draw_info(&font);
             self.draw_target(selected);
@@ -418,20 +422,38 @@ impl Agent {
 
     fn draw_limbs(&self, physics: &Physics) {
         let colh_l = physics.core.colliders.get(self.colliders[0]).unwrap();
-        //let tl_l = colh_l.position_wrt_parent().unwrap().translation;
-        //let rot_l = colh_l.rotation().angle();
-        let (mut pos_l, _) = iso_to_vec2_rot(colh_l.position_wrt_parent().unwrap());
-        
-        pos_l.rotate(Vec2::from_angle(self.rot));
-        pos_l += self.pos;
-        //let pos_l = self.pos+Vec2::from_angle(self.rot+rot_l)*(self.size+self.size/5.0);
-        //let loc_l = vec2(tl_l.x, tl_l.y) + self.pos;
         let colh_r = physics.core.colliders.get(self.colliders[1]).unwrap();
-        let tl_r = colh_r.position_wrt_parent().unwrap().translation;
-        let loc_r = vec2(tl_r.x, tl_r.y) + self.pos;
-        draw_circle(pos_l.x, pos_l.y, self.size/2.0, PINK);
-        draw_circle(loc_r.x, loc_r.y, self.size/2.0, PINK);
+        let rl = colh_l.shared_shape().as_ball().unwrap().radius;
+        let rr = colh_r.shared_shape().as_ball().unwrap().radius;
+        let (pos_l, _rot_l) = iso_to_vec2_rot(colh_l.position());
+        let (pos_r, _rot_r) = iso_to_vec2_rot(colh_r.position());
+        //let vec_l = self.pos+((pos_l - self.pos).normalize_or_zero()*self.size);
+        draw_circle(pos_l.x, pos_l.y, rl, GRAY);
+        draw_circle(pos_r.x, pos_r.y, rr, GRAY);
+        //draw_line(self.pos.x, self.pos.y, vec_l.x, vec_l.y, 2.0, RED);
     }
+
+    fn move_limbs(&mut self, physics: &mut Physics) {
+        self.move_limb_left(physics);
+        self.move_limb_right(physics);
+    }
+
+    fn move_limb_left(&self, physics: &mut Physics) {
+        let colh_l = physics.core.colliders.get_mut(self.colliders[0]).unwrap();
+        let (pos_l, _rot_l) = iso_to_vec2_rot(colh_l.position());
+        let mut vec_l = (pos_l-self.pos).normalize_or_zero();
+        vec_l = vec_l.rotate(Vec2::from_angle(0.5))*self.size*1.5;
+        //vec_l = Vec2::from_angle(0.5).rotate(vec_l)*self.size*1.5;
+        colh_l.set_position(Isometry2::new(Vector2::new(vec_l.x+self.pos.x, vec_l.y+self.pos.y), 0.0));
+    }    
+
+    fn move_limb_right(&self, physics: &mut Physics) {
+        let colh_r = physics.core.colliders.get_mut(self.colliders[1]).unwrap();
+        let (pos_r, _rot_r) = iso_to_vec2_rot(colh_r.position());
+        let mut vec_r = (pos_r - self.pos).normalize_or_zero();
+        vec_r = Vec2::from_angle(-0.5).rotate(vec_r)*self.size*1.5;
+        colh_r.set_position(Isometry2::new(Vector2::new(vec_r.x+self.pos.x, vec_r.y+self.pos.y), 0.0));
+    }   
 
     fn draw_body(&self) {
         let x0 = self.pos.x;
@@ -852,6 +874,7 @@ impl Agent {
                 body.set_linvel(Vector2::new(vel.x, vel.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);
+                //self.move_limbs(physics);
             }
             None => {}
         }
@@ -1056,12 +1079,26 @@ impl Agent {
         return vm;
     }
 
+    fn mutate_one_clamp(v: i32, m: f32, min: i32, max: i32) -> i32 {
+        let mut vm: i32 = v;
+        if random_unit_unsigned() < m {
+            let r = rand::gen_range(0, 2);
+            if r == 1 {
+                vm += 1;
+            } else if r == 0 {
+                vm -= 1;
+            }
+            vm = clamp(vm, min, max);
+        }
+        return vm;
+    }
+
     pub fn mutate(&mut self) {
         let settings = get_settings();
         let m = ((self.mutations - 5) as f32) / 20.0;
         let mut_rate = settings.mutations + settings.mutations * m;
         self.mutations = Self::mutate_one(self.mutations, mut_rate);
-        self.size = Self::mutate_one(self.size as i32, mut_rate) as f32;
+        self.size = Self::mutate_one_clamp(self.size as i32, mut_rate, get_settings().agent_size_min, get_settings().agent_size_max) as f32;
         self.power = Self::mutate_one(self.power, mut_rate);
         self.speed = Self::mutate_one(self.speed, mut_rate);
         self.shell = Self::mutate_one(self.shell, mut_rate);
@@ -1169,8 +1206,8 @@ impl Agent {
         agent.mutate();
         agent.calc_hp();
         let yaw = SharedShape::ball(agent.size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size);
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size)*1.25;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size)*1.25;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 

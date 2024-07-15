@@ -99,7 +99,7 @@ impl Simulation {
             ranking: Ranking::new(settings.ranking_size, 20, 10),
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
-            terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
+            terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32),
             coord_timer: Timer::new(0.25, true, true, true),
             terrain_timer: Timer::new(0.1, true, true, false),
             monitor: PerformanceMonitor::new(1.0),
@@ -192,7 +192,7 @@ impl Simulation {
 
     pub fn init(&mut self) {
         let settings = get_settings();
-        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
+        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32);
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
         self.plants.add_many_plants(settings.plant_init_num as usize, &mut self.physics);
@@ -277,13 +277,19 @@ impl Simulation {
             for (_, agent) in self.agents.get_iter_mut() {
                 let coordinates = self.terrain.pos_to_coord(&agent.pos);
                 coords.push(coordinates);
-                agent.set_water_tile(self.terrain.get_water_level(coordinates) as i32);
+                match self.terrain.get_cell(coordinates[0] as usize, coordinates[1] as usize) {
+                    Some(cell) => {
+                        agent.set_water_tile(cell.get_water());
+                    },
+                    None => {},
+                }
             }
             self.terrain.set_occupied(coords);
         }
         let (mouse_x, mouse_y) = mouse_position();
         let cursor = self.camera.screen_to_world(vec2(mouse_x, mouse_y));
         self.terrain.set_cursor_vec2(cursor);
+        
     }
 
     fn update_terrain(&mut self) {
@@ -387,7 +393,7 @@ impl Simulation {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
                     self.plants.plants.get(tg).inspect(|_target| {
-                        let power1 = agent.size/2.0 + 10.0;
+                        let power1 = agent.size/4.0 + 12.0;
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
@@ -593,7 +599,7 @@ impl Simulation {
             settings.world_w = xy.x as i32; settings.world_h = xy.y as i32;
             set_settings(settings.clone());
             self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
-            self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
+            self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32);
             let mut signals = get_signals();
             signals.resize_world = None;
             set_signals(signals);
@@ -927,10 +933,6 @@ impl Simulation {
                 self.points_selection();
             }
         }
-        if settings.water_lvl != self.terrain.water_level() {
-            self.terrain.set_water_level(settings.water_lvl);
-        }
-
     }
 
     fn update_sim_state(&mut self) {

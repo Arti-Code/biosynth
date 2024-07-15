@@ -35,24 +35,12 @@ pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
 
-fn born_eng_cost() -> f32 {
-    return 0.5;
-}
-
-fn peripheral_vision() -> f32 {
-    return 0.25;
-}
-
-fn default_debug() -> bool {
-    return false;
-}
-
-fn default_selection() -> SelectMode {
-    return SelectMode::RANDOM;
-}
-
 fn edit_terrain() -> bool {
     return false;
+}
+
+fn default_brush_size() -> usize {
+    return 1;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -98,7 +86,6 @@ pub struct Settings {
     pub follow_mode: bool,
     pub plant_lifetime: f32,
     pub growth: f32,
-    pub water_lvl: i32,
     pub mut_add_link: f32,
     pub mut_del_link: f32,
     pub mut_add_node: f32,
@@ -107,21 +94,19 @@ pub struct Settings {
     pub rare_specie_mod: i32,
     pub born_eng: f32,
     pub born_eng_min: f32,
-    #[serde(default = "born_eng_cost")]
     pub born_eng_cost: f32,
     pub sim_speed: f32,
     pub stats_limit: usize,
     pub pause: bool,
     pub eng_bias: f32,
     pub dmg_to_hp: f32,
-    #[serde(default = "peripheral_vision")]
     pub peripheral_vision: f32,
-    #[serde(default = "default_debug")]
     pub debug: bool,
-    #[serde(default = "default_selection")]
     pub select_mode: SelectMode,
     #[serde(default = "edit_terrain")]
     pub terrain_edit: bool,
+    #[serde(default = "default_brush_size")]
+    pub brush_size: usize,
 }
 
 impl Default for Settings {
@@ -182,7 +167,6 @@ impl Default for Settings {
             new_one_probability: 0.2,
             
             grid_size: 20,
-            water_lvl: 0,
             follow_mode: false,
             show_network: true,
             show_specie: true,
@@ -196,6 +180,7 @@ impl Default for Settings {
             debug: false,
             select_mode: SelectMode::RANDOM,
             terrain_edit: false,
+            brush_size: 1,
        }
     }
 

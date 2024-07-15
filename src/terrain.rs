@@ -1,7 +1,7 @@
 //#![allow(unused)]
 
 use std::i32::*;
-use crate::util::*;
+use crate::{get_settings, util::*};
 use macroquad::prelude::*;
 use std::fmt::Debug;
 use serde::{Serialize, Deserialize};
@@ -82,20 +82,21 @@ impl Cell {
 }
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct Terrain {
     pub cells: Vec<Vec<Cell>>,
     width: usize,
     height: usize,
     cell_size: f32,
     occupied: Vec<[i32; 2]>,
+    brushed: Vec<(IVec2, f32)>,
     cursor: Option<[i32; 2]>,
-    water_lvl: i32,
+    brush_size: u32,
 }
 
 impl Terrain {
 
-    pub fn new(w: f32, h: f32, s: f32, water_lvl: i32) -> Self {
+    pub fn new(w: f32, h: f32, s: f32) -> Self {
         let row_num = (h/s) as usize;
         let col_num = (w/s) as usize;
         let map = Self::generate_noise_map(col_num, row_num);
@@ -117,7 +118,9 @@ impl Terrain {
             height: row_num, 
             cell_size: s, 
             occupied: Vec::new(), 
-            water_lvl, cursor: None
+            brushed: Vec::new(), 
+            cursor: None,
+            brush_size: 1,
         }
     }
 
@@ -128,8 +131,9 @@ impl Terrain {
             height: serialized.rows_num,
             cell_size: serialized.cell_size,
             occupied: vec![],
-            water_lvl: serialized.water_lvl,
+            brushed: Vec::new(), 
             cursor: None,
+            brush_size: 1,
         }
     }
 
@@ -229,15 +233,18 @@ impl Terrain {
             match self.cursor {
                 None => {},
                 Some(coord) => {
-                    let x = coord[0] as f32 * self.cell_size;
-                    let y = coord[1] as f32 * self.cell_size;
-                    draw_rectangle_lines(x, y, self.cell_size, self.cell_size, 2.0, color_u8!(0, 0, 255, 255));
+                    for (cell_loc, i) in self.brushed.iter() {
+                        let x = cell_loc[0] as f32 * self.cell_size;
+                        let y = cell_loc[1] as f32 * self.cell_size;
+                        let a = clamp((100.0+155.0*i) as u8, 0, 255) as u8;
+                        draw_rectangle_lines(x, y, self.cell_size, self.cell_size, 2.0, color_u8!(0, 0, 255, a));
+                    }
                 },
             }
         }
     }
 
-    fn get_cell(&self, x: usize, y: usize) -> Option<&Cell> {
+    pub fn get_cell(&self, x: usize, y: usize) -> Option<&Cell> {
         return match self.cells.get(x) {
             None => None,
             Some(col) => {
@@ -249,17 +256,38 @@ impl Terrain {
         }
     }
 
+    pub fn get_mut_cell(&mut self, x: usize, y: usize) -> Option<&mut Cell> {
+        return match self.cells.get_mut(x) {
+            None => None,
+            Some(col) => {
+                match col.get_mut(y) {
+                    None => None,
+                    Some(cell) => Some(cell),
+                }
+            },
+        }
+    }
+
     pub fn set_cursor(&mut self, x: i32, y: i32) {
         self.cursor = Some([x, y]);
+        self.collect_cells_under_brush();
     }
 
     pub fn set_cursor_vec2(&mut self, pos: Vec2) {
         let coord = self.pos_to_coord(&pos);
-        self.cursor = Some(coord);
+        self.set_cursor(coord[0], coord[1]);
     }
 
     pub fn set_occupied(&mut self, coord_list: Vec<[i32; 2]>) {
         self.occupied = coord_list;
+    }
+
+    pub fn get_brush_size(&self) -> u32 {
+        return self.brush_size;
+    }
+
+    pub fn set_brush_size(&mut self, size: u32) {
+        self.brush_size = size;
     }
 
     pub fn pos_to_coord(&self, position: &Vec2) -> [i32; 2] {
@@ -289,7 +317,7 @@ impl Terrain {
             .build();
     }
 
-    pub fn water_level(&self) -> i32 {
+/*     pub fn water_level(&self) -> i32 {
         return self.water_lvl;
     }
 
@@ -308,30 +336,87 @@ impl Terrain {
         } else {
             return 0;
         }
-    }
+    } */
 
     pub fn add_water_at_cursor(&mut self, amount: i32) {
         match self.cursor {
             None => {},
-            Some(coord) => {
-                let cell = &mut self.cells[coord[0] as usize][coord[1] as usize];
-                let w = cell.get_water();
-                let a = cell.get_altitude();
-                println!("terrain: {:?} | water {:?}", a, w);
-                cell.set_water(w+amount);
+            Some(_) => {
+                let mut buf: Vec<(IVec2, f32)> = Vec::new();
+                for v in self.brushed.iter() {
+                    let (iv, f) = *v;
+                    buf.push((iv, f));
+                }
+                for (cell_loc, intens) in buf.iter() {
+                    match self.get_mut_cell(cell_loc.x as usize, cell_loc.y as usize) {
+                        None => {},
+                        Some(cell) => {
+                            let w = cell.get_water();
+                            //let a = cell.get_altitude();
+                            //println!("terrain: {:?} | water {:?}", a, w);
+                            let t = w + (amount as f32*intens) as i32;
+                            cell.set_water(t);
+                        },
+                    }
+                }
             },
         }
     }
-    
+
     pub fn add_terrain_at_cursor(&mut self, amount: i32) {
         match self.cursor {
             None => {},
+            Some(_) => {
+                let mut buf: Vec<(IVec2, f32)> = Vec::new();
+                for v in self.brushed.iter() {
+                    let (iv, f) = *v;
+                    buf.push((iv, f));
+                }
+                for (cell_loc, intens) in buf.iter() {
+                    match self.get_mut_cell(cell_loc.x as usize, cell_loc.y as usize) {
+                        None => {},
+                        Some(cell) => {
+                            //let w = cell.get_water();
+                            let a = cell.get_altitude();
+                            //println!("terrain: {:?} | water {:?}", a, w);
+                            let t = a + (amount as f32*intens) as i32;
+                            cell.set_altitude(t);
+                        },
+                    }
+                }
+            },
+        }
+    }
+
+    fn collect_cells_under_brush(&mut self) {
+        self.brushed.clear();
+        self.brush_size = get_settings().brush_size as u32;
+        let s = self.brush_size;
+        match self.cursor {
+            None => {},
             Some(coord) => {
-                let cell = &mut self.cells[coord[0] as usize][coord[1] as usize];
-                let w = cell.get_water();
-                let a = cell.get_altitude();
-                println!("terrain: {:?} | water {:?}", a, w);
-                cell.set_altitude(a+amount);
+                let pos1 = ivec2(coord[0], coord[1]);
+                let half = (s/2) as i32;
+                for c in 0..s {
+                    for r in 0..s {
+                        let x = c as i32 - half;
+                        let y = r as i32 - half;
+                        let pos2 = ivec2(x, y);
+                        let pos = pos1 + pos2;
+                        let fpos = vec2(pos.x as f32, pos.y as f32);
+                        let fpos1 = vec2(pos1.x as f32, pos1.y as f32);
+                        let dist = fpos1.distance(fpos);
+                        if dist <= self.brush_size as f32 {
+                            match self.get_cell(pos.x as usize, pos.y as usize) {
+                                Some(_) => {
+                                    let d = 1.0 - (dist/self.brush_size as f32);
+                                    self.brushed.push((pos, d));
+                                },
+                                None => {},
+                            }
+                        }
+                    }
+                }
             },
         }
     }
@@ -345,7 +430,6 @@ pub struct SerializedTerrain {
     columns_num: usize,
     rows_num: usize,
     cells: Vec<Vec<Cell>>,
-    water_lvl: i32,
 }
 
 impl SerializedTerrain {
@@ -356,7 +440,6 @@ impl SerializedTerrain {
             columns_num: terrain.width,
             rows_num: terrain.height,
             cells: terrain.cells.to_vec(),
-            water_lvl: terrain.water_lvl,
         };
         return serialized_terrain;
     }

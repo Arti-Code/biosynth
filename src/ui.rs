@@ -18,7 +18,7 @@ use macroquad::prelude::*;
 use macroquad::math::vec2;
 use base64::prelude::*;
 use crate::plant::{Plant, PlantType};
-use crate::util::*;
+use crate::{settings, util::*};
 use crate::agent::*;
 use crate::neuro::*;
 use crate::settings::*;
@@ -1143,6 +1143,12 @@ impl UISystem {
                         }
                     }
                 });
+                ui.horizontal(|ui| {
+                    let mut settings = get_settings();
+                    ui.label(RichText::new("Brush Size"));
+                    ui.add(widgets::DragValue::new(&mut settings.brush_size).clamp_range(1..=10).speed(1));
+                    set_settings(settings);
+                });
             });
         } else {
             *user_action = UserAction::Idle;
@@ -1564,16 +1570,6 @@ impl UISystem {
                 column[0].label(RichText::new("NEW AGENT PROBABILITY").color(Color32::WHITE).strong());
                 if column[1].add(Slider::new::<f32>(&mut new_one_probability, 0.0..=0.5).step_by(0.01)).changed() {
                     settings.new_one_probability = new_one_probability;
-                    signals.new_settings = true;
-                }
-            });
-            ui.columns(2, |column| {
-                column[0].set_max_size(UIVec2::new(80., 75.));
-                column[1].set_max_size(UIVec2::new(280., 75.));
-                let mut water_lvl = settings.water_lvl;
-                column[0].label(RichText::new("WATER LEVEL").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new::<i32>(&mut water_lvl, 0..=100)).changed() {
-                    settings.water_lvl = water_lvl;
                     signals.new_settings = true;
                 }
             });
