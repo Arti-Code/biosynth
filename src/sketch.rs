@@ -3,6 +3,7 @@
 use crate::neuro::*;
 use crate::terrain::*;
 use crate::sim::Simulation;
+use crate::util::random_position;
 use macroquad::prelude::*;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -11,7 +12,12 @@ use crate::settings::*;
 use crate::statistics::*;
 use crate::misc::*;
 
-
+fn random_location() -> [f32; 2] {
+    let w = get_settings().world_w as f32;
+    let h = get_settings().world_h as f32;
+    let pos =  random_position(w, h);
+    return [pos.x, pos.y];
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AgentSketch {
@@ -22,6 +28,8 @@ pub struct AgentSketch {
     pub color: [f32; 4],
     pub color_second: [f32; 4],
     pub network: NetworkSketch,
+    #[serde(default = "random_location")]
+    pub pos: [f32; 2],
     pub points: f32,
     pub neuro_map: NeuroMap,
     pub power: i32,
@@ -89,6 +97,14 @@ fn default_memory() -> Option<MemStore> {
     return None;
 }
 
+fn default_active_rate() -> f32 {
+    return 1.0;
+}
+
+fn default_lazy_num() -> u32 {
+    return 0;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeSketch {
     pub id: u64,
@@ -100,6 +116,8 @@ pub struct NodeSketch {
     pub memory: Option<MemStore>,
     #[serde(default = "default_memory_type")]
     pub memory_type: bool,
+    #[serde(default = "default_lazy_num")]
+    pub lazy_num: u32,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

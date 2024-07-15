@@ -9,6 +9,7 @@ use crate::util::*;
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use rapier2d::geometry::*;
+use rapier2d::na::Isometry2;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use crate::settings::*;
@@ -17,10 +18,10 @@ use crate::misc::*;
 use crate::sketch::*;
 use crate::phyx::physics::Physics;
 use crate::phyx::physics_misc::PhysicsMaterial;
+use ::rand::prelude::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Agent {
-    pub key: u64,
     pub pos: Vec2,
     pub rot: f32,
     mass: f32,
@@ -41,6 +42,7 @@ pub struct Agent {
     pub network: Network,
     pub alife: bool,
     pub lifetime: f32,
+    pub repro_time: f32,
     pub generation: u32,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
@@ -115,9 +117,15 @@ impl Agent {
         ];
         let hid = settings.hidden_nodes_num;
         let hid_layers = settings.hidden_layers_num;
-        let deep = vec![hid; hid_layers];
-        //let hid1 = rand::gen_range(1, hid);
-        //let hid2 = rand::gen_range(1, hid);
+        let hid_range = 0..=hid;
+        let layers_range = 0..=hid_layers;
+        //let h = thread_rng().gen_range(hid_range);
+        let l = thread_rng().gen_range(layers_range);
+        let mut deep = vec![];
+        for _ in 0..l {
+            let node_num = thread_rng().gen_range(hid_range.clone());
+            deep.push(node_num);
+        }
         network.build(
             inp_labs.len(), 
             inp_labs, 
@@ -133,7 +141,6 @@ impl Agent {
         neuro_map.add_effectors(output_pairs);
 
         let mut agent = Agent {
-            key: gen_range(u64::MIN, u64::MAX),
             pos,
             rot,
             mass: 0.0,
@@ -154,6 +161,7 @@ impl Agent {
             network,
             alife: true,
             lifetime: 0.0,
+            repro_time: 0.0,
             generation: 0,
             enemy: None,
             enemy_family: None,
@@ -194,14 +202,15 @@ impl Agent {
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
         //let new_rot = rot-PI;
-        let yaw = SharedShape::ball(size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size;
+        //let limb = SharedShape::ball(size/2.0);
+        let limb = SharedShape::ball(size/2.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -212,7 +221,7 @@ impl Agent {
             agent.rbh, 
             &right, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -243,7 +252,10 @@ impl Agent {
 
     fn mod_specie(&mut self, time: f64) {
         let settings = get_settings();
-        if rand::gen_range(0, settings.rare_specie_mod) == 0 {
+        let n = self.ancestors.get_ancestors().len() as i32;
+        let rare = settings.rare_specie_mod;
+        let r = (((rare * n) as f32).log2() * 1000.0) as i32 + 500;
+        if rand::gen_range(0, r) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;
             let mut name = self.specie.to_owned();
@@ -264,9 +276,9 @@ impl Agent {
     }
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics, time: f64) -> Agent {
-        let key = gen_range(u64::MIN, u64::MAX);
         let settings = get_settings();
-        let pos = random_position(settings.world_w as f32, settings.world_h as f32);
+        let pos = vec2(sketch.pos[0], sketch.pos[1])+random_unit_vec2()*100.0;
+        //let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
         let color_second = Color::new(sketch.color_second[0], sketch.color_second[1], sketch.color_second[2], sketch.color_second[3]);
         let size = sketch.size;
@@ -294,7 +306,6 @@ impl Agent {
             false,
         );
         let mut agent = Agent {
-            key,
             pos,
             rot,
             mass: 0.0,
@@ -315,6 +326,7 @@ impl Agent {
             network,
             alife: true,
             lifetime: 0.0,
+            repro_time: 0.0,
             generation: gen,
             enemy: None,
             enemy_family: None,
@@ -355,14 +367,14 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let yaw = SharedShape::ball(size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size;
+        let limb = SharedShape::ball(size/2.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -373,7 +385,7 @@ impl Agent {
             agent.rbh, 
             &right, 
             0.0, 
-            yaw.clone(), 
+            limb.clone(), 
             PhysicsMaterial::agent(), 
             InteractionGroups { 
                 memberships: Group::GROUP_1, 
@@ -385,7 +397,7 @@ impl Agent {
         return agent;
     }
 
-    pub fn draw(&self, selected: bool, font: &Font, _physics: &Physics) {
+    pub fn draw(&self, selected: bool, font: &Font, physics: &Physics) {
         let settings = get_settings();
         if settings.agent_eng_bar {
             let e = self.eng/self.max_eng;
@@ -393,10 +405,10 @@ impl Agent {
             self.draw_status_bar(hp, GREEN, RED, Vec2::new(0.0, self.size*1.5+4.0));
             self.draw_status_bar(e, SKYBLUE, YELLOW, Vec2::new(0.0, self.size*1.5+6.0));
         }
+        self.draw_limbs(physics);
         self.draw_body();
         self.draw_front();
         self.draw_eyes(selected);
-        //self.draw_limbs(physics);
         if selected {
             self.draw_info(&font);
             self.draw_target(selected);
@@ -407,16 +419,38 @@ impl Agent {
 
     fn draw_limbs(&self, physics: &Physics) {
         let colh_l = physics.core.colliders.get(self.colliders[0]).unwrap();
-        //let tl_l = colh_l.position_wrt_parent().unwrap().translation;
-        let rot_l = colh_l.rotation().angle();
-        let pos_l = self.pos+Vec2::from_angle(self.rot+rot_l)*(self.size+self.size/5.0);
-        //let loc_l = vec2(tl_l.x, tl_l.y) + self.pos;
         let colh_r = physics.core.colliders.get(self.colliders[1]).unwrap();
-        let tl_r = colh_r.position_wrt_parent().unwrap().translation;
-        let loc_r = vec2(tl_r.x, tl_r.y) + self.pos;
-        draw_circle(pos_l.x, pos_l.y, self.size/2.0, PINK);
-        draw_circle(loc_r.x, loc_r.y, self.size/2.0, PINK);
+        let rl = colh_l.shared_shape().as_ball().unwrap().radius;
+        let rr = colh_r.shared_shape().as_ball().unwrap().radius;
+        let (pos_l, _rot_l) = iso_to_vec2_rot(colh_l.position());
+        let (pos_r, _rot_r) = iso_to_vec2_rot(colh_r.position());
+        //let vec_l = self.pos+((pos_l - self.pos).normalize_or_zero()*self.size);
+        draw_circle(pos_l.x, pos_l.y, rl, GRAY);
+        draw_circle(pos_r.x, pos_r.y, rr, GRAY);
+        //draw_line(self.pos.x, self.pos.y, vec_l.x, vec_l.y, 2.0, RED);
     }
+
+    fn move_limbs(&mut self, physics: &mut Physics) {
+        self.move_limb_left(physics);
+        self.move_limb_right(physics);
+    }
+
+    fn move_limb_left(&self, physics: &mut Physics) {
+        let colh_l = physics.core.colliders.get_mut(self.colliders[0]).unwrap();
+        let (pos_l, _rot_l) = iso_to_vec2_rot(colh_l.position());
+        let mut vec_l = (pos_l-self.pos).normalize_or_zero();
+        vec_l = vec_l.rotate(Vec2::from_angle(0.5))*self.size*1.5;
+        //vec_l = Vec2::from_angle(0.5).rotate(vec_l)*self.size*1.5;
+        colh_l.set_position(Isometry2::new(Vector2::new(vec_l.x+self.pos.x, vec_l.y+self.pos.y), 0.0));
+    }    
+
+    fn move_limb_right(&self, physics: &mut Physics) {
+        let colh_r = physics.core.colliders.get_mut(self.colliders[1]).unwrap();
+        let (pos_r, _rot_r) = iso_to_vec2_rot(colh_r.position());
+        let mut vec_r = (pos_r - self.pos).normalize_or_zero();
+        vec_r = Vec2::from_angle(-0.5).rotate(vec_r)*self.size*1.5;
+        colh_r.set_position(Isometry2::new(Vector2::new(vec_r.x+self.pos.x, vec_r.y+self.pos.y), 0.0));
+    }   
 
     fn draw_body(&self) {
         let x0 = self.pos.x;
@@ -448,6 +482,9 @@ impl Agent {
     pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
         let dt = dt()*sim_speed();
         self.lifetime += dt;
+        if self.repro_time < get_settings().repro_time {
+            self.repro_time += dt;
+        }
         if self.timer_analize.update(dt) {
             self.update_contacts(other, physics);
             self.watch(physics);
@@ -641,7 +678,7 @@ impl Agent {
         if self.neuro_map.get_action("MOV") > 0.0 {
             self.vel = self.neuro_map.get_action("MOV");
         } else {
-            self.vel = 0.0;
+            self.vel = self.neuro_map.get_action("MOV")*0.2;
         }
         
         if self.neuro_map.get_action("RUN") >= 0.9 {
@@ -656,13 +693,13 @@ impl Agent {
             self.ang_vel = 0.0;
         }
         
-        if self.neuro_map.get_action("ATK") >= 0.75 {
+        if self.neuro_map.get_action("ATK") >= 0.7 {
             self.attacking = true;
         } else {
             self.attacking = false;
         }
 
-        if self.neuro_map.get_action("EAT") >= 0.6 {
+        if self.neuro_map.get_action("EAT") >= 0.7 {
             self.eating = true;
         } else {
             self.eating = false;
@@ -777,7 +814,7 @@ impl Agent {
         let y0 = self.pos.y;
         let text_cfg = TextParams {
             font: *font,
-            font_size: 14,
+            font_size: 10,
             color: WHITE,
             ..Default::default()
         };
@@ -792,13 +829,13 @@ impl Agent {
         }
         let mut row = 1;
         if settings.show_specie {
-            let txt_center = get_text_center(&info, Some(*font), 14, 1.0, 0.0);
-            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 14.0, text_cfg.clone());
+            let txt_center = get_text_center(&info, Some(*font), 10, 1.0, 0.0);
+            draw_text_ex(&info, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + 10.0, text_cfg.clone());
             row += 1;
         }
         if settings.show_generation {
-            let txt_center = get_text_center(&info_gen, Some(*font), 14, 1.0, 0.0);
-            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (14.0*row as f32), text_cfg.clone());
+            let txt_center = get_text_center(&info_gen, Some(*font), 10, 1.0, 0.0);
+            draw_text_ex(&info_gen, x0 - txt_center.x, y0 - txt_center.y + self.size * 2.0 + (10.0*row as f32), text_cfg.clone());
         }
     }
 
@@ -821,9 +858,8 @@ impl Agent {
             Some(body) => {
                 let dt = dt()*sim_speed();
                 let dir = Vec2::from_angle(self.rot);
-                let v =(self.speed as f32 + 5.0) * settings.agent_speed * 5.0;
+                let v =(self.speed as f32 + 15.0-(self.shell as f32*0.25)) * settings.agent_speed;
                 let mut vel = dir * self.vel * v * dt;
-                //let mut v = dir * self.vel * (self.speed as f32/2.0) * settings.agent_speed * dt * 20.0;
                 let w = clamp(self.water, 0, 4);
                 if w > 1 {
                     vel = vel/4.0;
@@ -831,10 +867,11 @@ impl Agent {
                 if self.run && self.water == 0 {
                     vel *= 1.5;
                 }
-                let rot = self.ang_vel * settings.agent_rotate * dt / (self.shell as f32 * 0.5);
+                let rot = (self.ang_vel * (settings.agent_rotate/(self.shell as f32 * 0.5))) * dt ;
                 body.set_linvel(Vector2::new(vel.x, vel.y), true);
                 body.set_angvel(rot, true);
                 self.check_edges(body);
+                //self.move_limbs(physics);
             }
             None => {}
         }
@@ -968,7 +1005,7 @@ impl Agent {
         }
         let shell_loss = self.shell as f32 * 0.25; 
         let speed_loss = self.speed as f32 * 3.0;
-        let mut move_loss = self.vel * (shell_loss + speed_loss + size_cost) * move_cost;
+        let mut move_loss = self.vel.abs() * (shell_loss + speed_loss + size_cost) * move_cost;
         if self.run {
             move_loss *= 2.0;
         }
@@ -1039,12 +1076,26 @@ impl Agent {
         return vm;
     }
 
+    fn mutate_one_clamp(v: i32, m: f32, min: i32, max: i32) -> i32 {
+        let mut vm: i32 = v;
+        if random_unit_unsigned() < m {
+            let r = rand::gen_range(0, 2);
+            if r == 1 {
+                vm += 1;
+            } else if r == 0 {
+                vm -= 1;
+            }
+            vm = clamp(vm, min, max);
+        }
+        return vm;
+    }
+
     pub fn mutate(&mut self) {
         let settings = get_settings();
-        let m = ((self.mutations - 5) as f32) / 10.0;
+        let m = ((self.mutations - 5) as f32) / 20.0;
         let mut_rate = settings.mutations + settings.mutations * m;
         self.mutations = Self::mutate_one(self.mutations, mut_rate);
-        self.size = Self::mutate_one(self.size as i32, mut_rate) as f32;
+        self.size = Self::mutate_one_clamp(self.size as i32, mut_rate, get_settings().agent_size_min, get_settings().agent_size_max) as f32;
         self.power = Self::mutate_one(self.power, mut_rate);
         self.speed = Self::mutate_one(self.speed, mut_rate);
         self.shell = Self::mutate_one(self.shell, mut_rate);
@@ -1063,8 +1114,6 @@ impl Agent {
     }
 
     pub fn replicate(&self, physics: &mut Physics, time: f64) -> Agent {
-        //let settings = get_settings();
-        let key = gen_range(u64::MIN, u64::MAX);
         let color = self.color.to_owned();
         let color_second = self.color_second.to_owned();
         let shape = SharedShape::ball(self.size);
@@ -1089,7 +1138,6 @@ impl Agent {
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
         let mut agent = Agent {
-            key,
             pos,
             rot,
             mass: 0.0,
@@ -1110,6 +1158,7 @@ impl Agent {
             network,
             alife: true,
             lifetime: 0.0,
+            repro_time: 0.0,
             generation: self.generation + 1,
             enemy: None,
             enemy_family: None,
@@ -1151,8 +1200,8 @@ impl Agent {
         agent.mutate();
         agent.calc_hp();
         let yaw = SharedShape::ball(agent.size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size);
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size)*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size)*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -1192,6 +1241,7 @@ impl Agent {
             color: self.color.to_vec().to_array(),
             color_second: self.color_second.to_vec().to_array(),  
             network: self.network.get_sketch(),
+            pos: [self.pos.x, self.pos.y],
             points: self.points, 
             neuro_map: self.neuro_map.clone(),
             power: self.power,

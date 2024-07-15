@@ -5,9 +5,7 @@ use macroquad::prelude::*;
 use macroquad::math::clamp;
 use rapier2d::na::*;
 use rapier2d::prelude::*;
-use std::collections::hash_set::Iter;
-use std::collections::{HashMap, HashSet};
-use std::io;
+use std::collections::HashSet;
 use crate::settings::*;
 use super::physics_misc::*;
 use crate::phyx::dbg::MacroRapierDebugger;
@@ -117,7 +115,6 @@ pub struct PhysicsCore {
     pub attract_num: u32,
     pub rigid_bodies: RigidBodySet,
     pub colliders: ColliderSet,
-    bodies_keys: HashMap<RigidBodyHandle, u64>,
     gravity: Vector2<f32>,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
@@ -159,7 +156,6 @@ impl PhysicsCore {
         Self {
             attract_num: 0,
             rigid_bodies: RigidBodySet::new(),
-            bodies_keys: HashMap::new(),
             colliders: ColliderSet::new(),
             gravity: Vector2::new(0.0, 0.0),
             integration_parameters: params,

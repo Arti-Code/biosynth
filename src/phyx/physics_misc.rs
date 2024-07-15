@@ -45,7 +45,7 @@ impl PhysicsMaterial {
     } */
 
     pub fn plant() -> Self {
-        Self { friction: 0.8, restitution: 0.0, density: 2.0, linear_damping: 5.0, angular_damping: 0.7 }
+        Self { friction: 0.8, restitution: 0.0, density: 5.0, linear_damping: 5.0, angular_damping: 0.7 }
     }
 
     pub fn agent() -> Self {

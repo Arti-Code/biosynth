@@ -35,20 +35,12 @@ pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
 
-fn born_eng_cost() -> f32 {
-    return 0.5;
-}
-
-fn peripheral_vision() -> f32 {
-    return 0.25;
-}
-
-fn default_debug() -> bool {
+fn edit_terrain() -> bool {
     return false;
 }
 
-fn default_selection() -> SelectMode {
-    return SelectMode::RANDOM;
+fn default_brush_size() -> usize {
+    return 1;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -94,7 +86,6 @@ pub struct Settings {
     pub follow_mode: bool,
     pub plant_lifetime: f32,
     pub growth: f32,
-    pub water_lvl: i32,
     pub mut_add_link: f32,
     pub mut_del_link: f32,
     pub mut_add_node: f32,
@@ -103,27 +94,27 @@ pub struct Settings {
     pub rare_specie_mod: i32,
     pub born_eng: f32,
     pub born_eng_min: f32,
-    #[serde(default = "born_eng_cost")]
     pub born_eng_cost: f32,
     pub sim_speed: f32,
     pub stats_limit: usize,
     pub pause: bool,
     pub eng_bias: f32,
     pub dmg_to_hp: f32,
-    #[serde(default = "peripheral_vision")]
     pub peripheral_vision: f32,
-    #[serde(default = "default_debug")]
     pub debug: bool,
-    #[serde(default = "default_selection")]
     pub select_mode: SelectMode,
+    #[serde(default = "edit_terrain")]
+    pub terrain_edit: bool,
+    #[serde(default = "default_brush_size")]
+    pub brush_size: usize,
 }
 
 impl Default for Settings {
 
     fn default() -> Self {
         Self {
-            world_w: 3000,
-            world_h: 3000,
+            world_w: 2000,
+            world_h: 2000,
             
             agent_eng_bar: true,
             agent_init_num: 100,
@@ -136,47 +127,46 @@ impl Default for Settings {
 
             mutations: 0.3,
             damage: 100.0,
-            base_energy_cost: 0.25,
-            move_energy_cost: 0.3,
+            base_energy_cost: 0.2,
+            move_energy_cost: 0.2,
             attack_energy_cost: 0.1,
             size_cost: 3.0,
             base_hp: 250,
             size_to_hp: 50.0,
-            eng_bias: 0.15,
+            eng_bias: 0.1,
             dmg_to_hp: 0.1,
-            peripheral_vision: 0.25,
+            peripheral_vision: 0.15,
             
             plant_init_num: 500,
-            plant_balance: 20,
+            plant_balance: 40,
             plant_lifetime: 300.0,
             growth: 5.0,
             plant_min_num: 40,
             plant_clone_size: 6,
             
-            neurolink_rate: 0.2,
-            hidden_nodes_num: 0,
-            hidden_layers_num: 0,
-            neuro_duration: 0.5,
-            mut_add_link: 0.035,
-            mut_del_link: 0.035,
-            mut_add_node: 0.015,
-            mut_del_node: 0.015,
-            mut_change_val: 0.05,
+            neurolink_rate: 0.15,
+            hidden_nodes_num: 5,
+            hidden_layers_num: 5,
+            neuro_duration: 0.2,
+            mut_add_link: 0.025,
+            mut_del_link: 0.010,
+            mut_add_node: 0.020,
+            mut_del_node: 0.08,
+            mut_change_val: 0.045,
 
             atk_to_eng: 0.8,
             eat_to_eng: 2.5,
             
-            ranking_size: 40,
+            ranking_size: 30,
             repro_points: 30.0,
-            rare_specie_mod: 2500,
+            rare_specie_mod: 10,
             born_eng: 0.5,
             born_eng_min: 0.9,
             born_eng_cost: 0.5,
             repro_time: 100.0,
             new_one_probability: 0.2,
             
-            grid_size: 40,
-            water_lvl: 0,
+            grid_size: 20,
             follow_mode: false,
             show_network: true,
             show_specie: true,
@@ -189,6 +179,8 @@ impl Default for Settings {
             pause: false,
             debug: false,
             select_mode: SelectMode::RANDOM,
+            terrain_edit: false,
+            brush_size: 1,
        }
     }
 

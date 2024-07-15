@@ -2,7 +2,7 @@
 
 use macroquad::{experimental::collections::storage, prelude::Vec2};
 
-pub fn set_global_signals(signals: Signals) {
+pub fn set_signals(signals: Signals) {
     storage::store(signals);
 }
 
@@ -16,10 +16,6 @@ pub fn get_signals() -> Signals {
 pub struct Signals {
     pub world: Vec2,
     pub spawn_agent: bool,
-    pub spawn_plant: bool,
-    pub spawn_asteroid: bool,
-    pub spawn_jet: bool,
-    pub spawn_particles: bool,
     pub new_sim: bool,
     pub new_sim_name: String,
     pub new_settings: bool,
@@ -35,6 +31,7 @@ pub struct Signals {
     pub resize_world: Option<Vec2>,
     pub export_settings: bool,
     pub import_settings: bool,
+    pub update_terrain: bool,
 }
 
 impl Signals {
@@ -43,10 +40,6 @@ impl Signals {
         Self {
             world: Vec2::NAN,
             spawn_agent: false,
-            spawn_plant: false,
-            spawn_asteroid: false,
-            spawn_jet: false,
-            spawn_particles: false,
             new_sim: false,
             new_sim_name: String::new(),
             new_settings: false,
@@ -62,7 +55,26 @@ impl Signals {
             resize_world: None,
             export_settings: false,
             import_settings: false,
+            update_terrain: false,
         }
+    }
+
+}
+
+
+#[derive(Clone)]
+pub enum UserAction {
+    Idle,
+    Info,
+    WaterAdd,
+    WaterRemove,
+    TerrainAdd,
+}
+
+impl UserAction {
+
+    pub fn new() -> Self {
+        Self::Idle
     }
 
 }

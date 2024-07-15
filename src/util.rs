@@ -323,7 +323,8 @@ pub struct SimState {
     pub eyes: Vec<[f64; 2]>,
     pub shells: Vec<[f64; 2]>,
     pub mutations: Vec<[f64; 2]>,
-    //pub stats: Statistics,
+    pub update_terrain: bool,
+    pub mod_spec: i32,
 }
 
 impl SimState {
@@ -355,6 +356,8 @@ impl SimState {
             mutations: vec![],
             //stats: Statistics::new(limit),
             points: vec![],
+            update_terrain: false,
+            mod_spec: 0,
         }
     }
 

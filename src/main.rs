@@ -1,5 +1,5 @@
 #![allow(unused)]
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 mod camera;
 mod neuro;
@@ -55,7 +55,7 @@ fn app_configuration() -> Conf {
 
 fn setup() {
     set_settings(Settings::default());
-    set_global_signals(Signals::new());
+    set_signals(Signals::new());
     set_mutations(MutationStats::new(0.0, 0.0));
 }
 
@@ -64,7 +64,8 @@ async fn main() {
     setup();
     let seed = generate_seed();
     rand::srand(seed);
-    let font = Font::default();
+    //let font = Font::
+    let font = load_ttf_font("assets/fonts/jetbrain_medium.ttf").await.unwrap();
     let mut sim = Simulation::new(font.clone());
     sim.init();
     sim.ui.load_textures();
@@ -75,7 +76,6 @@ async fn main() {
             sim.load_sim(&save_path, true);
         },
         None => {},
-        //let font = load_ttf_font("assets/fonts/firacode.ttf").await;
     }
 
     loop {

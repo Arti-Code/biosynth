@@ -85,12 +85,13 @@ impl AgentBox {
         let settings = get_settings();
         let mut newborns: Vec<Agent> = vec![];
         for (_, agent) in self.get_iter_mut() {
-            if agent.lifetime >= (settings.repro_time + settings.repro_time * agent.childs as f32) && (agent.eng/agent.max_eng) >= settings.born_eng_min {
+            if agent.repro_time >= settings.repro_time && (agent.eng/agent.max_eng) >= settings.born_eng_min {
                 let newbie = agent.replicate(physics, time).to_owned();
                 newborns.push(newbie);
                 agent.childs += 1;
                 agent.points += settings.repro_points;
                 agent.eng -= settings.born_eng_cost*agent.max_eng;
+                agent.repro_time = 0.0;
             }
         }
         loop {

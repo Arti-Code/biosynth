@@ -27,6 +27,8 @@ use crate::sketch::*;
 use crate::phyx::physics::Physics;
 use crate::ranking::Ranking;
 
+
+//#[derive(Debug)]
 pub struct Simulation {
     pub simulation_name: String,
     pub world_size: Vec2,
@@ -34,7 +36,7 @@ pub struct Simulation {
     pub physics: Physics,
     pub camera: Camera2D,
     pub running: bool,
-    //pub sim_time: f64,
+    user_action: UserAction,
     last_autosave: f64,
     pub ui: UISystem,
     pub sim_state: SimState,
@@ -65,6 +67,7 @@ pub struct Simulation {
     population_agents: Vec<i32>,
     population_plants: Vec<i32>,
     stats_timer: Timer,
+    terrain_timer: Timer,
     statistics: Statistics,
     n: usize,
 }
@@ -83,7 +86,7 @@ impl Simulation {
             physics: Physics::new(),
             camera: create_camera(),
             running: false,
-            //sim_time: 0.0,
+            user_action: UserAction::new(),
             ui: UISystem::new(),
             sim_state: SimState::new(),
             signals: Signals::new(),
@@ -96,8 +99,9 @@ impl Simulation {
             ranking: Ranking::new(settings.ranking_size, 20, 10),
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
-            terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32, settings.water_lvl),
+            terrain: Terrain::new(0.0, 0.0, settings.grid_size as f32),
             coord_timer: Timer::new(0.25, true, true, true),
+            terrain_timer: Timer::new(0.1, true, true, false),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
             //lifetimes: vec![],
@@ -142,7 +146,7 @@ impl Simulation {
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
-        self.simulation_name = match sim_name {
+        /* self.simulation_name = match sim_name {
             Some(name) => name.to_string(),
             None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
         };
@@ -152,6 +156,7 @@ impl Simulation {
         self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
         self.agents.agents.clear();
         self.plants.plants.clear();
+        self.ranking = Ranking::new(settings.ranking_size, 20, 10);
         //self.sim_time = 0.0;
         self.sim_state = SimState::new();
         self.sim_state.sim_name = String::from(&self.simulation_name);
@@ -159,11 +164,16 @@ impl Simulation {
         self.selected = None;
         self.select_phase = 0.0;
         self.mouse_state = MouseState { pos: Vec2::NAN };
-        self.running = true;
+        self.running = true; */
+        self.clear_sim(sim_name);
         self.init();
     }
 
-    fn clear_sim(&mut self) {
+    fn clear_sim(&mut self, sim_name: Option<&str>) {
+        self.simulation_name = match sim_name {
+            Some(name) => name.to_string(),
+            None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
+        };
         let settings = get_settings();
         self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
         self.physics = Physics::new();
@@ -172,7 +182,7 @@ impl Simulation {
         self.ranking = Ranking::new(settings.ranking_size, 20, 10);
         //self.sim_time = 0.0;
         self.sim_state = SimState::new();
-        self.sim_state.sim_name = String::from("");
+        self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
         self.selected = None;
         self.select_phase = 0.0;
@@ -182,6 +192,7 @@ impl Simulation {
 
     pub fn init(&mut self) {
         let settings = get_settings();
+        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32);
         let agents_num = settings.agent_init_num;
         self.agents.add_many_agents(agents_num as usize, &mut self.physics);
         self.plants.add_many_plants(settings.plant_init_num as usize, &mut self.physics);
@@ -266,9 +277,27 @@ impl Simulation {
             for (_, agent) in self.agents.get_iter_mut() {
                 let coordinates = self.terrain.pos_to_coord(&agent.pos);
                 coords.push(coordinates);
-                agent.set_water_tile(self.terrain.get_water_lvl(coordinates) as i32);
+                match self.terrain.get_cell(coordinates[0] as usize, coordinates[1] as usize) {
+                    Some(cell) => {
+                        agent.set_water_tile(cell.get_water());
+                    },
+                    None => {},
+                }
             }
             self.terrain.set_occupied(coords);
+        }
+        let (mouse_x, mouse_y) = mouse_position();
+        let cursor = self.camera.screen_to_world(vec2(mouse_x, mouse_y));
+        self.terrain.set_cursor_vec2(cursor);
+        
+    }
+
+    fn update_terrain(&mut self) {
+        if self.sim_state.update_terrain {
+            if self.terrain_timer.update(dt()) {
+                self.terrain.update();
+                //dbg!(self.terrain.update());
+            }
         }
     }
 
@@ -276,6 +305,7 @@ impl Simulation {
         self.check_signals();
         self.check_settings();
         self.update_sim_state();
+        self.update_terrain();
         self.check_agents_num();
         self.update_plants();
         self.calc_selection_time();
@@ -363,7 +393,7 @@ impl Simulation {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
                     self.plants.plants.get(tg).inspect(|_target| {
-                        let power1 = agent.size + 5.0;
+                        let power1 = agent.size/4.0 + 12.0;
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
@@ -414,7 +444,7 @@ impl Simulation {
     pub fn draw(&self) {
         //set_default_camera();
         set_camera(&self.camera);
-        clear_background(color_u8!(35,35,35,255));
+        clear_background(color_u8!(0,0,0,255));
         draw_rectangle_lines(0.0, 0.0, self.world_size.x, self.world_size.y, 3.0, WHITE);
         self.draw_terrain();
         self.draw_plants();
@@ -426,7 +456,7 @@ impl Simulation {
                     match self.agents.get(selected) {
                         Some(selected_agent) => {
                             let phase = self.sim_state.sim_time % 1.0;
-                            draw_network(selected_agent, phase as f32, self.camera.target);
+                            draw_network(selected_agent, phase as f32, self.camera.target, self.camera.zoom);
                         },
                         None => {},
                     }
@@ -444,7 +474,7 @@ impl Simulation {
 
     pub fn draw_terrain(&self) {
         let settings = get_settings();
-        self.terrain.draw(settings.show_cells);
+        self.terrain.draw(settings.show_cells, settings.terrain_edit);
     }
 
     fn draw_plants(&self) {
@@ -500,6 +530,8 @@ impl Simulation {
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
+            //let rare = get_settings().rare_specie_mod;
+            //let r = ((rare * n as i32) as f32).log2() as i32;
         }
         if self.signals.save_selected {
             self.signals.save_selected = false;
@@ -523,7 +555,7 @@ impl Simulation {
                     let sim_name = name.to_owned();
                     let mut signals = get_signals();
                     signals.load_sim_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                     self.load_sim(&sim_name, false);
                     self.init_stats();
                 },
@@ -537,7 +569,7 @@ impl Simulation {
                     let mut signals = get_signals();
                     self.delete_sim(&sim_name);
                     signals.del_sim_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                 },
             }
         }
@@ -547,7 +579,7 @@ impl Simulation {
                     self.load_encoded_agent(&agent_file_name);
                     let mut signals = get_signals();
                     signals.load_agent_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                 },
                 None => {},
             }
@@ -558,7 +590,7 @@ impl Simulation {
                     self.delete_agent(&agent_file_name);
                     let mut signals = get_signals();
                     signals.del_agent_name = None;
-                    set_global_signals(signals);
+                    set_signals(signals);
                 },
                 None => {},
             }
@@ -569,23 +601,30 @@ impl Simulation {
             settings.world_w = xy.x as i32; settings.world_h = xy.y as i32;
             set_settings(settings.clone());
             self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
-            self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
+            self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32);
             let mut signals = get_signals();
             signals.resize_world = None;
-            set_global_signals(signals);
+            set_signals(signals);
         }
         if get_signals().export_settings {
             let mut signals = get_signals();
             signals.export_settings = false;
-            set_global_signals(signals);
+            set_signals(signals);
             self.export_settings();
         }
 
         if get_signals().import_settings {
             let mut signals = get_signals();
             signals.import_settings = false;
-            set_global_signals(signals);
+            set_signals(signals);
             self.import_settings();
+        }
+
+        if get_signals().update_terrain {
+            let mut signals = get_signals();
+            signals.update_terrain = false;
+            set_signals(signals);
+            self.sim_state.update_terrain = !self.sim_state.update_terrain;
         }
     }
 
@@ -682,27 +721,27 @@ impl Simulation {
                             Err(_) => {
                                 println!("can't deserialize saved sim... [{}]", &f);
                             },
-                            Ok(sim_state) => {
-                                self.clear_sim();
-                                self.simulation_name = sim_state.simulation_name.to_owned();
-                                self.sim_state.sim_name = sim_state.simulation_name.to_owned();
-                                self.sim_state.sim_time = sim_state.sim_time;
-                                self.plot_x = sim_state.sim_time as i32 / 100;
-                                self.last_autosave = sim_state.last_autosave;
-                                self.world_size = sim_state.world_size.to_vec2();
-                                let mut settings = sim_state.settings.to_owned();
-                                settings.world_h = sim_state.world_size.y as i32;
-                                settings.world_w = sim_state.world_size.x as i32;
+                            Ok(sim_sketch) => {
+                                self.reset_sim(Some(sim_sketch.simulation_name.as_str()));
+                                //self.simulation_name = sim_sketch.simulation_name.to_owned();
+                                self.sim_state.sim_name = sim_sketch.simulation_name.to_owned();
+                                self.sim_state.sim_time = sim_sketch.sim_time;
+                                self.plot_x = sim_sketch.sim_time as i32 / 100;
+                                self.last_autosave = sim_sketch.last_autosave;
+                                self.world_size = sim_sketch.world_size.to_vec2();
+                                let mut settings = sim_sketch.settings.to_owned();
+                                settings.world_h = sim_sketch.world_size.y as i32;
+                                settings.world_w = sim_sketch.world_size.x as i32;
                                 set_settings(settings);
-                                self.terrain = Terrain::from_serialized_terrain(&sim_state.terrain);
-                                for agent_sketch in sim_state.agents.iter() {
+                                self.terrain = Terrain::from_serialized_terrain(&sim_sketch.terrain);
+                                for agent_sketch in sim_sketch.agents.iter() {
                                     let agent = Agent::from_sketch(agent_sketch.clone(), &mut self.physics, self.sim_state.sim_time);
                                     self.agents.add_agent(agent);
                                 }
                                 let settings = get_settings();
                                 self.plants.add_many_plants(settings.plant_init_num, &mut self.physics);
-                                self.ranking.general = sim_state.ranking.to_owned();
-                                self.ranking.school =  sim_state.school.to_owned();
+                                self.ranking.general = sim_sketch.ranking.to_owned();
+                                self.ranking.school =  sim_sketch.school.to_owned();
                             },
                         }
                     }
@@ -829,26 +868,48 @@ impl Simulation {
     }
 
     fn mouse_input(&mut self) {
-        if is_mouse_button_released(MouseButton::Left) {
-            if !self.ui.pointer_over {
-                self.selected = None;
-                let (mouse_posx, mouse_posy) = mouse_position();
-                let mouse_pos = Vec2::new(mouse_posx, mouse_posy);
-                let rel_coords = self.camera.screen_to_world(mouse_pos);
-                for (id, agent) in self.agents.get_iter() {
-                    if contact_mouse(rel_coords, agent.pos, agent.size) {
-                        self.selected = Some(*id);
-                        break;
+        match self.user_action {
+            UserAction::Idle => {
+                if is_mouse_button_released(MouseButton::Left) {
+                    if !self.ui.pointer_over {
+                        self.selected = None;
+                        let (mouse_posx, mouse_posy) = mouse_position();
+                        let mouse_pos = Vec2::new(mouse_posx, mouse_posy);
+                        let rel_coords = self.camera.screen_to_world(mouse_pos);
+                        for (id, agent) in self.agents.get_iter() {
+                            if contact_mouse(rel_coords, agent.pos, agent.size) {
+                                self.selected = Some(*id);
+                                break;
+                            }
+                        }
+                        if self.selected.is_some() { return; }
+                        for (id, plant) in self.plants.get_iter() {
+                            if contact_mouse(rel_coords, plant.pos, plant.size) {
+                                self.selected = Some(*id);
+                                break;
+                            }
+                        }
                     }
                 }
-                if self.selected.is_some() { return; }
-                for (id, plant) in self.plants.get_iter() {
-                    if contact_mouse(rel_coords, plant.pos, plant.size) {
-                        self.selected = Some(*id);
-                        break;
-                    }
+            },
+            UserAction::WaterAdd => {
+                if self.ui.pointer_over {
+
+                } else if is_mouse_button_released(MouseButton::Left) {
+                    self.terrain.add_water_at_cursor(50);
+                } else if is_mouse_button_released(MouseButton::Right) {
+                    self.terrain.add_water_at_cursor(-50);
                 }
-            }
+            },
+            UserAction::TerrainAdd => {
+                if self.ui.pointer_over {
+                } else if is_mouse_button_released(MouseButton::Left) {
+                    self.terrain.add_terrain_at_cursor(10);
+                } else if is_mouse_button_released(MouseButton::Right) {
+                    self.terrain.add_terrain_at_cursor(-10);
+                }
+            },
+            _ => {},
         }
     }
 
@@ -874,10 +935,6 @@ impl Simulation {
                 self.points_selection();
             }
         }
-        if settings.water_lvl != self.terrain.water_level() {
-            self.terrain.set_water_level(settings.water_lvl);
-        }
-
     }
 
     fn update_sim_state(&mut self) {
@@ -1006,7 +1063,16 @@ impl Simulation {
             },
             None => None,
         };
-        self.ui.ui_process(&self.sim_state, &mut self.signals, &self.camera, selected_agent, selected_plant, &self.ranking, &self.statistics);
+        self.ui.ui_process(
+            &self.sim_state, 
+            &mut self.signals, 
+            &self.camera, 
+            selected_agent, 
+            selected_plant, 
+            &self.ranking, 
+            &self.statistics,
+            &mut self.user_action
+        );
     }
 
     pub fn draw_ui(&self) {
