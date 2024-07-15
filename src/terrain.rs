@@ -61,7 +61,6 @@ impl Cell {
             let water = Some(Color::new(0.0, 0.0, 1.0, a));
             return (terrain, water);
         }
-        
     }
 
 }
@@ -157,7 +156,6 @@ impl Terrain {
                                 let w1 = cell2.get_water();
                                 let a1 = cell2.get_altitude();
                                 let d =  (a0+w0)-(a1+w1);
-
                                 if d > 0 && w0 > 0 {
                                     let over = clamp(d, 0, w0);
                                     let p = clamp(over as f64/5.0 as f64, 0.0, 1.0);
@@ -166,7 +164,6 @@ impl Terrain {
                                         water_buf[c2 as usize][r2 as usize] += 1;
                                     }
                                 }
-
                             } else {
                                 let msg = format!("cell not exist: (x: {} | y {})", c2, r2);
                                 warn!("{}", msg);

@@ -146,25 +146,6 @@ impl Simulation {
     }
 
     fn reset_sim(&mut self, sim_name: Option<&str>) {
-        /* self.simulation_name = match sim_name {
-            Some(name) => name.to_string(),
-            None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
-        };
-        let settings = get_settings();
-        self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
-        self.physics = Physics::new();
-        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
-        self.agents.agents.clear();
-        self.plants.plants.clear();
-        self.ranking = Ranking::new(settings.ranking_size, 20, 10);
-        //self.sim_time = 0.0;
-        self.sim_state = SimState::new();
-        self.sim_state.sim_name = String::from(&self.simulation_name);
-        self.signals = Signals::new();
-        self.selected = None;
-        self.select_phase = 0.0;
-        self.mouse_state = MouseState { pos: Vec2::NAN };
-        self.running = true; */
         self.clear_sim(sim_name);
         self.init();
     }
@@ -230,7 +211,6 @@ impl Simulation {
                 let (n, l) = agent.get_nodes_links_num();
                 self.nodes.push(n);
                 self.links.push(l);
-
                 let mut sketch = agent.get_sketch();
                 sketch.points = (sketch.points).round();
                 self.ranking.add_agent(sketch);
@@ -289,7 +269,6 @@ impl Simulation {
         let (mouse_x, mouse_y) = mouse_position();
         let cursor = self.camera.screen_to_world(vec2(mouse_x, mouse_y));
         self.terrain.set_cursor_vec2(cursor);
-        
     }
 
     fn update_terrain(&mut self) {
@@ -374,7 +353,6 @@ impl Simulation {
                 if agent1.is_death() { killers.push(*id2); }
             }
         }
-
         for killer_rbh in killers.iter() {
             let killer = self.agents.agents.get_mut(killer_rbh).unwrap();
             killer.points += 30.0;
@@ -419,19 +397,16 @@ impl Simulation {
                 let eat = *dmg;
                 match self.agents.agents.get_mut(id) {
                     Some(agent) => {
-
                         agent.add_energy(eat);
                         if eat > 0.0 {
                             agent.points += eat*0.01;
                         }
                     },
-                    None => {
-                    }
+                    None => {}
                 }
             } else {
                 match self.plants.plants.get_mut(id) {
-                    None => {
-                    },
+                    None => {},
                     Some(source) => {
                         let damage = *dmg;
                         source.drain_eng(damage.abs());
@@ -456,7 +431,12 @@ impl Simulation {
                     match self.agents.get(selected) {
                         Some(selected_agent) => {
                             let phase = self.sim_state.sim_time % 1.0;
-                            draw_network(selected_agent, phase as f32, self.camera.target, self.camera.zoom);
+                            draw_network(
+                                selected_agent, 
+                                phase as f32, 
+                                self.camera.target, 
+                                self.camera.zoom
+                            );
                         },
                         None => {},
                     }
@@ -530,8 +510,6 @@ impl Simulation {
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
-            //let rare = get_settings().rare_specie_mod;
-            //let r = ((rare * n as i32) as f32).log2() as i32;
         }
         if self.signals.save_selected {
             self.signals.save_selected = false;
@@ -544,8 +522,6 @@ impl Simulation {
         }
         if self.signals.save_sim {
             self.signals.save_sim = false;
-            //let mut settings = get_settings();
-            //settings.pause = true;
             self.save_sim();
         }
         if sign.load_sim_name.is_some() {
