@@ -17,8 +17,8 @@ use egui_macroquad::egui::{
 use macroquad::prelude::*;
 use macroquad::math::vec2;
 use base64::prelude::*;
-use crate::plant::{Plant, PlantType};
-use crate::{settings, util::*};
+use crate::plant::Plant;
+use crate::util::*;
 use crate::agent::*;
 use crate::neuro::*;
 use crate::settings::*;
@@ -651,66 +651,6 @@ impl UISystem {
         }
     }
 
-/*     fn build_load_sim_window(&mut self, egui_ctx: &Context) {
-        if self.state.load_sim {
-            let mut signals = get_signals();
-            let mut saved_sims: Vec<SimulationSketch> = vec![];
-            let path = Path::new("saves\\simulations\\");
-            let sims =  fs::read_dir(path).unwrap();
-            for entry in sims {
-                if let Ok(sim_dir) = entry {
-                    let mut path = sim_dir.path();
-                    let p = path.join("last.sim").as_path().to_owned();
-                    let last = Path::from(*p);
-                    let f = fs::read_to_string(path).unwrap();
-                    match BASE64_STANDARD.decode(f.clone().into_bytes()) {
-                        Ok(decoded) => {
-                            let save = String::from_utf8(decoded).expect("error during converting from utf8");
-                            match serde_json::from_str::<SimulationSketch>(&save) {
-                                Err(_) => {},
-                                Ok(sim_state) => {
-                                    saved_sims.push(sim_state);
-                                },
-                            }
-                        },
-                        Err(_) => {},
-                    }
-                }
-            }
-            Window::new("LOAD SIMULATION").default_pos((SCREEN_WIDTH / 2.0 - 65.0, SCREEN_HEIGHT / 4.0)).default_width(260.0).show(egui_ctx, |ui| {
-                for sim in saved_sims {
-                    ui.vertical_centered(|row| {
-                        row.columns(2, |columns| {
-                            let sim_info = format!("{} T:{}", sim.simulation_name, sim.sim_time);
-                            columns[0].label(RichText::new(sim_info.to_owned().to_uppercase()).strong().color(Color32::WHITE));
-                            columns[1].horizontal(|col| {
-                                    if col.button(RichText::new("[LOAD]").strong().color(Color32::GREEN)).clicked()  {
-                                        signals.load_sim_name = Some(String::from(&sim.simulation_name));
-                                        set_global_signals(signals.clone());
-                                        self.state.load_sim = false;
-                                    }
-                                    col.separator();  
-                                    if col.button(RichText::new("[DEL]").strong().color(Color32::RED)).clicked()  {
-                                        signals.del_sim_name = Some(String::from(&sim.simulation_name));
-                                        set_global_signals(signals.clone());
-                                        self.state.load_sim = false;
-                                    }
-                            })
-                        })
-                    });
-                    ui.add_space(4.0);
-                }
-                ui.add_space(16.0);
-                
-                ui.vertical_centered(|ctn| {
-                    if ctn.button(RichText::new("CLOSE").strong().color(Color32::YELLOW)).clicked() {
-                        self.state.load_sim = false;
-                    }
-                })
-            });
-        }
-    } */
-
     fn build_debug_window(&self, egui_ctx: &Context, camera2d: &Camera2D, sim_state: &SimState, agent: Option<&Agent>) {
         if self.state.dbg {
             let (mouse_x, mouse_y) = mouse_position();
@@ -766,8 +706,8 @@ impl UISystem {
                     },
                 }
                 let rare = get_settings().rare_specie_mod;
-                let r1 = ((rare * 1) as f32).log2() as i32*1000;
-                let r5 = ((rare * 5) as f32).log2() as i32*1000;
+                let r1 = (((rare * 1) as f32).log2() * 1000.0) as i32 + 500;
+                let r5 = (((rare * 5) as f32).log2() * 1000.0) as i32 + 500;
                 ui.label(format!("mod spec: 1log: {} | 5log: {}", r1, r5));
             });
         }
@@ -993,68 +933,6 @@ impl UISystem {
             });
         }
     }
-
-/*     fn build_network(&mut self, egui_ctx: &Context, agent: &Agent) {
-        if self.state.neuro_lab {
-            let w = 300.0; let h = 360.0; let resize = egui_macroquad::egui::Vec2::new(3.0, 3.6);
-            Window::new(RichText::new("NEURO NETWORK").strong().color(Color32::GREEN)).default_pos((SCREEN_WIDTH-w, 0.0)).fixed_size((w, h)).show(egui_ctx, |ui| {
-                let network = &agent.network;
-                let offset = UIVec2::new(0.0, 0.0);
-                let (response, painter) = ui.allocate_painter(UIVec2::new(w, h), Sense::hover());
-                let rect = response.rect;
-                let zero = rect.left_top().to_vec2()+offset;
-                //let (input_node_keys, hidden_node_keys, output_node_keys) = network.get_node_keys_by_type();
-                
-                for (_, link) in network.links.iter() {
-                    let (coord0, coord1, _coord_t) = link.get_coords(&network.nodes, 0.0);
-                    let ui_coord0 = vec2_to_uivec2(&coord0);
-                    let ui_coord1 = vec2_to_uivec2(&coord1);
-                    let w = link.get_width()*1.2;
-                    let p1 = vec2_to_pos2(&(ui_coord0*resize+zero));
-                    let p2 = vec2_to_pos2(&(ui_coord1*resize+zero));
-                    let (_, color1) = link.get_colors();
-                    let c1 = color_to_color32(color1);
-                    let points1 = [p1, p2];
-                    painter.line_segment(points1, Stroke { color: c1, width: w });
-                }
-                for (key, node) in network.nodes.iter() {
-                    let (_, color1) = node.get_colors();
-                    let (mut r0, mut r1) = node.get_size();
-                    r0 = r0*1.2;
-                    r1 = r1*1.2;
-                    let ipos = egui_macroquad::egui::Vec2::new(node.pos.x as f32, node.pos.y as f32)*resize+zero;
-                    let p1 = vec2_to_pos2(&ipos);
-                    let c0 = color_to_color32(color1);
-                    //let c1 = color_to_color32(color0);
-                    let label = node.get_label();
-                    let v = match network.get_node_value(key) {
-                        None => 0.0,
-                        Some(v) => v,
-                    };
-                    painter.circle_filled(p1, r0,  Color32::BLACK);
-                    //painter.circle_filled(p1, r,  c1);
-                    let w = 0.75 + 0.24*r0;
-                    painter.circle_stroke(p1, r0, Stroke { color: c0, width: w });
-                    //painter.circle_filled(p1, r0,  Color32::BLACK);
-                    //painter.circle_filled(p1, r,  c1);
-                    let w = 0.75 + 0.24*r1;
-                    painter.circle_stroke(p1, r1, Stroke { color: c0, width: w });
-                    let mut font = FontId::default();
-                    font.size = 8.0;
-                    let txt = format!("{}: {:.1}", label, v);
-                    match node.node_type {
-                        NeuronTypes::INPUT => {
-                            painter.text(p1+UIVec2{x: 8.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
-                        },
-                        NeuronTypes::OUTPUT => {
-                            painter.text(p1+UIVec2{x: -50.0, y: 0.0}, Align2::LEFT_CENTER, txt, font, Color32::WHITE);
-                        },
-                        _ => {},
-                    }
-                }
-            });
-        }
-    } */
 
     fn build_about_window(&mut self, egui_ctx: &Context) {
         if self.state.about {

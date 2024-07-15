@@ -65,7 +65,7 @@ async fn main() {
     let seed = generate_seed();
     rand::srand(seed);
     //let font = Font::
-    let font = load_ttf_font("assets/fonts/firacode.ttf").await.unwrap();
+    let font = load_ttf_font("assets/fonts/jetbrain_medium.ttf").await.unwrap();
     let mut sim = Simulation::new(font.clone());
     sim.init();
     sim.ui.load_textures();

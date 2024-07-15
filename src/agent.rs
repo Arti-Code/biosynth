@@ -9,9 +9,7 @@ use crate::util::*;
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use rapier2d::geometry::*;
-use rapier2d::na::vector;
 use rapier2d::na::Isometry2;
-use rapier2d::na::Point2;
 use rapier2d::na::Vector2;
 use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 use crate::settings::*;
@@ -24,7 +22,6 @@ use ::rand::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Agent {
-    pub key: u64,
     pub pos: Vec2,
     pub rot: f32,
     mass: f32,
@@ -144,7 +141,6 @@ impl Agent {
         neuro_map.add_effectors(output_pairs);
 
         let mut agent = Agent {
-            key: gen_range(u64::MIN, u64::MAX),
             pos,
             rot,
             mass: 0.0,
@@ -256,9 +252,9 @@ impl Agent {
 
     fn mod_specie(&mut self, time: f64) {
         let settings = get_settings();
-        let n = self.ancestors.get_ancestors().len();
+        let n = self.ancestors.get_ancestors().len() as i32;
         let rare = settings.rare_specie_mod;
-        let r = ((rare * n as i32) as f32).log2() as i32 * 1000;
+        let r = (((rare * n) as f32).log2() * 1000.0) as i32 + 500;
         if rand::gen_range(0, r) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;
@@ -280,7 +276,6 @@ impl Agent {
     }
 
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics, time: f64) -> Agent {
-        let key = gen_range(u64::MIN, u64::MAX);
         let settings = get_settings();
         let pos = vec2(sketch.pos[0], sketch.pos[1])+random_unit_vec2()*100.0;
         //let pos = random_position(settings.world_w as f32, settings.world_h as f32);
@@ -311,7 +306,6 @@ impl Agent {
             false,
         );
         let mut agent = Agent {
-            key,
             pos,
             rot,
             mass: 0.0,
@@ -1120,8 +1114,6 @@ impl Agent {
     }
 
     pub fn replicate(&self, physics: &mut Physics, time: f64) -> Agent {
-        //let settings = get_settings();
-        let key = gen_range(u64::MIN, u64::MAX);
         let color = self.color.to_owned();
         let color_second = self.color_second.to_owned();
         let shape = SharedShape::ball(self.size);
@@ -1146,7 +1138,6 @@ impl Agent {
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
         let mut agent = Agent {
-            key,
             pos,
             rot,
             mass: 0.0,

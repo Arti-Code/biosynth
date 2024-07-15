@@ -530,7 +530,7 @@ impl Simulation {
         }
         if self.signals.new_settings {
             self.signals.new_settings = false;
-            let rare = get_settings().rare_specie_mod;
+            //let rare = get_settings().rare_specie_mod;
             //let r = ((rare * n as i32) as f32).log2() as i32;
         }
         if self.signals.save_selected {
