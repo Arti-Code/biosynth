@@ -208,8 +208,8 @@ impl Agent {
         //let new_rot = rot-PI;
         //let limb = SharedShape::ball(size/2.0);
         let limb = SharedShape::ball(size/2.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size*1.25;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size*1.25;
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -257,8 +257,8 @@ impl Agent {
     fn mod_specie(&mut self, time: f64) {
         let settings = get_settings();
         let n = self.ancestors.get_ancestors().len();
-        let rare = settings.rare_specie_mod * 100;
-        let r = ((rare * n as i32) as f32).log2() as i32;
+        let rare = settings.rare_specie_mod;
+        let r = ((rare * n as i32) as f32).log2() as i32 * 1000;
         if rand::gen_range(0, r) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;
@@ -374,8 +374,8 @@ impl Agent {
         agent.mutate();
         agent.calc_hp();
         let limb = SharedShape::ball(size/2.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size*1.25;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size*1.25;
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -1209,8 +1209,8 @@ impl Agent {
         agent.mutate();
         agent.calc_hp();
         let yaw = SharedShape::ball(agent.size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size)*1.25;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size)*1.25;
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size)*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size)*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 

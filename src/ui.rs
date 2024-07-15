@@ -403,7 +403,7 @@ impl UISystem {
                     ui.add_space(5.0);
                     if ui.button(RichText::new("Debug Info").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.mouse = !self.state.mouse;
-                        self.state.dbg != self.state.dbg;
+                        self.state.dbg = !self.state.dbg;
                     }
                     if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.info = !self.state.info;
@@ -766,8 +766,8 @@ impl UISystem {
                     },
                 }
                 let rare = get_settings().rare_specie_mod;
-                let r1 = ((rare * 1) as f32).log2() as i32;
-                let r5 = ((rare * 5) as f32).log2() as i32;
+                let r1 = ((rare * 1) as f32).log2() as i32*1000;
+                let r5 = ((rare * 5) as f32).log2() as i32*1000;
                 ui.label(format!("mod spec: 1log: {} | 5log: {}", r1, r5));
             });
         }
@@ -1404,7 +1404,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut rare_specie_mod = settings.rare_specie_mod;
                 column[0].label(RichText::new("SPECIE MODIFY RARITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut rare_specie_mod, 0..=20).step_by(1.0)).changed() {
+                if column[1].add(Slider::new(&mut rare_specie_mod, 1..=20).step_by(1.0)).changed() {
                     settings.rare_specie_mod = rare_specie_mod;
                     signals.new_settings = true;
                 }
