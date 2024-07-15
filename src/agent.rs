@@ -256,7 +256,10 @@ impl Agent {
 
     fn mod_specie(&mut self, time: f64) {
         let settings = get_settings();
-        if rand::gen_range(0, settings.rare_specie_mod) == 0 {
+        let n = self.ancestors.get_ancestors().len();
+        let rare = settings.rare_specie_mod * 100;
+        let r = ((rare * n as i32) as f32).log2() as i32;
+        if rand::gen_range(0, r) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;
             let mut name = self.specie.to_owned();

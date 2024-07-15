@@ -159,7 +159,7 @@ impl Default for Settings {
             
             ranking_size: 30,
             repro_points: 30.0,
-            rare_specie_mod: 2500,
+            rare_specie_mod: 10,
             born_eng: 0.5,
             born_eng_min: 0.9,
             born_eng_cost: 0.5,

@@ -403,6 +403,7 @@ impl UISystem {
                     ui.add_space(5.0);
                     if ui.button(RichText::new("Debug Info").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.mouse = !self.state.mouse;
+                        self.state.dbg != self.state.dbg;
                     }
                     if ui.button(RichText::new("Show Mutations Stats").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.info = !self.state.info;
@@ -711,7 +712,7 @@ impl UISystem {
     } */
 
     fn build_debug_window(&self, egui_ctx: &Context, camera2d: &Camera2D, sim_state: &SimState, agent: Option<&Agent>) {
-        if self.state.mouse {
+        if self.state.dbg {
             let (mouse_x, mouse_y) = mouse_position();
             Window::new("DEBUG INFO").default_pos((375.0, 5.0)).default_width(175.0).show(egui_ctx, |ui| {
                 let fps = sim_state.fps;
@@ -764,6 +765,10 @@ impl UISystem {
                         }
                     },
                 }
+                let rare = get_settings().rare_specie_mod;
+                let r1 = ((rare * 1) as f32).log2() as i32;
+                let r5 = ((rare * 5) as f32).log2() as i32;
+                ui.label(format!("mod spec: 1log: {} | 5log: {}", r1, r5));
             });
         }
     }
@@ -1399,7 +1404,7 @@ impl UISystem {
                 column[1].set_max_size(UIVec2::new(280., 75.));
                 let mut rare_specie_mod = settings.rare_specie_mod;
                 column[0].label(RichText::new("SPECIE MODIFY RARITY").color(Color32::WHITE).strong());
-                if column[1].add(Slider::new(&mut rare_specie_mod, 0..=10000).step_by(100.0)).changed() {
+                if column[1].add(Slider::new(&mut rare_specie_mod, 0..=20).step_by(1.0)).changed() {
                     settings.rare_specie_mod = rare_specie_mod;
                     signals.new_settings = true;
                 }
@@ -2194,6 +2199,7 @@ pub struct UIState {
     pub deaths: bool,
     pub gen_random_name: bool,
     pub terrain_tools: bool,
+    pub dbg: bool,
 }
 
 impl UIState {
@@ -2235,6 +2241,7 @@ impl UIState {
             bottom_panel: true,
             gen_random_name: false,
             terrain_tools: false,
+            dbg: false,
         }
     }
 }
