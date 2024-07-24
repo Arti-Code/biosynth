@@ -129,6 +129,7 @@ impl UISystem {
     }
 
     pub fn ui_process(&mut self,
+        sim_name: String,
         sim_state: &SimState,
         signals: &mut Signals,
         camera2d: &Camera2D,
@@ -143,7 +144,7 @@ impl UISystem {
         egui_macroquad::ui(|egui_ctx| {
             self.set_fonts_styles(egui_ctx);
             self.pointer_over = egui_ctx.is_pointer_over_area();
-            self.build_top_menu(egui_ctx, &sim_state.sim_name, signals);
+            self.build_top_menu(egui_ctx, sim_name.as_str(), signals);
             self.build_quit_window(egui_ctx);
             self.build_debug_window(egui_ctx, camera2d, &sim_state, agent);
             self.build_new_sim_window(egui_ctx, signals);
@@ -172,7 +173,7 @@ impl UISystem {
             self.build_resize_world_window(egui_ctx);
             self.build_left_panel(egui_ctx, &sim_state, agent, ranking, statistics);
             self.build_right_panel(egui_ctx, agent, statistics, ranking);
-            //self.build_bottom_panel(egui_ctx, statistics);
+            self.build_rename_window(egui_ctx, signals);
         });
     }
 
@@ -195,7 +196,6 @@ impl UISystem {
                         self.state.new_sim = true;
                     }
                     if ui.button(RichText::new("Load Simulation").strong().color(Color32::WHITE)).clicked() {
-                        //signals.load_sim = true;
                         self.state.load_sim = true;
                     }
                     if ui.button(RichText::new("Save Simulation").weak().color(Color32::WHITE)).clicked() {
@@ -205,19 +205,15 @@ impl UISystem {
                         self.state.load_agent = true;
                     }
                     if ui.button(RichText::new("Save Agent").strong().color(Color32::WHITE),).clicked() {
-                        //let mut signals = mod_signals();
                         signals.save_selected = true;
                     }
                     if ui.button(RichText::new("Export Settings").strong().color(Color32::WHITE),).clicked() {
-                        //let mut signals = mod_signals();
                         signals.export_settings = true;
                     }
                     if ui.button(RichText::new("Import Settings").strong().color(Color32::WHITE),).clicked() {
-                        //let mut signals = mod_signals();
                         signals.import_settings = true;
                     }
                     if ui.button(RichText::new("Rename Simulation").strong().color(Color32::WHITE),).clicked() {
-                        //let mut signals = mod_signals();
                         self.state.rename = true;
                     }
                     if ui.button(RichText::new("Resize World").strong().color(Color32::WHITE),).clicked() {
@@ -405,6 +401,9 @@ impl UISystem {
                     ui.add_space(5.0);
                     ui.separator();
                     ui.add_space(5.0);
+                    if ui.button(RichText::new("FPS Info").strong().color(Color32::LIGHT_RED)).clicked() {
+                        self.state.show_fps = !self.state.show_fps;
+                    }
                     if ui.button(RichText::new("Debug Info").strong().color(Color32::LIGHT_RED)).clicked() {
                         self.state.mouse = !self.state.mouse;
                         self.state.dbg = !self.state.dbg;
@@ -661,7 +660,6 @@ impl UISystem {
             Window::new("DEBUG INFO").default_pos((375.0, 5.0)).default_width(175.0).show(egui_ctx, |ui| {
                 let fps = sim_state.fps;
                 let delta = sim_state.dt;
-                //ui.label(RichText::new("PERFORMANCE").strong().color(Color32::BLUE));
                 ui.label(format!("FPS: {} dT: {}ms", fps, (delta * 1000.0).round()));
                 ui.separator();
                 ui.label(RichText::new("MOUSE").strong().color(Color32::YELLOW));
@@ -740,11 +738,45 @@ impl UISystem {
                         columns[1].style_mut().visuals.widgets.active.bg_stroke = Stroke::new(5.0, Color32::RED);
                         columns[1].style_mut().visuals.widgets.active.weak_bg_fill = Color32::DARK_RED;
                         columns[1].style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::DARK_RED;
-                        //let text = columns[1].style_mut().text_styles();
                         
                         if columns[1].add(Button::new(RichText::new("YES").strong()).min_size(UIVec2::new(75.0, 40.0))).clicked() {
                             std::process::exit(0);
                         }
+                    });
+                });
+            });
+        }
+    }
+
+    fn build_rename_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+        if self.state.rename {
+            let w = 500.0; let h = 220.0;
+            Window::new("RENAME SIMULATION")
+            .default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h])
+            .show(egui_ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical_centered(|txt| {
+                        let response = txt.text_edit_singleline(&mut self.temp_sim_name);
+                        
+                        if response.gained_focus() {
+                        }
+                        if response.lost_focus() && txt.input(|i| i.key_pressed(Key::Enter)) {
+                        }
+                    });
+                });
+                ui.add_space(10.0);
+                ui.horizontal(|ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.columns(2, |columns| {
+                            if columns[0].button(RichText::new("CANCEL").color(Color32::YELLOW).strong()).clicked() {
+                                self.state.rename = false;
+                            }
+                            if columns[1].button(RichText::new("RENAME").color(Color32::GREEN).strong()).clicked() {
+                                self.state.rename = false;
+                                signals.rename = true;
+                                signals.new_sim_name = String::from(&self.temp_sim_name);
+                            }
+                        });
                     });
                 });
             });
@@ -806,7 +838,7 @@ impl UISystem {
                         let n1 = rand::gen_range(0, l1);
                         let name0 = names0.get(n0).unwrap();
                         let name1 = names1.get(n1).unwrap();
-                        self.temp_sim_name = format!("{} {}",name0.to_uppercase(), name1.to_uppercase());
+                        self.temp_sim_name = format!("{} {}", name0.to_uppercase(), name1.to_uppercase());
                     }
                     if response.gained_focus() {
                     }
@@ -1835,13 +1867,24 @@ impl UISystem {
         let dt = sim_state.dt;
         ui.horizontal(|ui| {
             ui.set_max_height(16.0);
-            ui.label(RichText::new(format!("SPEED: x{}", sim_speed())).monospace());
-            ui.label(RichText::new(format!("TIME: {}", time.round())).monospace());
-            ui.label(RichText::new(format!("FPS: {}", fps)).monospace());
-            ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).monospace());
-            ui.label(RichText::new(format!("AGENT: {}", agents_num)).monospace());
-            ui.label(RichText::new(format!("PLANT: {}", sources_num)).monospace());
+            ui.label(RichText::new(format!(">> x{}", sim_speed()))
+                .strong().size(12.0).color(Color32::YELLOW));
+            ui.label(RichText::new(format!("TIME: {}", time.round()))
+                .strong().size(12.0).color(Color32::GOLD));
+            ui.label(RichText::new(format!("AGENT: {}", agents_num))
+                .strong().size(12.0).color(Color32::LIGHT_BLUE));
+            ui.label(RichText::new(format!("PLANT: {}", sources_num))
+                .strong().size(12.0).color(Color32::GREEN));
         });
+        if self.state.show_fps {
+            ui.horizontal(|ui| {
+                ui.set_max_height(16.0);
+                ui.label(RichText::new(format!("FPS: {}", fps))
+                    .strong().size(12.0).color(Color32::LIGHT_BLUE));
+                ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0))
+                    .strong().size(12.0).color(Color32::LIGHT_BLUE));
+            });
+        }
     }
 
     fn inside_agent(&mut self, ui: &mut Ui, agent: Option<&Agent>) {
@@ -1879,46 +1922,64 @@ impl UISystem {
             } else {
                 true
             };
-            let attributes = format!("S: {} | M: {} | P: {} | D: {} | X: {} | V: {}", size, speed, power, shell, mutations, eyes);
+            let attributes = format!(
+                "S: {} | M: {} | P: {} | D: {} | X: {} | V: {}", 
+                size, speed, power, shell, mutations, eyes
+            );
             ui.horizontal(|ui| {
-                ui.set_max_height(16.0);
-                ui.label(RichText::new(format!("{} ({})", &name, generation)).strong().size(14.0).color(Color32::GREEN));
+                ui.set_max_height(14.0);
+                ui.label(RichText::new(format!("{} ({})", &name, generation))
+                    .strong().size(14.0).color(Color32::GREEN));
                 ui.separator();
-                ui.label(RichText::new(format!("pts: {}", points.round())).monospace());
+                ui.label(RichText::new(format!("POINTS: {}", points.round()))
+                    .strong().size(12.0).color(Color32::GOLD));
+                ui.separator();
+                ui.label(RichText::new("■■■")
+                    .strong().color(color_to_color32(agent.mood)).monospace())
             });
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
-                ui.label(RichText::new(format!("[HP: {}%]", agent.hp.round())).strong().monospace().color(Color32::GREEN));
+                ui.label(RichText::new(format!("[HP: {}%]", agent.hp.round()))
+                    .strong().size(12.0).color(Color32::GREEN));
                 ui.separator();
-                ui.label(RichText::new(format!("[ENG: {}/{}]", agent.eng.round(), agent.max_eng.round())).strong().monospace().color(Color32::YELLOW));
+                ui.label(RichText::new(format!("[ENG: {}/{}]", agent.eng.round(), agent.max_eng.round()))
+                    .strong().size(12.0).color(Color32::YELLOW));
                 ui.separator();
-                ui.label(RichText::new(format!("T: {} | REPRO: {:.0}", lifetime, repro_time)).monospace());
+                ui.label(RichText::new(format!("LIFE: {} | REP: {:.0}", lifetime, repro_time))
+                    .strong().size(12.0).color(Color32::LIGHT_BLUE));
             });
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
-                ui.label(RichText::new(format!("BORN: {}", childs)).monospace());
+                ui.label(RichText::new(attributes)
+                    .strong().size(12.0).color(Color32::LIGHT_BLUE));
                 ui.separator();
-                ui.label(RichText::new(format!("KILL: {}", kills)).monospace());
+                ui.label(RichText::new(format!("BORN: {}", childs))
+                    .strong().size(12.0).color(Color32::GREEN));
                 ui.separator();
-                ui.label(RichText::new("■■■").strong().color(color_to_color32(agent.mood)).monospace())
+                ui.label(RichText::new(format!("KILL: {}", kills))
+                    .strong().size(12.0).color(Color32::GREEN));
             });
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
-                ui.label(RichText::new(attributes).strong());
-            });
-            ui.horizontal(|ui| {
-                ui.set_max_height(14.0);
-                let txt = format!("B: {} | M: {} | A: {} ", agent.eng_cost.basic.round(), agent.eng_cost.movement.round(), agent.eng_cost.attack.round());
-                ui.label(RichText::new(txt).strong().color(Color32::RED));
+                let txt = format!(
+                    "B: {} | M: {} | A: {} ", 
+                    agent.eng_cost.basic.round(), 
+                    agent.eng_cost.movement.round(), 
+                    agent.eng_cost.attack.round()
+                );
+                ui.label(RichText::new(txt)
+                    .strong().size(12.0).color(Color32::RED));
                 ui.separator();
-                ui.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
+                ui.label(RichText::new(status_txt)
+                    .strong().size(12.0).color(Color32::LIGHT_BLUE));
                 ui.set_max_height(14.0);
-                let txt = if water {
-                    "water".to_string()
+                let (txt, color) = if water {
+                    ("WATER".to_string(), Color32::BLUE)
                 } else {
-                    "".to_string()
+                    ("LAND".to_string(), Color32::GRAY)
                 };
-                ui.label(RichText::new(txt).strong().color(Color32::BLUE));
+                ui.label(RichText::new(txt)
+                    .strong().size(12.0).color(color));
             });
         }
     }
@@ -2052,6 +2113,7 @@ pub struct UIState {
     pub ancestors: bool,
     pub new_sim_name: String,
     pub monit: bool,
+    pub show_fps: bool,
     pub inspect: bool,
     pub mouse: bool,
     pub quit: bool,
@@ -2095,6 +2157,7 @@ impl UIState {
             ancestors: false,
             new_sim_name: String::new(),
             monit: true,
+            show_fps: false,
             inspect: true,
             mouse: false,
             quit: false,

@@ -95,7 +95,6 @@ impl Simulation {
             mouse_state: MouseState { pos: Vec2::NAN },
             agents: AgentBox::new(),
             plants: PlantBox::new(),
-            //ranking: vec![],
             ranking: Ranking::new(settings.ranking_size, 20, 10),
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
@@ -104,7 +103,6 @@ impl Simulation {
             terrain_timer: Timer::new(0.1, true, true, false),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
-            //lifetimes: vec![],
             sizes: vec![],
             eyes: vec![],
             speeds: vec![],
@@ -145,6 +143,10 @@ impl Simulation {
         self.statistics.add_data_type("plants");
     }
 
+    fn rename_sim(&mut self, sim_name: String) {
+        self.simulation_name = sim_name;
+    }
+
     fn reset_sim(&mut self, sim_name: Option<&str>) {
         self.clear_sim(sim_name);
         self.init();
@@ -161,9 +163,7 @@ impl Simulation {
         self.agents = AgentBox::new();
         self.plants = PlantBox::new();
         self.ranking = Ranking::new(settings.ranking_size, 20, 10);
-        //self.sim_time = 0.0;
         self.sim_state = SimState::new();
-        self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
         self.selected = None;
         self.select_phase = 0.0;
@@ -514,6 +514,10 @@ impl Simulation {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
         }
+        if self.signals.rename {
+            self.signals.rename = false;
+            self.rename_sim(self.signals.new_sim_name.to_owned());
+        }
         if self.signals.new_settings {
             self.signals.new_settings = false;
         }
@@ -706,7 +710,6 @@ impl Simulation {
                             Ok(sim_sketch) => {
                                 self.reset_sim(Some(sim_sketch.simulation_name.as_str()));
                                 //self.simulation_name = sim_sketch.simulation_name.to_owned();
-                                self.sim_state.sim_name = sim_sketch.simulation_name.to_owned();
                                 self.sim_state.sim_time = sim_sketch.sim_time;
                                 self.plot_x = sim_sketch.sim_time as i32 / 100;
                                 self.last_autosave = sim_sketch.last_autosave;
@@ -1046,6 +1049,7 @@ impl Simulation {
             None => None,
         };
         self.ui.ui_process(
+            self.simulation_name.clone(),
             &self.sim_state, 
             &mut self.signals, 
             &self.camera, 

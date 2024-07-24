@@ -300,7 +300,6 @@ pub fn iso_to_vec2_rot(isometry: &Isometry<Real>) -> (Vec2, f32) {
 }
 
 pub struct SimState {
-    pub sim_name: String,
     pub ver: String,
     pub agents_num: i32,
     pub sources_num: i32,
@@ -331,7 +330,6 @@ impl SimState {
 
     pub fn new() -> Self {
         Self {
-            sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
             agents_num: 0,
             sources_num: 0,
