@@ -199,9 +199,9 @@ impl Agent {
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
-        let limb = SharedShape::ball(size/2.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size*1.0;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size*1.0;
+        let limb = SharedShape::ball(size/3.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/2.5)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/2.5)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -362,9 +362,9 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let limb = SharedShape::ball(size/2.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size*1.0;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size*1.0;
+        let limb = SharedShape::ball(size/3.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/2.5)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/2.5)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -1194,9 +1194,9 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let yaw = SharedShape::ball(agent.size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size)*1.0;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size)*1.0;
+        let yaw = SharedShape::ball(agent.size/3.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/2.5) * (agent.size)*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/2.5) * (agent.size)*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 

@@ -80,7 +80,7 @@ impl UISystem {
     }
 
     fn load_image(path: &Path) -> Result<egui_macroquad::egui::ColorImage, image::ImageError> {
-        let image = image::io::Reader::open(path)?.decode()?;
+        let image = image::ImageReader::open(path)?.decode()?;
         let size = [image.width() as _, image.height() as _];
         let image_buffer = image.to_rgba8();
         let pixels = image_buffer.as_flat_samples();
@@ -170,8 +170,8 @@ impl UISystem {
             self.build_settings_neuro_window(egui_ctx, signals);
             self.build_info_window(egui_ctx);
             self.build_resize_world_window(egui_ctx);
-            self.build_left_panel(egui_ctx, &sim_state, agent, ranking);
-            self.build_right_panel(egui_ctx, agent, statistics);
+            self.build_left_panel(egui_ctx, &sim_state, agent, ranking, statistics);
+            self.build_right_panel(egui_ctx, agent, statistics, ranking);
             //self.build_bottom_panel(egui_ctx, statistics);
         });
     }
@@ -191,32 +191,36 @@ impl UISystem {
                 ui.add_space(5.0);
                 
                 menu::menu_button(ui, RichText::new("MENU").strong(), |ui| {
-                    if ui.button(RichText::new("New Simulation").strong().color(Color32::GREEN)).clicked() {
+                    if ui.button(RichText::new("New Simulation").strong().color(Color32::WHITE)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::LIGHT_GREEN)).clicked() {
+                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::WHITE)).clicked() {
                         //signals.load_sim = true;
                         self.state.load_sim = true;
                     }
-                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::LIGHT_BLUE)).clicked() {
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::WHITE)).clicked() {
                         signals.save_sim = true;
                     }
-                    if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_GREEN)).clicked() {
+                    if ui.button(RichText::new("Load Agent").weak().color(Color32::WHITE)).clicked() {
                         self.state.load_agent = true;
                     }
-                    if ui.button(RichText::new("Save Agent").strong().color(Color32::LIGHT_BLUE),).clicked() {
+                    if ui.button(RichText::new("Save Agent").strong().color(Color32::WHITE),).clicked() {
                         //let mut signals = mod_signals();
                         signals.save_selected = true;
                     }
-                    if ui.button(RichText::new("Export Settings").strong().color(Color32::GRAY),).clicked() {
+                    if ui.button(RichText::new("Export Settings").strong().color(Color32::WHITE),).clicked() {
                         //let mut signals = mod_signals();
                         signals.export_settings = true;
                     }
-                    if ui.button(RichText::new("Import Settings").strong().color(Color32::GRAY),).clicked() {
+                    if ui.button(RichText::new("Import Settings").strong().color(Color32::WHITE),).clicked() {
                         //let mut signals = mod_signals();
                         signals.import_settings = true;
                     }
-                    if ui.button(RichText::new("Resize World").strong().color(Color32::LIGHT_RED),).clicked() {
+                    if ui.button(RichText::new("Rename Simulation").strong().color(Color32::WHITE),).clicked() {
+                        //let mut signals = mod_signals();
+                        self.state.rename = true;
+                    }
+                    if ui.button(RichText::new("Resize World").strong().color(Color32::WHITE),).clicked() {
                         if !self.state.resize_world {
                             let settings = get_settings();
                             self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
@@ -1638,7 +1642,7 @@ impl UISystem {
         set_settings(settings.clone());
     }
 
-    fn build_left_panel(&mut self, egui_ctx: &Context, state: &SimState, agent: Option<&Agent>, ranking: &Ranking) {
+    fn build_left_panel(&mut self, egui_ctx: &Context, state: &SimState, agent: Option<&Agent>, ranking: &Ranking, statistics: &Statistics) {
         if !self.state.left_panel {
             return;
         }
@@ -1659,24 +1663,6 @@ impl UISystem {
                         self.inside_agent(ui, agent);
                     });
                 });
-            }
-            if self.state.ranking {
-                ui.vertical(|ui| {
-                    ui.collapsing("Ranking", |ui| {
-                        self.inside_ranking2(ui, ranking);
-                    });
-                });
-            }
-        });
-    }
-
-    fn build_right_panel(&mut self, egui_ctx: &Context, _agent: Option<&Agent>, statistics: &Statistics) {
-        if !self.state.right_panel {
-            return;
-        }
-        SidePanel::right("Rightbar").max_width(520.0).show(egui_ctx, |ui| {
-            if !self.pointer_over {
-                self.pointer_over = ui.ui_contains_pointer();
             }
             if self.state.plot_population {
                 ui.vertical(|ui| {
@@ -1700,6 +1686,31 @@ impl UISystem {
                 ui.vertical(|ui| {
                     ui.set_height(125.0);
                     self.inside_plot_neuro(ui, statistics);
+                });
+            }
+            if self.state.ranking {
+                ui.vertical(|ui| {
+                    ui.collapsing("Ranking", |ui| {
+                        self.inside_ranking2(ui, ranking);
+                    });
+                });
+            }
+        });
+    }
+
+    fn build_right_panel(&mut self, egui_ctx: &Context, _agent: Option<&Agent>, _statistics: &Statistics, ranking: &Ranking) {
+        if !self.state.right_panel {
+            return;
+        }
+        SidePanel::right("Rightbar").max_width(520.0).show(egui_ctx, |ui| {
+            if !self.pointer_over {
+                self.pointer_over = ui.ui_contains_pointer();
+            }
+            if self.state.ranking {
+                ui.vertical(|ui| {
+                    ui.collapsing("Ranking", |ui| {
+                        self.inside_ranking2(ui, ranking);
+                    });
                 });
             }
         });
@@ -1824,13 +1835,10 @@ impl UISystem {
         let dt = sim_state.dt;
         ui.horizontal(|ui| {
             ui.set_max_height(16.0);
+            ui.label(RichText::new(format!("SPEED: x{}", sim_speed())).monospace());
             ui.label(RichText::new(format!("TIME: {}", time.round())).monospace());
             ui.label(RichText::new(format!("FPS: {}", fps)).monospace());
             ui.label(RichText::new(format!("dT: {:.0}ms", dt*1000.0)).monospace());
-            ui.label(RichText::new(format!("SPEED: x{}", sim_speed())).monospace());
-        });
-        ui.horizontal(|ui| {
-            ui.set_max_height(16.0);
             ui.label(RichText::new(format!("AGENT: {}", agents_num)).monospace());
             ui.label(RichText::new(format!("PLANT: {}", sources_num)).monospace());
         });
@@ -1853,7 +1861,7 @@ impl UISystem {
             if attack { states.push("ATK".to_string()) }
             if eat { states.push("EAT".to_string()) }
             if run { states.push("RUN".to_string()) }
-            if contacts_num > 0 { states.push(format!("CON({})", contacts_num)) }
+            if contacts_num > 0 { states.push(format!("CONT")) }
             let mut status_txt = String::from("| ");
             if states.len() == 0 { status_txt.push_str("... |"); }
             for s in states {
@@ -1875,17 +1883,16 @@ impl UISystem {
             ui.horizontal(|ui| {
                 ui.set_max_height(16.0);
                 ui.label(RichText::new(format!("{} ({})", &name, generation)).strong().size(14.0).color(Color32::GREEN));
+                ui.separator();
+                ui.label(RichText::new(format!("pts: {}", points.round())).monospace());
             });
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
                 ui.label(RichText::new(format!("[HP: {}%]", agent.hp.round())).strong().monospace().color(Color32::GREEN));
                 ui.separator();
                 ui.label(RichText::new(format!("[ENG: {}/{}]", agent.eng.round(), agent.max_eng.round())).strong().monospace().color(Color32::YELLOW));
-            });
-            ui.horizontal(|ui| {
-                ui.label(RichText::new(format!("T: {} | REPRO: {:.0}", lifetime, repro_time)).monospace());
                 ui.separator();
-                ui.label(RichText::new(format!("PTS: {}", points.round())).monospace());
+                ui.label(RichText::new(format!("T: {} | REPRO: {:.0}", lifetime, repro_time)).monospace());
             });
             ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
@@ -1905,8 +1912,6 @@ impl UISystem {
                 ui.label(RichText::new(txt).strong().color(Color32::RED));
                 ui.separator();
                 ui.label(RichText::new(status_txt).strong().color(Color32::LIGHT_BLUE));
-            });
-            ui.horizontal(|ui| {
                 ui.set_max_height(14.0);
                 let txt = if water {
                     "water".to_string()
@@ -2080,6 +2085,7 @@ pub struct UIState {
     pub gen_random_name: bool,
     pub terrain_tools: bool,
     pub dbg: bool,
+    pub rename: bool,
 }
 
 impl UIState {
@@ -2122,6 +2128,7 @@ impl UIState {
             gen_random_name: false,
             terrain_tools: false,
             dbg: false,
+            rename: false,
         }
     }
 }
