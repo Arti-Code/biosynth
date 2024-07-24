@@ -818,7 +818,7 @@ impl UISystem {
                 });
                 ui.add_space(1.0);
                 ui.vertical_centered(|author| {
-                    let txt = format!("Artur Gwoździowski 2023-  |  ver.{}", env!("CARGO_PKG_VERSION"));
+                    let txt = format!("Artur Gwoździowski 2023-2024  |  ver.{}", env!("CARGO_PKG_VERSION"));
                     author.label(RichText::new(txt).color(Color32::RED).strong());
                 });
                 ui.add_space(6.0);
