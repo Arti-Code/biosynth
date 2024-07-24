@@ -768,13 +768,23 @@ impl UISystem {
                 ui.horizontal(|ui| {
                     ui.vertical_centered(|ui| {
                         ui.columns(2, |columns| {
-                            if columns[0].button(RichText::new("CANCEL").color(Color32::YELLOW).strong()).clicked() {
+                            let cancel = columns[0].add(
+                                Button::new(
+                                    RichText::new("CANCEL").color(Color32::YELLOW).strong()
+                                ).small()
+                            );
+                            if cancel.clicked() {
                                 self.state.rename = false;
                             }
-                            if columns[1].button(RichText::new("RENAME").color(Color32::GREEN).strong()).clicked() {
-                                self.state.rename = false;
+                            let rename = columns[0].add(
+                                Button::new(
+                                    RichText::new("RENAME").color(Color32::GREEN).strong()
+                                ).small()
+                            );
+                            if rename.clicked() {
                                 signals.rename = true;
-                                signals.new_sim_name = String::from(&self.temp_sim_name);
+                                signals.new_sim_name = self.temp_sim_name.clone();
+                                self.state.rename = false;
                             }
                         });
                     });
@@ -1867,14 +1877,14 @@ impl UISystem {
         let dt = sim_state.dt;
         ui.horizontal(|ui| {
             ui.set_max_height(16.0);
-            ui.label(RichText::new(format!(">> x{}", sim_speed()))
-                .strong().size(12.0).color(Color32::YELLOW));
             ui.label(RichText::new(format!("TIME: {}", time.round()))
                 .strong().size(12.0).color(Color32::GOLD));
             ui.label(RichText::new(format!("AGENT: {}", agents_num))
                 .strong().size(12.0).color(Color32::LIGHT_BLUE));
             ui.label(RichText::new(format!("PLANT: {}", sources_num))
                 .strong().size(12.0).color(Color32::GREEN));
+            ui.label(RichText::new(format!(">> x{}", sim_speed()))
+                .strong().size(12.0).color(Color32::YELLOW));
         });
         if self.state.show_fps {
             ui.horizontal(|ui| {
