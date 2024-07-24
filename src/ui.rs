@@ -750,36 +750,35 @@ impl UISystem {
 
     fn build_rename_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
         if self.state.rename {
-            let w = 500.0; let h = 220.0;
+            let w = 250.0; let h = 180.0;
             Window::new("RENAME SIMULATION")
             .default_pos((SCREEN_WIDTH / 2.0 - w/2.0, 100.0)).default_size([w, h])
             .show(egui_ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.vertical_centered(|txt| {
-                        let response = txt.text_edit_singleline(&mut self.temp_sim_name);
-                        
+                    //ui.vertical_centered(|txt| {
+                        let response = ui.text_edit_singleline(&mut self.temp_sim_name);
                         if response.gained_focus() {
                         }
-                        if response.lost_focus() && txt.input(|i| i.key_pressed(Key::Enter)) {
+                        if response.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)) {
                         }
-                    });
+                    //});
                 });
                 ui.add_space(10.0);
                 ui.horizontal(|ui| {
-                    ui.vertical_centered(|ui| {
+                    //ui.vertical_centered(|ui| {
                         ui.columns(2, |columns| {
                             let cancel = columns[0].add(
                                 Button::new(
                                     RichText::new("CANCEL").color(Color32::YELLOW).strong()
-                                ).small()
+                                )
                             );
                             if cancel.clicked() {
                                 self.state.rename = false;
                             }
-                            let rename = columns[0].add(
+                            let rename = columns[1].add(
                                 Button::new(
                                     RichText::new("RENAME").color(Color32::GREEN).strong()
-                                ).small()
+                                )
                             );
                             if rename.clicked() {
                                 signals.rename = true;
@@ -787,7 +786,7 @@ impl UISystem {
                                 self.state.rename = false;
                             }
                         });
-                    });
+                    //});
                 });
             });
         }
@@ -816,7 +815,7 @@ impl UISystem {
                 });
                 ui.add_space(1.0);
                 ui.vertical_centered(|author| {
-                    let txt = format!("Artur Gwoździowski 2023  |  ver.{}", env!("CARGO_PKG_VERSION"));
+                    let txt = format!("Artur Gwoździowski 2023-  |  ver.{}", env!("CARGO_PKG_VERSION"));
                     author.label(RichText::new(txt).color(Color32::RED).strong());
                 });
                 ui.add_space(6.0);
