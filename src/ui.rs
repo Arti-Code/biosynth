@@ -201,12 +201,14 @@ impl UISystem {
                     if ui.button(RichText::new("Save Simulation").weak().color(Color32::WHITE)).clicked() {
                         signals.save_sim = true;
                     }
+                    ui.separator();
                     if ui.button(RichText::new("Load Agent").weak().color(Color32::WHITE)).clicked() {
                         self.state.load_agent = true;
                     }
                     if ui.button(RichText::new("Save Agent").strong().color(Color32::WHITE),).clicked() {
                         signals.save_selected = true;
                     }
+                    ui.separator();
                     if ui.button(RichText::new("Export Settings").strong().color(Color32::WHITE),).clicked() {
                         signals.export_settings = true;
                     }
@@ -223,6 +225,7 @@ impl UISystem {
                         }
                         self.state.resize_world = !self.state.resize_world;
                     }
+                    ui.separator();
                     if ui.button(RichText::new("Quit").color(Color32::RED).strong()).clicked() {
                         self.state.quit = true;
                     }
