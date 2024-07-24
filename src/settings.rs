@@ -175,7 +175,7 @@ impl Default for Settings {
             show_plant_rad: false,
 
             sim_speed: 1.0,
-            stats_limit: 100,
+            stats_limit: 500,
             pause: false,
             debug: false,
             select_mode: SelectMode::RANDOM,

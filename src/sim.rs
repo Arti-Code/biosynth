@@ -95,7 +95,6 @@ impl Simulation {
             mouse_state: MouseState { pos: Vec2::NAN },
             agents: AgentBox::new(),
             plants: PlantBox::new(),
-            //ranking: vec![],
             ranking: Ranking::new(settings.ranking_size, 20, 10),
             last_autosave: 0.0,
             population_timer: Timer::new(1.0, true, true, false),
@@ -104,7 +103,6 @@ impl Simulation {
             terrain_timer: Timer::new(0.1, true, true, false),
             monitor: PerformanceMonitor::new(1.0),
             lifetimes: vec![],
-            //lifetimes: vec![],
             sizes: vec![],
             eyes: vec![],
             speeds: vec![],
@@ -145,26 +143,11 @@ impl Simulation {
         self.statistics.add_data_type("plants");
     }
 
+    fn rename_sim(&mut self, sim_name: String) {
+        self.simulation_name = sim_name;
+    }
+
     fn reset_sim(&mut self, sim_name: Option<&str>) {
-        /* self.simulation_name = match sim_name {
-            Some(name) => name.to_string(),
-            None => format!("Simulation{}", rand::gen_range(u8::MIN, u8::MAX)),
-        };
-        let settings = get_settings();
-        self.world_size = Vec2::new(settings.world_w as f32, settings.world_h as f32);
-        self.physics = Physics::new();
-        self.terrain = Terrain::new(settings.world_w as f32, settings.world_h as f32, settings.grid_size as f32, settings.water_lvl);
-        self.agents.agents.clear();
-        self.plants.plants.clear();
-        self.ranking = Ranking::new(settings.ranking_size, 20, 10);
-        //self.sim_time = 0.0;
-        self.sim_state = SimState::new();
-        self.sim_state.sim_name = String::from(&self.simulation_name);
-        self.signals = Signals::new();
-        self.selected = None;
-        self.select_phase = 0.0;
-        self.mouse_state = MouseState { pos: Vec2::NAN };
-        self.running = true; */
         self.clear_sim(sim_name);
         self.init();
     }
@@ -180,9 +163,7 @@ impl Simulation {
         self.agents = AgentBox::new();
         self.plants = PlantBox::new();
         self.ranking = Ranking::new(settings.ranking_size, 20, 10);
-        //self.sim_time = 0.0;
         self.sim_state = SimState::new();
-        self.sim_state.sim_name = String::from(&self.simulation_name);
         self.signals = Signals::new();
         self.selected = None;
         self.select_phase = 0.0;
@@ -230,7 +211,6 @@ impl Simulation {
                 let (n, l) = agent.get_nodes_links_num();
                 self.nodes.push(n);
                 self.links.push(l);
-
                 let mut sketch = agent.get_sketch();
                 sketch.points = (sketch.points).round();
                 self.ranking.add_agent(sketch);
@@ -289,7 +269,6 @@ impl Simulation {
         let (mouse_x, mouse_y) = mouse_position();
         let cursor = self.camera.screen_to_world(vec2(mouse_x, mouse_y));
         self.terrain.set_cursor_vec2(cursor);
-        
     }
 
     fn update_terrain(&mut self) {
@@ -329,11 +308,17 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 self.agents.agents.get(tg).inspect(|target| {
-                    let pow1 = 0.25*agent.size + agent.power as f32;
-                    let pow2 = 0.25*target.size + target.power as f32;
-                    let power1 = pow1 + pow1*random_unit();
-                    let power2 = pow2 + pow2*random_unit();
-                    if power1 > power2 {
+                    let shell1 = (agent.shell as f32)/4.0; 
+                    let shell2 = (target.shell as f32)/4.0; 
+                    let size1 = (agent.size as f32)/3.0; 
+                    let size2 = (target.size as f32)/3.0; 
+                    let power1 = agent.power as f32; 
+                    let power2 = target.power as f32; 
+                    let attack1 = size1 + power1 - shell1;
+                    let attack2 = size2 + power2 - shell2;
+                    let pow1 = attack1*0.5 + attack1*random_unit()*1.5;
+                    let pow2 = attack2*0.5 + attack2*random_unit()*1.5;
+                    if pow1 > pow2 {
                         let mut a = agent.power as f32;
                         a = a + a*random_unit();
                         let d = target.shell as f32;
@@ -374,7 +359,6 @@ impl Simulation {
                 if agent1.is_death() { killers.push(*id2); }
             }
         }
-
         for killer_rbh in killers.iter() {
             let killer = self.agents.agents.get_mut(killer_rbh).unwrap();
             killer.points += 30.0;
@@ -393,7 +377,7 @@ impl Simulation {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
                     self.plants.plants.get(tg).inspect(|_target| {
-                        let power1 = agent.size/4.0 + 12.0;
+                        let power1 = agent.size/3.0 + 12.0;
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
@@ -419,19 +403,16 @@ impl Simulation {
                 let eat = *dmg;
                 match self.agents.agents.get_mut(id) {
                     Some(agent) => {
-
                         agent.add_energy(eat);
                         if eat > 0.0 {
                             agent.points += eat*0.01;
                         }
                     },
-                    None => {
-                    }
+                    None => {}
                 }
             } else {
                 match self.plants.plants.get_mut(id) {
-                    None => {
-                    },
+                    None => {},
                     Some(source) => {
                         let damage = *dmg;
                         source.drain_eng(damage.abs());
@@ -456,7 +437,12 @@ impl Simulation {
                     match self.agents.get(selected) {
                         Some(selected_agent) => {
                             let phase = self.sim_state.sim_time % 1.0;
-                            draw_network(selected_agent, phase as f32, self.camera.target, self.camera.zoom);
+                            draw_network(
+                                selected_agent, 
+                                phase as f32, 
+                                self.camera.target, 
+                                self.camera.zoom
+                            );
                         },
                         None => {},
                     }
@@ -528,10 +514,12 @@ impl Simulation {
             self.signals.new_sim = false;
             self.reset_sim(Some(&self.signals.new_sim_name.to_owned()));
         }
+        if self.signals.rename {
+            self.signals.rename = false;
+            self.rename_sim(self.signals.new_sim_name.to_owned());
+        }
         if self.signals.new_settings {
             self.signals.new_settings = false;
-            //let rare = get_settings().rare_specie_mod;
-            //let r = ((rare * n as i32) as f32).log2() as i32;
         }
         if self.signals.save_selected {
             self.signals.save_selected = false;
@@ -544,8 +532,6 @@ impl Simulation {
         }
         if self.signals.save_sim {
             self.signals.save_sim = false;
-            //let mut settings = get_settings();
-            //settings.pause = true;
             self.save_sim();
         }
         if sign.load_sim_name.is_some() {
@@ -724,7 +710,6 @@ impl Simulation {
                             Ok(sim_sketch) => {
                                 self.reset_sim(Some(sim_sketch.simulation_name.as_str()));
                                 //self.simulation_name = sim_sketch.simulation_name.to_owned();
-                                self.sim_state.sim_name = sim_sketch.simulation_name.to_owned();
                                 self.sim_state.sim_time = sim_sketch.sim_time;
                                 self.plot_x = sim_sketch.sim_time as i32 / 100;
                                 self.last_autosave = sim_sketch.last_autosave;
@@ -1064,6 +1049,7 @@ impl Simulation {
             None => None,
         };
         self.ui.ui_process(
+            self.simulation_name.clone(),
             &self.sim_state, 
             &mut self.signals, 
             &self.camera, 

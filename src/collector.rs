@@ -1,13 +1,10 @@
 //#![allow(unused)]
-
-
 use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 use crate::util::*;
 use crate::phyx::physics::Physics;
 use crate::agent::*;
 use crate::plant::*;
-use egui_macroquad::egui::epaint::ahash::HashSet;
 use macroquad::prelude::*;
 use rapier2d::prelude::RigidBodyHandle;
 use crate::settings::*;

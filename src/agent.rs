@@ -23,7 +23,7 @@ use ::rand::prelude::*;
 #[derive(Clone, Debug)]
 pub struct Agent {
     pub pos: Vec2,
-    pub rot: f32,
+    rot: f32,
     mass: f32,
     vel: f32,
     ang_vel: f32,
@@ -36,7 +36,7 @@ pub struct Agent {
     pub hp: f32,
     color: Color,
     color_second: Color,
-    pub shape: SharedShape,
+    shape: SharedShape,
     timer_analize: Timer,
     timer_contact: Timer,
     pub network: Network,
@@ -51,7 +51,7 @@ pub struct Agent {
     pub enemy_family: Option<bool>,
     pub enemy_position: Option<Vec2>,
     pub enemy_dir: Option<f32>,
-    pub enemy_size: Option<f32>,
+    enemy_size: Option<f32>,
     enemy_mood: Option<Color>,
     pub plant: Option<RigidBodyHandle>,
     pub plant_position: Option<Vec2>,
@@ -80,7 +80,6 @@ pub struct Agent {
     eat_visual: bool,
     water: i32,
 }
-
 
 
 impl Agent {
@@ -139,7 +138,6 @@ impl Agent {
         let mut neuro_map = NeuroMap::new();
         neuro_map.add_sensors(input_pairs);
         neuro_map.add_effectors(output_pairs);
-
         let mut agent = Agent {
             pos,
             rot,
@@ -201,11 +199,9 @@ impl Agent {
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
-        //let new_rot = rot-PI;
-        //let limb = SharedShape::ball(size/2.0);
-        let limb = SharedShape::ball(size/2.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/3.0)*size*1.0;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/3.0)*size*1.0;
+        let limb = SharedShape::ball(size/3.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/2.5)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/2.5)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -253,8 +249,8 @@ impl Agent {
     fn mod_specie(&mut self, time: f64) {
         let settings = get_settings();
         let n = self.ancestors.get_ancestors().len() as i32;
-        let rare = settings.rare_specie_mod;
-        let r = (((rare * n) as f32).log2() * 1000.0) as i32 + 500;
+        let factor = settings.rare_specie_mod;
+        let r = specie_mod_rate(factor, n);
         if rand::gen_range(0, r) == 0 {
             let s = create_name(1);
             let i = rand::gen_range(0, 3)*2;
@@ -278,7 +274,6 @@ impl Agent {
     pub fn from_sketch(sketch: AgentSketch, physics: &mut Physics, time: f64) -> Agent {
         let settings = get_settings();
         let pos = vec2(sketch.pos[0], sketch.pos[1])+random_unit_vec2()*100.0;
-        //let pos = random_position(settings.world_w as f32, settings.world_h as f32);
         let color = Color::new(sketch.color[0], sketch.color[1], sketch.color[2], sketch.color[3]);
         let color_second = Color::new(sketch.color_second[0], sketch.color_second[1], sketch.color_second[2], sketch.color_second[3]);
         let size = sketch.size;
@@ -367,9 +362,9 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let limb = SharedShape::ball(size/2.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0)*size*1.0;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0)*size*1.0;
+        let limb = SharedShape::ball(size/3.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/2.5)*size*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/2.5)*size*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 
@@ -424,10 +419,8 @@ impl Agent {
         let rr = colh_r.shared_shape().as_ball().unwrap().radius;
         let (pos_l, _rot_l) = iso_to_vec2_rot(colh_l.position());
         let (pos_r, _rot_r) = iso_to_vec2_rot(colh_r.position());
-        //let vec_l = self.pos+((pos_l - self.pos).normalize_or_zero()*self.size);
         draw_circle(pos_l.x, pos_l.y, rl, GRAY);
         draw_circle(pos_r.x, pos_r.y, rr, GRAY);
-        //draw_line(self.pos.x, self.pos.y, vec_l.x, vec_l.y, 2.0, RED);
     }
 
     fn move_limbs(&mut self, physics: &mut Physics) {
@@ -440,7 +433,6 @@ impl Agent {
         let (pos_l, _rot_l) = iso_to_vec2_rot(colh_l.position());
         let mut vec_l = (pos_l-self.pos).normalize_or_zero();
         vec_l = vec_l.rotate(Vec2::from_angle(0.5))*self.size*1.5;
-        //vec_l = Vec2::from_angle(0.5).rotate(vec_l)*self.size*1.5;
         colh_l.set_position(Isometry2::new(Vector2::new(vec_l.x+self.pos.x, vec_l.y+self.pos.y), 0.0));
     }    
 
@@ -536,7 +528,6 @@ impl Agent {
     }
 
     pub fn attack(&self) -> Vec<RigidBodyHandle> {
-        //let dt = dt()*sim_speed();
         let mut hits: Vec<RigidBodyHandle> = vec![];
         if !self.attacking { return hits; }
         for (rbh, ang) in self.contacts.to_vec() {
@@ -556,7 +547,6 @@ impl Agent {
         } else {
             contact = 0.0;
         }
-        //let mut contact = clamp(self.contacts.len(), 0, 1) as f32;
         
         let tg_dist = match self.enemy_position {
             None => 0.0,
@@ -1095,7 +1085,12 @@ impl Agent {
         let m = ((self.mutations - 5) as f32) / 20.0;
         let mut_rate = settings.mutations + settings.mutations * m;
         self.mutations = Self::mutate_one(self.mutations, mut_rate);
-        self.size = Self::mutate_one_clamp(self.size as i32, mut_rate, get_settings().agent_size_min, get_settings().agent_size_max) as f32;
+        self.size = Self::mutate_one_clamp(
+            self.size as i32, 
+            mut_rate, 
+            get_settings().agent_size_min, 
+            get_settings().agent_size_max
+        ) as f32;
         self.power = Self::mutate_one(self.power, mut_rate);
         self.speed = Self::mutate_one(self.speed, mut_rate);
         self.shell = Self::mutate_one(self.shell, mut_rate);
@@ -1199,9 +1194,9 @@ impl Agent {
         agent.mod_specie(time);
         agent.mutate();
         agent.calc_hp();
-        let yaw = SharedShape::ball(agent.size/4.0);
-        let left: Vec2 = Vec2::from_angle(rot-PI-PI/4.0) * (agent.size)*1.0;
-        let right: Vec2 = Vec2::from_angle(rot-PI+PI/4.0) * (agent.size)*1.0;
+        let yaw = SharedShape::ball(agent.size/3.0);
+        let left: Vec2 = Vec2::from_angle(rot-PI-PI/2.5) * (agent.size)*1.0;
+        let right: Vec2 = Vec2::from_angle(rot-PI+PI/2.5) * (agent.size)*1.0;
         let colh_left = physics.add_collider(
             agent.rbh, 
             &left, 

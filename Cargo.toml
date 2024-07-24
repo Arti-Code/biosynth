@@ -1,6 +1,6 @@
 [package]
 name = "evolve"
-version = "1.0.0"
+version = "1.0.7"
 edition = "2021"
 authors = ["Artur Gwoździowski <gwozdyk@gmain.com>"]
 
@@ -18,10 +18,10 @@ keywords = [
 
 [dependencies]
 macroquad = "0.3.26"
-rapier2d = { version = "0.21.0", features = [ "simd-stable", "debug-render" ] }
+rapier2d = { version = "0.22.0", features = [ "simd-stable", "debug-render" ] }
 egui-macroquad = {version = "0.15.0"}
 egui_extras = {version = "0.28.1", features = ["image"]}
-image = "0.25.1"
+image = "0.25.2"
 serde_json = "1.0.120"
 serde = "1.0.204"
 noise = "0.9.0"
@@ -29,4 +29,4 @@ rand = "0.8.5"
 base64 = "0.22.1"
 
 [build-dependencies]
-embed-resource = "2.4.2"
+embed-resource = "2.4.3"

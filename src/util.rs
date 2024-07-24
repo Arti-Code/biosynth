@@ -300,7 +300,6 @@ pub fn iso_to_vec2_rot(isometry: &Isometry<Real>) -> (Vec2, f32) {
 }
 
 pub struct SimState {
-    pub sim_name: String,
     pub ver: String,
     pub agents_num: i32,
     pub sources_num: i32,
@@ -331,7 +330,6 @@ impl SimState {
 
     pub fn new() -> Self {
         Self {
-            sim_name: String::new(),
             ver: String::from(env!("CARGO_PKG_VERSION")),
             agents_num: 0,
             sources_num: 0,
@@ -478,4 +476,8 @@ pub fn draw_smooth_arc(r: f32, center: Vec2, rotation: f32, half_angle: f32, det
     let p0 = center + Vec2::from_angle(angle) * r;
     let p1 = center + Vec2::from_angle(rotation + half_angle) * r;
     draw_line(p0.x, p0.y, p1.x, p1.y, width, color);
+}
+
+pub fn specie_mod_rate(factor: i32, ancestor_num: i32) -> i32 {
+    return (((factor * ancestor_num) as f32).log2() * 500.0) as i32 + 500;
 }
