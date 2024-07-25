@@ -192,33 +192,33 @@ impl UISystem {
                 ui.add_space(5.0);
                 
                 menu::menu_button(ui, RichText::new("MENU").strong(), |ui| {
-                    if ui.button(RichText::new("New Simulation").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("New Simulation").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.new_sim = true;
                     }
-                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Load Simulation").strong().color(Color32::LIGHT_GREEN)).clicked() {
                         self.state.load_sim = true;
                     }
-                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Save Simulation").weak().color(Color32::LIGHT_GREEN)).clicked() {
                         signals.save_sim = true;
                     }
                     ui.separator();
-                    if ui.button(RichText::new("Load Agent").weak().color(Color32::WHITE)).clicked() {
+                    if ui.button(RichText::new("Load Agent").weak().color(Color32::LIGHT_BLUE)).clicked() {
                         self.state.load_agent = true;
                     }
-                    if ui.button(RichText::new("Save Agent").strong().color(Color32::WHITE),).clicked() {
+                    if ui.button(RichText::new("Save Agent").strong().color(Color32::LIGHT_BLUE),).clicked() {
                         signals.save_selected = true;
                     }
                     ui.separator();
-                    if ui.button(RichText::new("Export Settings").strong().color(Color32::WHITE),).clicked() {
+                    if ui.button(RichText::new("Export Settings").strong().color(Color32::DARK_GRAY),).clicked() {
                         signals.export_settings = true;
                     }
-                    if ui.button(RichText::new("Import Settings").strong().color(Color32::WHITE),).clicked() {
+                    if ui.button(RichText::new("Import Settings").strong().color(Color32::DARK_GRAY),).clicked() {
                         signals.import_settings = true;
                     }
                     if ui.button(RichText::new("Rename Simulation").strong().color(Color32::WHITE),).clicked() {
                         self.state.rename = true;
                     }
-                    if ui.button(RichText::new("Resize World").strong().color(Color32::WHITE),).clicked() {
+                    if ui.button(RichText::new("Resize World").strong().color(Color32::YELLOW),).clicked() {
                         if !self.state.resize_world {
                             let settings = get_settings();
                             self.temp_values.world_size = Some(macroquad::prelude::Vec2::new(settings.world_w as f32, settings.world_h as f32));
