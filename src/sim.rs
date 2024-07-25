@@ -308,8 +308,8 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 self.agents.agents.get(tg).inspect(|target| {
-                    let shell1 = (agent.shell as f32)/4.0; 
-                    let shell2 = (target.shell as f32)/4.0; 
+                    let shell1 = (agent.shell as f32)/2.0; 
+                    let shell2 = (target.shell as f32)/2.0; 
                     let size1 = (agent.size as f32)/3.0; 
                     let size2 = (target.size as f32)/3.0; 
                     let power1 = agent.power as f32; 
@@ -377,7 +377,7 @@ impl Simulation {
                 let attacks = agent.eat();
                 for tg in attacks.iter() {
                     self.plants.plants.get(tg).inspect(|_target| {
-                        let power1 = agent.size/3.0 + 12.0;
+                        let power1 = agent.size/3.0 + 12.0 - agent.power as f32 / 2.0;
                         let mut food = settings.eat_to_eng * power1 * dt;
                         let mut bite = -food;
                         if hits.contains_key(id) {
