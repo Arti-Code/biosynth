@@ -274,12 +274,10 @@ impl UISystem {
                     }
                 });
 
-
                 ui.add_space(10.0);
                 ui.separator();
                 ui.add_space(10.0);
 
-                
                 menu::menu_button(ui, RichText::new("SELECTION").strong(), |ui| {
                     if ui.button(RichText::new("Random").strong().color(Color32::GREEN)).clicked() {
                         let mut settings = get_settings();
@@ -307,7 +305,6 @@ impl UISystem {
                         set_settings(settings);
                     }
                 });
-
 
                 ui.add_space(10.0);
                 ui.separator();
@@ -957,7 +954,7 @@ impl UISystem {
     fn build_ancestors_window(&self, egui_ctx: &Context, agent: &Agent) {
         if self.state.ancestors {
             let ancestors = agent.ancestors();
-            Window::new(RichText::new("Ancestors").strong().color(Color32::WHITE)).default_pos((800.0, 0.0)).min_width(280.0).show(egui_ctx, |ui| {
+            Window::new(RichText::new("Ancestors").strong().color(Color32::WHITE)).default_pos((SCREEN_WIDTH-300., 100.0)).min_width(280.0).show(egui_ctx, |ui| {
                 for a in ancestors.iter() {
                     let (name, gen, time) = a.get_name_gen_time();
                     ui.horizontal(|row| {
@@ -1079,7 +1076,7 @@ impl UISystem {
                 ui.horizontal(|ui| {
                     let mut settings = get_settings();
                     ui.label(RichText::new("Brush Size"));
-                    ui.add(widgets::DragValue::new(&mut settings.brush_size).clamp_range(1..=10).speed(1));
+                    ui.add(widgets::DragValue::new(&mut settings.brush_size).clamp_range(1..=50).speed(1));
                     set_settings(settings);
                 });
             });

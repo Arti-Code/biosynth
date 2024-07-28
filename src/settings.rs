@@ -35,14 +35,6 @@ pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
 
-fn edit_terrain() -> bool {
-    return false;
-}
-
-fn default_brush_size() -> usize {
-    return 1;
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -103,9 +95,7 @@ pub struct Settings {
     pub peripheral_vision: f32,
     pub debug: bool,
     pub select_mode: SelectMode,
-    #[serde(default = "edit_terrain")]
     pub terrain_edit: bool,
-    #[serde(default = "default_brush_size")]
     pub brush_size: usize,
 }
 
@@ -146,20 +136,20 @@ impl Default for Settings {
             
             neurolink_rate: 0.15,
             hidden_nodes_num: 5,
-            hidden_layers_num: 5,
+            hidden_layers_num: 4,
             neuro_duration: 0.2,
             mut_add_link: 0.025,
             mut_del_link: 0.010,
             mut_add_node: 0.020,
-            mut_del_node: 0.08,
-            mut_change_val: 0.045,
+            mut_del_node: 0.008,
+            mut_change_val: 0.035,
 
             atk_to_eng: 0.8,
             eat_to_eng: 2.5,
             
             ranking_size: 30,
             repro_points: 30.0,
-            rare_specie_mod: 10,
+            rare_specie_mod: 8,
             born_eng: 0.5,
             born_eng_min: 0.9,
             born_eng_cost: 0.5,

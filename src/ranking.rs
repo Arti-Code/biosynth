@@ -40,7 +40,8 @@ impl Ranking {
         let general_copy = self.general.to_vec();
         for elem1 in general_copy.iter() {
             self.general.retain(|elem2| {
-                if elem1.specie == elem2.specie {
+                if elem2.points <= 0.0 { return false }
+                else if elem1.specie == elem2.specie {
                     if elem1.points == elem2.points {
                         return true;
                     } else if elem2.points < elem1.points {
@@ -53,8 +54,10 @@ impl Ranking {
                 }
             });
         }
-        if self.general.len() > self.max_size {
-            self.general.pop();
+        if self.general.len() + self.school.len() > self.max_size+self.max_school_size {
+            if self.general.len() > self.max_size {
+                self.general.pop();
+            }
         }
     }
 
@@ -64,7 +67,8 @@ impl Ranking {
         let school_copy = self.school.to_vec();
         for elem1 in school_copy.iter() {
             self.school.retain(|elem2| {
-                if elem1.specie == elem2.specie {
+                if elem2.points <= 0.0 { return false }
+                else if elem1.specie == elem2.specie {
                     if elem1.points == elem2.points {
                         return true;
                     } else if elem2.points < elem1.points {
@@ -77,8 +81,10 @@ impl Ranking {
                 }
             });
         }
-        if self.school.len() > self.max_school_size {
-            self.school.pop();
+        if self.school.len() + self.general.len() > self.max_school_size + self.max_size {
+            if self.school.len() > self.max_school_size {
+                self.school.pop();
+            }
         }
     }
 
@@ -121,8 +127,8 @@ impl Ranking {
             let idx = rand::gen_range(0, i);
             let agent = self.general.get_mut(idx).unwrap();
             s = agent.to_owned();
-            agent.points -= agent.points*0.5;
-            agent.points = agent.points.round();
+            agent.points -= agent.points*0.25;
+            agent.points = agent.points.floor();
         } else {
             if self.is_school_empty() {
                 return None;
@@ -131,8 +137,8 @@ impl Ranking {
             let idx = rand::gen_range(0, i);
             let agent = self.school.get_mut(idx).unwrap();
             s = agent.to_owned();
-            agent.points -= agent.points*0.5;
-            agent.points = agent.points.round();
+            agent.points -= agent.points*0.25;
+            agent.points = agent.points.floor();
         }
         return Some(s);
     }
@@ -142,8 +148,8 @@ impl Ranking {
         let idx = rand::gen_range(0, i);
         let agent = self.general.get_mut(idx).unwrap();
         let s = agent.to_owned();
-        agent.points -= agent.points*0.5;
-        agent.points = agent.points.round();
+        agent.points -= agent.points*0.25;
+        agent.points = agent.points.floor();
         return s;
     }
 
@@ -152,8 +158,8 @@ impl Ranking {
         let idx = rand::gen_range(0, i);
         let agent = self.general.get_mut(idx).unwrap();
         let s = agent.to_owned();
-        agent.points -= agent.points*0.5;
-        agent.points = agent.points.round();
+        agent.points -= agent.points*0.25;
+        agent.points = agent.points.floor();
         return s;
     }
 }
