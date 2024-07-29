@@ -72,7 +72,7 @@ impl PlantType for Plant {
             time: max_life,
             alife: true,
             clone_timer: Timer::new(10.0, true, true, true),
-            growth_timer: Timer::new(10.0, true, true, true),
+            growth_timer: Timer::new(5.0, true, true, true),
             clone_ready: false,
         }
     }

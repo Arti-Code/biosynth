@@ -12,6 +12,7 @@
 			"neurolink",
 			"permutationtable",
 			"phyx",
+			"plar",
 			"resl",
 			"xfactor"
 		],
@@ -22,6 +23,8 @@
 			"neurolink",
 			"permutationtable",
 			"phyx",
+			"plal",
+			"plar",
 			"resl",
 			"unmultiplied",
 			"xfactor"

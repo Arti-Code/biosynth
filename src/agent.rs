@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use crate::neuro::*;
+use crate::terrain::Terrain;
 use crate::timer::*;
 use crate::util::*;
 use macroquad::prelude::*;
@@ -43,6 +44,7 @@ pub struct Agent {
     pub alife: bool,
     pub lifetime: f32,
     pub repro_time: f32,
+    pub repro_time_needed: f32,
     pub generation: u32,
     pub contacts: Vec<(RigidBodyHandle, f32)>,
     pub contact_agent: bool,
@@ -79,6 +81,7 @@ pub struct Agent {
     attack_visual: bool,
     eat_visual: bool,
     water: i32,
+    water_ahead: f32,
 }
 
 
@@ -106,8 +109,8 @@ impl Agent {
         let color_second = random_color();
         let mut network = Network::new(1.0);
         let inp_labs = vec![
-            "CON", "ENY", "RES", "HP", "ENG", "TGL", "TGR", "DST", 
-            "DNG", "FAM", "REL", "RER", "RED", "PAI", "WAL", "H2O",
+            "CON", "ENY", "PLA", "HP", "ENG", "TGL", "TGR", "DST", 
+            "DNG", "FAM", "PLL", "PLR", "PLD", "PAI", "WAL", "H2O", "H3O",
             "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"
         ];
         let out_labs = vec![
@@ -160,6 +163,7 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             repro_time: 0.0,
+            repro_time_needed: settings.repro_time + settings.repro_time*((size-5.0)/10.0),
             generation: 0,
             enemy: None,
             enemy_family: None,
@@ -196,6 +200,7 @@ impl Agent {
             attack_visual: false,
             eat_visual: false,
             water: 0,
+            water_ahead: 0.0,
         };
         agent.ancestors.add_ancestor(Ancestor::new(&agent.specie, agent.generation as i32, 0));
         agent.calc_hp();
@@ -322,6 +327,7 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             repro_time: 0.0,
+            repro_time_needed: settings.repro_time + settings.repro_time*((size-5.0)/10.0),
             generation: gen,
             enemy: None,
             enemy_family: None,
@@ -358,6 +364,7 @@ impl Agent {
             attack_visual: false,
             eat_visual: false,
             water: 0,
+            water_ahead: 0.0,
         };
         agent.mod_specie(time);
         agent.mutate();
@@ -471,7 +478,7 @@ impl Agent {
         }
     }
 
-    pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics) -> bool {
+    pub fn update(&mut self, other: &HashMap<RigidBodyHandle, Agent>, physics: &mut Physics, terrain: &Terrain) -> bool {
         let dt = dt()*sim_speed();
         self.lifetime += dt;
         if self.repro_time < get_settings().repro_time {
@@ -481,6 +488,7 @@ impl Agent {
             self.update_contacts(other, physics);
             self.watch(physics);
             self.update_enemy_mood(other);
+            self.detect_water_ahead(terrain);
             self.analize();
             //self.contacts_clear();
         }
@@ -552,7 +560,7 @@ impl Agent {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
-                dist/self.vision_range
+                1.0-(dist/self.vision_range)
             },
         };
         let tg_ang = match self.enemy_dir {
@@ -575,24 +583,24 @@ impl Agent {
             tgl = 1.0-clamp(tg_ang, -1.0, 0.0).abs();
         }
         
-        let res_dist = match self.plant_position {
+        let plant_dist = match self.plant_position {
             None => 0.0,
             Some(pos2) => {
                 let dist = pos2.distance(self.pos);
                 dist/self.vision_range
             },
         };
-        let res_ang = match self.plant_dir {
+        let plant_ang = match self.plant_dir {
             None => 0.0,
             Some(dir) => {
                 dir
             },
         };
-        let mut resr: f32=0.0; let mut resl: f32=0.0;
-        if res_ang > 0.0 {
-            resr = 1.0 - clamp(res_ang, 0.0, 1.0);
-        } else if res_ang < 0.0 {
-            resl = 1.0-clamp(res_ang, -1.0, 0.0).abs(); 
+        let mut plar: f32=0.0; let mut plal: f32=0.0;
+        if plant_ang > 0.0 {
+            plar = 1.0 - clamp(plant_ang, 0.0, 1.0);
+        } else if plant_ang < 0.0 {
+            plal = 1.0-clamp(plant_ang, -1.0, 0.0).abs(); 
         }
         
         let fam: f32 = match self.enemy_family {
@@ -641,12 +649,13 @@ impl Agent {
         self.neuro_map.set_signal("DST", tg_dist);
         self.neuro_map.set_signal("DNG", tg_dng);
         self.neuro_map.set_signal("FAM", fam);
-        self.neuro_map.set_signal("REL", resl);
-        self.neuro_map.set_signal("RER", resr);
-        self.neuro_map.set_signal("RED", res_dist);
+        self.neuro_map.set_signal("PLL", plal);
+        self.neuro_map.set_signal("PLR", plar);
+        self.neuro_map.set_signal("PLD", plant_dist);
         self.neuro_map.set_signal("PAI", self.pain);
         self.neuro_map.set_signal("WAL", wall);
         self.neuro_map.set_signal("H2O", water);
+        self.neuro_map.set_signal("H3O", self.water_ahead);
         self.neuro_map.set_signal("RED", red);
         self.neuro_map.set_signal("GRE", gre);
         self.neuro_map.set_signal("BLU", blu);
@@ -947,6 +956,27 @@ impl Agent {
         }
     }
 
+    fn detect_water_ahead(&mut self, terrain: &Terrain) {
+        let step = get_settings().grid_size as f32;
+        
+        let dir = Vec2::from_angle(self.rot);
+        let mut dist = 0.0;
+        for i in 0..6 {
+            let pos = self.pos + dir * i as f32 * step;
+            let loc = terrain.pos_to_coord(&pos);
+            match terrain.get_cell(loc[0] as usize, loc[1] as usize) {
+                None => {},
+                Some(cell) => {
+                    if cell.get_water() > 0 {
+                        dist = 1.0-((step*i as f32)/(step*7.0));
+                        break;
+                    }
+                },
+            }
+        }
+        self.water_ahead = dist;
+    }
+
     fn contacts_clear(&mut self) {
         self.contacts.clear();
         self.contact_agent = false;
@@ -1154,6 +1184,7 @@ impl Agent {
             alife: true,
             lifetime: 0.0,
             repro_time: 0.0,
+            repro_time_needed: get_settings().repro_time + get_settings().repro_time*((self.size-5.0)/10.0),
             generation: self.generation + 1,
             enemy: None,
             enemy_family: None,
@@ -1190,6 +1221,7 @@ impl Agent {
             attack_visual: false,
             eat_visual: false,
             water: 0,
+            water_ahead: 0.0,
         };
         agent.mod_specie(time);
         agent.mutate();

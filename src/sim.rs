@@ -198,7 +198,7 @@ impl Simulation {
                     }
                 }
             }
-            if !agent.update(&agents, &mut self.physics) {
+            if !agent.update(&agents, &mut self.physics, &self.terrain) {
                 let lf = agent.lifetime.round();
                 self.lifetimes.push(lf);
                 self.sizes.push(agent.size);
@@ -308,20 +308,21 @@ impl Simulation {
             let attacks = agent.attack();
             for tg in attacks.iter() {
                 self.agents.agents.get(tg).inspect(|target| {
-                    let shell1 = (agent.shell as f32)/2.0; 
-                    let shell2 = (target.shell as f32)/2.0; 
+                    let shell1 = (agent.shell as f32)/3.0; 
+                    let shell2 = (target.shell as f32)/3.0; 
                     let size1 = (agent.size as f32)/3.0; 
                     let size2 = (target.size as f32)/3.0; 
                     let power1 = agent.power as f32; 
                     let power2 = target.power as f32; 
                     let attack1 = size1 + power1 - shell1;
                     let attack2 = size2 + power2 - shell2;
-                    let pow1 = attack1*0.5 + attack1*random_unit()*1.5;
-                    let pow2 = attack2*0.5 + attack2*random_unit()*1.5;
+                    let pow1 = attack1 + attack1*random_unit();
+                    let pow2 = attack2 + attack2*random_unit();
                     if pow1 > pow2 {
                         let mut a = agent.power as f32;
                         a = a + a*random_unit();
-                        let d = target.shell as f32;
+                        let mut d = target.shell as f32;
+                        d = d + d*random_unit();
                         let mut dmg = (a-d) * dt * settings.damage;
                         if dmg > 0.0 {
                             if hits.contains_key(id) {
