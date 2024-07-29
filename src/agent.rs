@@ -639,9 +639,12 @@ impl Agent {
         } else if self.water > 1 {
             water = 1.0;
         }
+        // "CON", "ENY", "PLA", "HP", "ENG", "TGL", "TGR", "DST", 
+        // "DNG", "FAM", "PLL", "PLR", "PLD", "PAI", "WAL", "H2O", "H3O",
+        // "RED", "GRE", "BLU", "WAL", "E-R", "E-G", "E-B"
         self.neuro_map.set_signal("CON", contact);
         self.neuro_map.set_signal("ENY", contact_agent);
-        self.neuro_map.set_signal("RES", contact_plant);
+        self.neuro_map.set_signal("PLA", contact_plant);
         self.neuro_map.set_signal("HP", hp);
         self.neuro_map.set_signal("ENG", eng);
         self.neuro_map.set_signal("TGL", tgl);
