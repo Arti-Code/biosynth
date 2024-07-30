@@ -35,6 +35,8 @@ pub fn sim_speed() -> f32 {
     return get_settings().sim_speed;
 }
 
+fn default_rank_decay() -> f32 { 0.1 }
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -97,6 +99,8 @@ pub struct Settings {
     pub select_mode: SelectMode,
     pub terrain_edit: bool,
     pub brush_size: usize,
+    #[serde(default = "default_rank_decay")]
+    pub rank_decay: f32,
 }
 
 impl Default for Settings {
@@ -171,6 +175,7 @@ impl Default for Settings {
             select_mode: SelectMode::RANDOM,
             terrain_edit: false,
             brush_size: 1,
+            rank_decay: 0.1,
        }
     }
 

@@ -165,6 +165,7 @@ impl UISystem {
             self.build_doc_window(egui_ctx);
             self.build_settings_enviro_window(egui_ctx, signals);
             self.build_settings_agent_window(egui_ctx, signals);
+            self.build_settings_misc_window(egui_ctx, signals);
             self.build_load_sim_window(egui_ctx);
             self.build_main_menu_win(egui_ctx);
             self.build_load_agent_window(egui_ctx);
@@ -319,6 +320,9 @@ impl UISystem {
                     }
                     if ui.button(RichText::new("Neuro Settings").strong().color(Color32::YELLOW)).clicked() {
                         self.state.neuro_settings = !self.state.neuro_settings;
+                    }
+                    if ui.button(RichText::new("Misc Settings").strong().color(Color32::YELLOW)).clicked() {
+                        self.state.misc_settings = !self.state.misc_settings;
                     }
                 });
 
@@ -1683,6 +1687,27 @@ impl UISystem {
         set_settings(settings.clone());
     }
 
+    fn build_settings_misc_window(&mut self, egui_ctx: &Context, signals: &mut Signals) {
+        if !self.state.misc_settings {
+            return;
+        }
+        let mut settings = get_settings();
+        Window::new("MISC SETTINGS").id("misc_settings_win".into()).default_pos((SCREEN_WIDTH/2., SCREEN_HEIGHT/2.)).fixed_size([380., 400.])
+        .title_bar(true).show(egui_ctx, |ui| {
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut rank_decay: f32 = settings.rank_decay;
+                column[0].label(RichText::new("RANKING DECAY RATE").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut rank_decay, 0.0..=1.0).step_by(0.01)).changed() {
+                    settings.rank_decay = rank_decay;
+                    signals.new_settings = true;
+                }
+            });
+        });
+        set_settings(settings.clone());
+    }
+
     fn build_left_panel(&mut self, egui_ctx: &Context, state: &SimState, agent: Option<&Agent>, ranking: &Ranking, statistics: &Statistics) {
         if !self.state.left_panel {
             return;
@@ -2157,6 +2182,7 @@ pub struct UIState {
     pub terrain_tools: bool,
     pub dbg: bool,
     pub rename: bool,
+    pub misc_settings: bool,
 }
 
 impl UIState {
@@ -2201,6 +2227,7 @@ impl UIState {
             terrain_tools: false,
             dbg: false,
             rename: false,
+            misc_settings: false,
         }
     }
 }

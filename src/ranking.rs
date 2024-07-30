@@ -118,29 +118,17 @@ impl Ranking {
     }
 
     pub fn get_random_agent(&mut self) -> Option<AgentSketch> {
-        let mut s: AgentSketch;
         if rand::gen_range(0, 2)  == 0 {
             if self.is_general_empty() {
                 return None;
             }
-            let i = self.general.len()-1;
-            let idx = rand::gen_range(0, i);
-            let agent = self.general.get_mut(idx).unwrap();
-            s = agent.to_owned();
-            agent.points -= agent.points*0.25;
-            agent.points = agent.points.floor();
+            return Some(self.get_random_from_ranking());
         } else {
             if self.is_school_empty() {
                 return None;
             }
-            let i = self.school.len()-1;
-            let idx = rand::gen_range(0, i);
-            let agent = self.school.get_mut(idx).unwrap();
-            s = agent.to_owned();
-            agent.points -= agent.points*0.25;
-            agent.points = agent.points.floor();
+            return Some(self.get_random_from_school());
         }
-        return Some(s);
     }
 
     fn get_random_from_ranking(&mut self) -> AgentSketch {
@@ -148,7 +136,7 @@ impl Ranking {
         let idx = rand::gen_range(0, i);
         let agent = self.general.get_mut(idx).unwrap();
         let s = agent.to_owned();
-        agent.points -= agent.points*0.25;
+        agent.points -= agent.points*get_settings().rank_decay;
         agent.points = agent.points.floor();
         return s;
     }
@@ -158,7 +146,7 @@ impl Ranking {
         let idx = rand::gen_range(0, i);
         let agent = self.general.get_mut(idx).unwrap();
         let s = agent.to_owned();
-        agent.points -= agent.points*0.25;
+        agent.points -= agent.points*get_settings().rank_decay;
         agent.points = agent.points.floor();
         return s;
     }
