@@ -200,6 +200,7 @@ impl Simulation {
             }
             if !agent.update(&agents, &mut self.physics, &self.terrain) {
                 let lf = agent.lifetime.round();
+                agent.points += lf*get_settings().lifetime_to_points;
                 self.lifetimes.push(lf);
                 self.sizes.push(agent.size);
                 self.eyes.push(agent.eyes as f32);

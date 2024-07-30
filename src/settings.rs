@@ -37,6 +37,8 @@ pub fn sim_speed() -> f32 {
 
 fn default_rank_decay() -> f32 { 0.1 }
 
+fn default_lifetime_to_points() -> f32 { 0.05 }
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub world_w: i32,
@@ -101,6 +103,8 @@ pub struct Settings {
     pub brush_size: usize,
     #[serde(default = "default_rank_decay")]
     pub rank_decay: f32,
+    #[serde(default = "default_lifetime_to_points")]
+    pub lifetime_to_points: f32,
 }
 
 impl Default for Settings {
@@ -176,6 +180,7 @@ impl Default for Settings {
             terrain_edit: false,
             brush_size: 1,
             rank_decay: 0.1,
+            lifetime_to_points: 0.05,
        }
     }
 

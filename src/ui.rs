@@ -1704,6 +1704,16 @@ impl UISystem {
                     signals.new_settings = true;
                 }
             });
+            ui.columns(2, |column| {
+                column[0].set_max_size(UIVec2::new(80., 75.));
+                column[1].set_max_size(UIVec2::new(280., 75.));
+                let mut lifetime_to_points: f32 = settings.lifetime_to_points;
+                column[0].label(RichText::new("LIFETIME TO POINTS").color(Color32::WHITE).strong());
+                if column[1].add(Slider::new(&mut lifetime_to_points, 0.0..=0.5).step_by(0.01)).changed() {
+                    settings.lifetime_to_points = lifetime_to_points;
+                    signals.new_settings = true;
+                }
+            });
         });
         set_settings(settings.clone());
     }
